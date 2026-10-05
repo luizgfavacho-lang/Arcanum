@@ -1,0 +1,7 @@
+# Arquivos de lugar gerados localmente (o codigo vem do Rojo)
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+sourcemap.json
+roblox.yml

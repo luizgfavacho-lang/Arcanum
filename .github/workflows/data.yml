@@ -1,10 +1,10 @@
-name: Dados
+name: Dados e testes
 
 on:
   push:
-    paths: ["Data/**", "Content/Text/**", "Config/Tags/**", "Source/ArcanumCore/Public/Data/**", "Scripts/validate_data.py"]
+    paths: ["Data/**", "Content/Text/**", "Config/Tags/**", "Source/ArcanumCore/Public/Data/**", "Scripts/validate_data.py", "roblox/**"]
   pull_request:
-    paths: ["Data/**", "Content/Text/**", "Config/Tags/**", "Source/ArcanumCore/Public/Data/**", "Scripts/validate_data.py"]
+    paths: ["Data/**", "Content/Text/**", "Config/Tags/**", "Source/ArcanumCore/Public/Data/**", "Scripts/validate_data.py", "roblox/**"]
 
 jobs:
   validate:
@@ -16,4 +16,17 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: python3 Scripts/validate_data.py --strict
+      - name: Validar CSV
+        run: python3 Scripts/validate_data.py --strict
+      - name: Dados Luau atualizados com os CSV
+        run: |
+          python3 roblox/tools/gen_data.py
+          git diff --exit-code roblox/src/shared/Data
+      - name: Instalar Lune
+        run: |
+          curl -sSL -o lune.zip https://github.com/lune-org/lune/releases/download/v0.10.5/lune-0.10.5-linux-x86_64.zip
+          unzip -q lune.zip -d "$HOME/.lune" && chmod +x "$HOME/.lune/lune"
+          echo "$HOME/.lune" >> "$GITHUB_PATH"
+      - name: Testes Luau
+        working-directory: roblox
+        run: lune run tests

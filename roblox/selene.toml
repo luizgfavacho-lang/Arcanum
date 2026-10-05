@@ -1,0 +1,5 @@
+std = "roblox"
+
+[lints]
+# Atributos dinamicos e casts sao comuns no codigo Roblox.
+shadowing = "allow"

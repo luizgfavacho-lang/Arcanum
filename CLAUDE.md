@@ -1,61 +1,50 @@
 # ARCANUM — contexto para o Claude Code
 
-RPG de ação em mundo aberto focado em magia, em UE 5.7 (C++ + GAS). Visual pintado (toon por
-post-process). Os docs completos estão em `Docs/` — leia só o que a tarefa pedir.
+RPG de ação focado em magia (5 escolas, covis selados, coop). **Plataforma ativa: Roblox**
+(pasta `roblox/`, Luau + Rojo). O projeto Unreal na raiz (`Source/`, `Content/`, `Config/`,
+`Scripts/*.ps1`) está **pausado** — não mexa nele sem pedido explícito.
+Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/07-Roblox.md`.
 
-## Comandos (saída já filtrada; nunca cole log completo no contexto)
-- Build: `powershell -ExecutionPolicy Bypass -File Scripts\Build.ps1` (padrão `ArcanumEditor Development`; requer `UE_ROOT`)
-- Testes: `powershell -ExecutionPolicy Bypass -File Scripts\Test.ps1 [-Filter Arcanum.Damage]` (valida dados e roda Automation)
-- Dados: `python3 Scripts/validate_data.py [--strict]` (sem engine, instantâneo)
-- Importar CSV → DataTables/Data Assets: `powershell -ExecutionPolicy Bypass -File Scripts\ImportData.ps1` (editor fechado)
-- Conteúdo da fatia (input, BPs, Niagara, abilities, L_Sandbox, ini) + import + verificação:
-  `powershell -ExecutionPolicy Bypass -File Scripts\SetupContent.ps1` (editor fechado; idempotente)
-- Logs completos: `Saved/Logs/{Build,Tests,ImportData,SetupContent,SetupContentPost,VerifyContent}.log` — use `Select-String`/`grep` neles.
+## Comandos (dentro de `roblox/`; saída curta)
+- Testes: `lune run tests` (regras de dano/mana/progressão + consistência dos dados)
+- Dados: `python ../Scripts/validate_data.py` → `python tools/gen_data.py` (CSV → `src/shared/Data`)
+- Formatação: `stylua src tests` · Lint: `selene src`
+- Jogo: `rojo serve` + plugin Rojo no Studio → Play
 
-## Mapa
+## Mapa (`roblox/`)
 ```
-Source/ArcanumCore/   framework de magia (GAS). Public/<Pasta>/X.h  ↔  Private/<Pasta>/X.cpp
-  Abilities/  base, Projectile, Channel, ChainLightning, ArcanumTargeting
-  Attributes/ AttributeSet      Components/ ASC, Spellbook, IArcanumSpellModifierSource
-  Effects/    GEs em C++ + DamageExecution      Data/ structs de linha + SpellDefinition
-  Math/       regras puras (testadas)           Settings/ CombatSettings (DefaultGame.ini)
-  Private/Tests/  Automation Tests (Arcanum.*)
-Source/Arcanum/       jogo: CharacterBase, PlayerCharacter, EnemyCharacter, PlayerState, GameMode
-Data/*.csv            balanceamento (fonte de verdade dos números)
-Content/Text/*.csv    String Tables (carregadas por LOCTABLE_FROMFILE, sem asset)
-Config/Tags/*.ini     tags de conteúdo (recargas, cues, talentos, passivas)
-Docs/                 01-GDD, 02-Arquitetura, 03-Renderizacao, 04-FatiaVertical, 05-Roadmap, 06-Tarefas
+src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado), Config/, SpellCatalog,
+             Spells, Net (remotes e contratos), Schools, States, Units, Signal
+src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
+             Spell, Enemy), Spells/ (Context, Projectile, Hitscan, ChainLightning), Combat/ (Targeting, Modifiers)
+src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, Vfx)
+tests/       Lune (*.spec.luau + TestKit)
 ```
+`Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
 
 ## Convenções
-- Prefixos da Unreal (`U`/`A`/`F`/`E`/`I`), tudo com `Arcanum` (`UArcanumX`). Uma classe por arquivo.
-- Identificadores, tags e ids em **inglês**; comentários e textos de UI em **PT-BR**.
-- Assets: `DA_Spell_<Id>`, `GA_<Id>`, `BP_Proj_<Id>`, `DT_<Tabela>`, `NS_<Preset>`, `M_/MI_`, `T_<Asset>_{A,N,M}`,
-  `IA_/IMC_`; pastas em `/Game/Arcanum/<Área>`.
-- `SpellId` = nome da linha em `Spells.csv` = sufixo das tags `Cooldown.Spell.<Id>` e `GameplayCue.Spell.<Id>.{Cast,Impact}`.
-- Unidades no CSV: metros e segundos (código converte ×100 para cm).
-- Mudou regra de dano/mana/progressão? Atualize `Math/` + teste em `Private/Tests/`.
-- Mudou coluna de CSV? Mude o struct `F*Row` junto (o validador acusa divergência).
-- Blueprints só para montar conteúdo (malha, Niagara, som, referências). Lógica em C++.
-- Código que usa API que mudou entre versões: `#if UE_VERSION_OLDER_THAN(5, 5, 0)`.
+- `--!strict` em todo arquivo. Um módulo por arquivo; serviços expõem `init()` e `start()`.
+- Identificadores em inglês; comentários e textos de UI em PT-BR.
+- **Servidor decide tudo** (custo, recarga, dano, estados); o cliente só pede e desenha.
+  Toda entrada do cliente é validada (`SpellService.sanitizeAim`).
+- Nunca edite `src/shared/Data/*.luau`: mude o CSV e rode o gerador.
+- Mudou regra de dano/mana/progressão? Atualize `Math/` + teste em `tests/`.
+- Magia nova: linha no CSV (já existem as 42) + entrada no `SpellCatalog` + tipo em `src/server/Spells/`.
+- Unidades no CSV em metros; converta com `Units.meters()` (1 stud = 0,28 m).
+- Sem assets binários no Git: mapa de teste e VFX placeholder são gerados por código.
 
 ## Decisões tomadas (não rediscutir)
-1. Uma ability C++ por **tipo** de magia; a magia concreta é o `UArcanumSpellDefinition` no `SourceObject` do spec.
-2. GEs genéricos definidos em C++ com SetByCaller (custo, recarga, dano, DoT, estado, cura); nada de GE `.uasset` para regras.
-3. Escala de vida do mod (jogador com 20 PV) para preservar os números de dano.
-4. ASC do jogador no PlayerState (Mixed); criaturas com ASC próprio (Minimal).
-5. Dano só no servidor; projéteis gerados no servidor (fase 1). Predição de projétil = M7.
-6. Toon via post-process sobre o GBuffer (sem fork da engine); contorno Sobel por profundidade + normal + ID.
-7. Queda de cadeia composta (`×(1−f)^n`); proc de canalizadas é chance **por segundo**.
-8. Mundo fixo feito à mão + PCG no editor (premissa; ver `Docs/01-GDD.md` §0).
-9. Recarga global de 0,4 s; canalizadas sem recarga e sem GCD.
+1. Roblox como plataforma; Unreal pausado (último estado: commit `c5957ca`).
+2. Escala de vida do mod (jogador com 20) para preservar os números de dano.
+3. Projéteis simulados no servidor sem Parts; o cliente desenha o mesmo trajeto.
+4. Queda de cadeia composta (`×(1−f)^n`); proc de canalizadas é chance **por segundo**.
+5. Recarga global de 0,4 s; canalizadas sem recarga e sem GCD.
+6. Portal Arcano = teleporte estilizado (sem visão ao vivo do outro lado).
+7. Escola de Sangue com visual estilizado (regras de conteúdo do Roblox).
+8. Monetização sem vender poder.
 
 ## Estado atual
-- **M0:** compila no UE 5.7 (Win64, ArcanumEditor Development); `Test.ps1` com 10 testes ok.
-  Conteúdo de editor montado por `SetupContent.ps1` (`Docs/04-FatiaVertical.md` §4; `verify_content.py` 30/30).
-  Manequim placeholder do template em `Content/Characters/Mannequins`. Pendente manual: cor dos `NS_Placeholder_*`.
-- Próximo: M1 — tarefas T-01..T-08 em `Docs/06-Tarefas.md`.
-
-## Perguntas em aberto (premissas em uso)
-Mundo fixo vs. procedural; versão da engine; plataforma online (EOS no M7); quem produz a arte.
-Detalhes em `Docs/01-GDD.md` §0.
+- **R0 (base) pronto no código:** 5 magias (Faísca, Bola de Fogo, Míssil Arcano, Corrente em Cadeia,
+  Drenar Vida), inimigos parados no Sandbox gerado por código, HUD, VFX placeholder, nível/XP/afinidade
+  (sem save). `lune run tests` = 122 ok. Ainda não testado dentro do Studio.
+- Próximo: R1 — tarefas RT-01..RT-06 em `Docs/07-Roblox.md` §5.

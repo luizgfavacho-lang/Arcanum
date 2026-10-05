@@ -1,0 +1,36 @@
+local TestKit = require("./TestKit")
+local ProgressionMath = require("../src/shared/Math/ProgressionMath")
+
+local test = TestKit.test
+
+test("Progressao.CurvaDeXP", function(expect)
+	expect.equal(ProgressionMath.xpToNextLevel(1), 50, "1 -> 2")
+	expect.equal(ProgressionMath.xpToNextLevel(4), 400, "4 -> 5")
+	expect.equal(ProgressionMath.xpToNextLevel(50), 0, "nivel maximo")
+	expect.equal(ProgressionMath.xpToNextLevel(0), 0, "nivel invalido")
+end)
+
+test("Progressao.PontosDeHabilidade", function(expect)
+	expect.equal(ProgressionMath.skillPointsAtLevel(4), 0, "nivel 4")
+	expect.equal(ProgressionMath.skillPointsAtLevel(5), 1, "nivel 5")
+	expect.equal(ProgressionMath.skillPointsAtLevel(50), 10, "nivel 50")
+	expect.equal(ProgressionMath.skillPointsAtLevel(80), 10, "acima do maximo")
+end)
+
+test("Progressao.AplicarXP", function(expect)
+	local level, xp = ProgressionMath.applyXP(1, 60)
+	expect.equal(level, 2, "sobe 1 nivel")
+	expect.equal(xp, 10, "sobra 10")
+	level, xp = ProgressionMath.applyXP(1, 50 + 141 + 260)
+	expect.equal(level, 4, "varios niveis")
+	expect.equal(xp, 0, "sem sobra")
+	level, xp = ProgressionMath.applyXP(1, 1e8)
+	expect.equal(level, 50, "para no 50")
+	expect.equal(xp, 0, "XP zerado no maximo")
+end)
+
+test("Progressao.Afinidade", function(expect)
+	expect.equal(ProgressionMath.affinityUsesToNext(0), 20, "0 -> 1")
+	expect.equal(ProgressionMath.affinityUsesToNext(9), 2000, "9 -> 10")
+	expect.equal(ProgressionMath.affinityUsesToNext(10), 0, "maximo")
+end)

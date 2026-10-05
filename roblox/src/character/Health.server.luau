@@ -1,0 +1,2 @@
+-- Substitui o script "Health" padrao do Roblox, que regenera vida sozinho.
+-- No ARCANUM a vida so volta por magias, pocoes e descanso (regras no servidor).

@@ -1,0 +1,30 @@
+--!strict
+-- GERADO por roblox/tools/gen_data.py a partir de Data/Talents.csv. NAO EDITE: mude o CSV e rode o gerador.
+
+return table.freeze({
+	Overload = table.freeze({ School = "Electricity", Node = 1, RequiredPointsInBranch = 0, GrantedTag = "Talent.Electricity.Overload", Value1 = 2, Value2 = 0.45, Value3 = 0, Notes = "Faisca +Value1 dano e Value2 chance de paralisar" }),
+	Conductivity = table.freeze({ School = "Electricity", Node = 2, RequiredPointsInBranch = 0, GrantedTag = "Talent.Electricity.Conductivity", Value1 = 1.5, Value2 = 6, Value3 = 9, Notes = "Paralisias x Value1; Campo Estatico raio Value2 e Value3 s" }),
+	ForkedChain = table.freeze({ School = "Electricity", Node = 3, RequiredPointsInBranch = 1, GrantedTag = "Talent.Electricity.ForkedChain", Value1 = 2, Value2 = 0.1, Value3 = 0, Notes = "Corrente +Value1 saltos; queda Value2 por salto" }),
+	SwiftStep = table.freeze({ School = "Electricity", Node = 4, RequiredPointsInBranch = 1, GrantedTag = "Talent.Electricity.SwiftStep", Value1 = 0.5, Value2 = 12, Value3 = 2, Notes = "Passo Relampago: recarga x Value1; Value2 m; dano x Value3" }),
+	EyeOfTheStorm = table.freeze({ School = "Electricity", Node = 5, RequiredPointsInBranch = 3, GrantedTag = "Talent.Electricity.EyeOfTheStorm", Value1 = 18, Value2 = 2, Value3 = 0, Notes = "Tempestade com Value1 raios; Raio Invocado cai Value2 vezes" }),
+	Combustion = table.freeze({ School = "Fire", Node = 1, RequiredPointsInBranch = 0, GrantedTag = "Talent.Fire.Combustion", Value1 = 2.5, Value2 = 0, Value3 = 0, Notes = "Bola de Fogo explode em raio Value1 m" }),
+	LingeringFlames = table.freeze({ School = "Fire", Node = 2, RequiredPointsInBranch = 0, GrantedTag = "Talent.Fire.LingeringFlames", Value1 = 2, Value2 = 9, Value3 = 0, Notes = "Queimaduras x Value1 de duracao; Muralha dura Value2 s" }),
+	VolcanicCore = table.freeze({ School = "Fire", Node = 3, RequiredPointsInBranch = 1, GrantedTag = "Talent.Fire.VolcanicCore", Value1 = 6, Value2 = 3, Value3 = 0, Notes = "Lanca de Magma perfura Value1 e +Value2 dano" }),
+	ScaldingArmor = table.freeze({ School = "Fire", Node = 4, RequiredPointsInBranch = 1, GrantedTag = "Talent.Fire.ScaldingArmor", Value1 = 40, Value2 = 2, Value3 = 0, Notes = "Armadura de Brasas dura Value1 s e reflete x Value2" }),
+	HeartOfTheSun = table.freeze({ School = "Fire", Node = 5, RequiredPointsInBranch = 3, GrantedTag = "Talent.Fire.HeartOfTheSun", Value1 = 7, Value2 = 5, Value3 = 0, Notes = "Meteoro raio Value1; chao em chamas Value2 s" }),
+	MissileBarrage = table.freeze({ School = "Energy", Node = 1, RequiredPointsInBranch = 0, GrantedTag = "Talent.Energy.MissileBarrage", Value1 = 5, Value2 = 0, Value3 = 0, Notes = "Missil Arcano com Value1 orbes" }),
+	EfficientShield = table.freeze({ School = "Energy", Node = 2, RequiredPointsInBranch = 0, GrantedTag = "Talent.Energy.EfficientShield", Value1 = 1.25, Value2 = 25, Value3 = 0, Notes = "Escudo: Value1 mana por dano; Value2 s" }),
+	FocusedBeam = table.freeze({ School = "Energy", Node = 3, RequiredPointsInBranch = 1, GrantedTag = "Talent.Energy.FocusedBeam", Value1 = 1.3, Value2 = 1.5, Value3 = 0.75, Notes = "Raio Arcano dano x Value1; largura x Value2; custo x Value3" }),
+	Stasis = table.freeze({ School = "Energy", Node = 4, RequiredPointsInBranch = 1, GrantedTag = "Talent.Energy.Stasis", Value1 = 8, Value2 = 0.6, Value3 = 0, Notes = "Prisao dura Value1 s; Pulso recarga x Value2" }),
+	EventHorizon = table.freeze({ School = "Energy", Node = 5, RequiredPointsInBranch = 3, GrantedTag = "Talent.Energy.EventHorizon", Value1 = 10, Value2 = 1.5, Value3 = 0, Notes = "Singularidade puxa a Value1 m; implosao x Value2" }),
+	SoulThirst = table.freeze({ School = "Necromancy", Node = 1, RequiredPointsInBranch = 0, GrantedTag = "Talent.Necromancy.SoulThirst", Value1 = 1, Value2 = 24, Value3 = 0, Notes = "Drenar Vida cura Value1 do dano; alcance Value2 m" }),
+	DarkPact = table.freeze({ School = "Necromancy", Node = 2, RequiredPointsInBranch = 0, GrantedTag = "Talent.Necromancy.DarkPact", Value1 = 1.5, Value2 = 1.3, Value3 = 0, Notes = "Servos duracao x Value1; dano x Value2" }),
+	BoneLegion = table.freeze({ School = "Necromancy", Node = 3, RequiredPointsInBranch = 1, GrantedTag = "Talent.Necromancy.BoneLegion", Value1 = 2, Value2 = 1.4, Value3 = 0, Notes = "+Value1 servos; vida x Value2" }),
+	Necrosis = table.freeze({ School = "Necromancy", Node = 4, RequiredPointsInBranch = 1, GrantedTag = "Talent.Necromancy.Necrosis", Value1 = 5, Value2 = 0.3, Value3 = 15, Notes = "Maldicao raio Value1; +Value2 dano recebido por Value3 s" }),
+	LordOfTheDead = table.freeze({ School = "Necromancy", Node = 5, RequiredPointsInBranch = 3, GrantedTag = "Talent.Necromancy.LordOfTheDead", Value1 = 8, Value2 = 30, Value3 = 0.5, Notes = "Exercito Value1 servos por Value2 s; Toque Mortal recarga x Value3" }),
+	Hemophilia = table.freeze({ School = "Blood", Node = 1, RequiredPointsInBranch = 0, GrantedTag = "Talent.Blood.Hemophilia", Value1 = 1.5, Value2 = 7, Value3 = 0, Notes = "Sangramentos x Value1; Hemorragia raio Value2" }),
+	HungryBlade = table.freeze({ School = "Blood", Node = 2, RequiredPointsInBranch = 0, GrantedTag = "Talent.Blood.HungryBlade", Value1 = 60, Value2 = 0.1, Value3 = 0, Notes = "Lamina dura Value1 s e cura Value2 do dano" }),
+	IronVeins = table.freeze({ School = "Blood", Node = 3, RequiredPointsInBranch = 1, GrantedTag = "Talent.Blood.IronVeins", Value1 = 0.7, Value2 = 0, Value3 = 0, Notes = "Custos em vida x Value1" }),
+	CrimsonBond = table.freeze({ School = "Blood", Node = 4, RequiredPointsInBranch = 1, GrantedTag = "Talent.Blood.CrimsonBond", Value1 = 0.75, Value2 = 15, Value3 = 0, Notes = "Corrente Carmesim desvia Value1 por Value2 s" }),
+	SanguineAvatar = table.freeze({ School = "Blood", Node = 5, RequiredPointsInBranch = 3, GrantedTag = "Talent.Blood.SanguineAvatar", Value1 = 0.2, Value2 = 0.3, Value3 = 0, Notes = "Pacto custa Value1 da vida; roubo de vida Value2" }),
+})
