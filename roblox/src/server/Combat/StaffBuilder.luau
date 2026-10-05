@@ -251,12 +251,15 @@ function StaffBuilder.build(school: string?, gemColor: Color3): Model
 	gripPoint.Position = Vector3.new(grip, 0, 0)
 	gripPoint.Parent = root
 
-	-- Tudo preso a raiz. Os fragmentos usam Weld (C0 animavel no cliente).
+	-- Tudo preso a raiz com Weld e deslocamento explicito (C0). NAO usar WeldConstraint aqui: ela
+	-- grava o deslocamento no instante em que entra no mundo, quando a raiz ja foi levada ao
+	-- personagem e as pecas ainda estao na origem (o cajado se desmontava).
 	for _, child in model:GetChildren() do
 		if child:IsA("BasePart") and child ~= root then
-			local weld = Instance.new("WeldConstraint")
+			local weld = Instance.new("Weld")
 			weld.Part0 = root
 			weld.Part1 = child
+			weld.C0 = root.CFrame:ToObjectSpace(child.CFrame)
 			weld.Parent = child
 		end
 	end

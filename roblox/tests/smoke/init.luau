@@ -185,6 +185,14 @@ for _, school in { "Electricity", "Fire", "Energy", "Necromancy", "Blood", "Defa
 	assert(staff.PrimaryPart and staff.PrimaryPart.Name == "Root", "PrimaryPart deve ser Root")
 	assert(math.abs(gem.CFrame.Position.X - StaffPose.GEM_DISTANCE) < 1e-3, "gema fora de GEM_DISTANCE")
 	assert(staff.Root:FindFirstChild("GripPoint"), "falta GripPoint")
+	-- Toda peca presa a raiz por Weld com C0 explicito (WeldConstraint desmontava o cajado).
+	for _, part in staff:GetChildren() do
+		if part:IsA("BasePart") and part.Name ~= "Root" then
+			local weld = part:FindFirstChildWhichIsA("Weld")
+			assert(weld and weld.Part0 == staff.Root, part.Name .. " sem Weld para a Root")
+			assert(not part:FindFirstChildWhichIsA("WeldConstraint"), part.Name .. " usa WeldConstraint")
+		end
+	end
 	staff.Parent = workspaceFolder
 end
 local castGem = StaffPose.gemWorld(roblox.CFrame.new(), "Cast")
