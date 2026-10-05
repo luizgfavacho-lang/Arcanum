@@ -8,7 +8,9 @@ post-process). Os docs completos estão em `Docs/` — leia só o que a tarefa p
 - Testes: `powershell -ExecutionPolicy Bypass -File Scripts\Test.ps1 [-Filter Arcanum.Damage]` (valida dados e roda Automation)
 - Dados: `python3 Scripts/validate_data.py [--strict]` (sem engine, instantâneo)
 - Importar CSV → DataTables/Data Assets: `powershell -ExecutionPolicy Bypass -File Scripts\ImportData.ps1` (editor fechado)
-- Logs completos: `Saved/Logs/{Build,Tests,ImportData}.log` — use `Select-String`/`grep` neles.
+- Conteúdo da fatia (input, BPs, Niagara, abilities, L_Sandbox, ini) + import + verificação:
+  `powershell -ExecutionPolicy Bypass -File Scripts\SetupContent.ps1` (editor fechado; idempotente)
+- Logs completos: `Saved/Logs/{Build,Tests,ImportData,SetupContent,SetupContentPost,VerifyContent}.log` — use `Select-String`/`grep` neles.
 
 ## Mapa
 ```
@@ -49,8 +51,9 @@ Docs/                 01-GDD, 02-Arquitetura, 03-Renderizacao, 04-FatiaVertical,
 9. Recarga global de 0,4 s; canalizadas sem recarga e sem GCD.
 
 ## Estado atual
-- **M0:** compila no UE 5.7 (Win64, ArcanumEditor Development).
-  Pendente: rodar `Test.ps1` (10 testes) e o setup do editor (`Docs/04-FatiaVertical.md` §4).
+- **M0:** compila no UE 5.7 (Win64, ArcanumEditor Development); `Test.ps1` com 10 testes ok.
+  Conteúdo de editor montado por `SetupContent.ps1` (`Docs/04-FatiaVertical.md` §4; `verify_content.py` 30/30).
+  Manequim placeholder do template em `Content/Characters/Mannequins`. Pendente manual: cor dos `NS_Placeholder_*`.
 - Próximo: M1 — tarefas T-01..T-08 em `Docs/06-Tarefas.md`.
 
 ## Perguntas em aberto (premissas em uso)

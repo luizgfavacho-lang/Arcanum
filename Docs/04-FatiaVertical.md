@@ -37,22 +37,31 @@ Objetivo: provar **o combate de magia, o visual pintado e o loop de covil** em 2
 | Corrente em Cadeia | `NS_Lightning` com 6–8 fios trançados por salto, regenerados a cada 1–2 quadros |
 | Golem de Cristal | `NS_Shockwave` (slam), cristais com fresnel, `NS_Flash` grande ao expor |
 
-## 4. Passos manuais no editor (uma vez)
-O código cria tudo que é texto; o editor precisa só ligar assets:
-1. `pwsh Scripts/Build.ps1` e abrir o editor.
-2. Criar `IA_Move` (Axis2D), `IA_Look` (Axis2D), `IA_Jump`, `IA_Spell1..5`, `IA_CastSelected`,
-   `IA_CycleSlot` (Axis1D) e `IMC_Default` com as teclas WASD, mouse, Espaço, 1–5, botão esquerdo e
-   roda. Pasta `/Game/Arcanum/Input`.
-3. `BP_PlayerCharacter` (pai `AArcanumPlayerCharacter`): malha, AnimBP e os assets de input.
-4. `BP_GameMode` (pai `AArcanumGameMode`): pawn = `BP_PlayerCharacter`.
-5. `BP_Proj_Fireball`/`BP_Proj_ArcaneMissile` (pai `AArcanumProjectile`) com o Niagara do rastro.
-6. `GA_Fireball`, `GA_ArcaneMissile` (pai `UArcanumAbility_Projectile`) e `GA_ChainLightning` (pai
-   `UArcanumAbility_ChainLightning`) em `/Game/Arcanum/Spells/Abilities`.
-7. Fechar o editor → `pwsh Scripts/ImportData.ps1`: cria os `DT_*` e os `DA_Spell_*` e liga
-   `AbilityClass` quando existir `GA_<Id>`.
-8. No `PlayerState` do BP (ou `BP_PlayerState`): `Spellbook.StartingSpells` = DAs da fatia.
-9. `ProcStateTag` nos DAs: Fireball = `State.Burning`, ArcaneMissile = `State.ArcaneCharge`,
-   ChainLightning e Spark = `State.Paralyzed`, BloodBlade = `State.Bleeding`.
+## 4. Setup do editor (automatizado)
+Com o C++ compilado e o editor **fechado**:
+`powershell -ExecutionPolicy Bypass -File Scripts\SetupContent.ps1` (idempotente; ~1 min). Ele faz:
+1. Copia do template Third Person da engine só o manequim usado (`SKM_Quinn_Simple`, `ABP_Unarmed` e
+   dependências) para `Content/Characters/Mannequins`, mantendo os caminhos `/Game/Characters/...`.
+2. `setup_content.py` (fase `pre`):
+   - `/Game/Arcanum/Input`: `IA_Move`/`IA_Look` (Axis2D), `IA_Jump`, `IA_Spell1..5`, `IA_CastSelected`
+     (Boolean), `IA_CycleSlot` (Axis1D) e `IMC_Default` (WASD com Swizzle/Negate, Mouse2D com Negate
+     só no Y, Espaço, 1–5, botão esquerdo, roda).
+   - `BP_PlayerCharacter` e `BP_Enemy_Dummy` (malha Z −90 / yaw −90, AnimBP; input no jogador).
+   - `/Game/Arcanum/Core`: `BP_PlayerState`, `BP_GameMode` (pawn e PlayerState acima).
+   - `/Game/Arcanum/Spells/Projectiles`: `NS_Placeholder_Fire`/`NS_Placeholder_Arcane` (cópias de
+     `FountainLightweight`) e `BP_Proj_Fireball`/`BP_Proj_ArcaneMissile` com componente Niagara `Trail`.
+   - `/Game/Arcanum/Spells/Abilities`: `GA_Fireball`, `GA_ArcaneMissile` (teleguiado) e `GA_ChainLightning`.
+   - `/Game/Arcanum/Maps/L_Sandbox`: chão 100×100 m, luz, céu, neblina, PlayerStart e 5 `BP_Enemy_Dummy`
+     a ~15 m; `DefaultEngine.ini` aponta GameMode e mapas (editor e jogo) para eles.
+3. `import_data.py`: `DT_*` e `DA_Spell_*` (liga `AbilityClass` aos `GA_<Id>`).
+4. `setup_content.py` (fase `post`): `ProcStateTag` (Fireball = `State.Burning`, ArcaneMissile =
+   `State.ArcaneCharge`, ChainLightning e Spark = `State.Paralyzed`, BloodBlade = `State.Bleeding`),
+   `Spellbook.StartingSpells` do `BP_PlayerState` (Fireball, ArcaneMissile, ChainLightning) e
+   `EnemyRow` = `DT_Enemies/SkeletonMage` no dummy.
+5. `verify_content.py`: confere cada asset (`[Verify] OK/FALHOU`); o script sai com erro se algo falhar.
+
+**Ainda manual:** a cor dos Niagara placeholder (laranja no Fire, violeta no Arcane). A cor mora no
+módulo do emissor, que a API Python não expõe; os sistemas saem com a cor do template.
 
 ## 5. Critérios de aceite
 - [ ] 60 fps em RTX 3060 / 1080p / Alto com 20 inimigos e as 6 magias em uso; 30 fps estáveis em Baixo.
