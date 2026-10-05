@@ -125,6 +125,10 @@ function Projectile.cast(ctx: Context.Context)
 
 	-- O projetil sai do cajado mas converge para onde a camera aponta.
 	local aimTarget, aimPoint = Targeting.aimTrace(ctx.Caster, ctx.Origin, Context.direction(ctx), range, 1.2)
+	if aimTarget then
+		-- Mira no centro do corpo (nao no ponto da superficie), como a mira do cliente.
+		aimPoint = Targeting.position(aimTarget)
+	end
 	local muzzle = Targeting.muzzle(ctx.Caster)
 	local baseDirection = (aimPoint - muzzle).Unit
 

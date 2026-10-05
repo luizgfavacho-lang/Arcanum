@@ -11,6 +11,7 @@ local Shared = ReplicatedStorage.Shared
 local Schools = require(Shared.Schools)
 local SpellCatalog = require(Shared.SpellCatalog)
 local Spells = require(Shared.Spells)
+local CameraController = require(script.Parent.CameraController)
 local ClientState = require(script.Parent.ClientState)
 
 local player = Players.LocalPlayer
@@ -69,7 +70,7 @@ function HudController.start()
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.new(1, 1, 1),
 	}, gui)
-	corner(crosshair, 3)
+	corner(crosshair, 5)
 	new("UIStroke", { Color = Color3.new(0, 0, 0), Thickness = 1, Transparency = 0.3 }, crosshair)
 
 	local healthFill, healthLabel = bar(gui, UDim2.new(0.5, 0, 1, -122), Color3.fromRGB(200, 40, 60))
@@ -160,7 +161,16 @@ function HudController.start()
 		Text = "1-5: magias  |  Clique: magia selecionada  |  Roda: trocar  |  Segure 4: Corrente em Cadeia  |  Alt: soltar o mouse",
 	}, gui)
 
+	local crosshairStroke = crosshair:FindFirstChildOfClass("UIStroke")
 	RunService.RenderStepped:Connect(function()
+		-- Mira vermelha e maior quando travada num inimigo.
+		local locked = CameraController.AimTarget ~= nil
+		crosshair.BackgroundColor3 = if locked then Color3.fromRGB(255, 70, 70) else Color3.new(1, 1, 1)
+		crosshair.Size = if locked then UDim2.fromOffset(10, 10) else UDim2.fromOffset(6, 6)
+		if crosshairStroke then
+			crosshairStroke.Thickness = if locked then 2 else 1
+		end
+
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid and character then
