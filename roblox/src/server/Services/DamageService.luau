@@ -8,9 +8,11 @@ local Shared = ReplicatedStorage.Shared
 local Settings = require(Shared.Config.CombatSettings)
 local DamageMath = require(Shared.Math.DamageMath)
 local Net = require(Shared.Net)
+local Signal = require(Shared.Signal)
 local States = require(Shared.States)
 local StatsService = require(script.Parent.StatsService)
 local StatusService = require(script.Parent.StatusService)
+local DodgeService = require(script.Parent.DodgeService)
 
 export type DamageOptions = {
 	Multiplier: number?, -- runas/talentos/passivas
@@ -18,6 +20,10 @@ export type DamageOptions = {
 }
 
 local DamageService = {}
+
+-- (source, target, dano tirado da vida, periodico?, escola) depois de cada golpe que acertou.
+-- A IA usa para reagir (aggro, atordoamento, empurrao).
+DamageService.Damaged = Signal.new() :: Signal.Signal<Model?, Model, number, boolean, string?>
 
 local lastAttacker: { [Model]: Model } = setmetatable({}, { __mode = "k" }) :: any
 local vfxFast = Net.get("VfxFast")
@@ -40,6 +46,10 @@ function DamageService.applySpellDamage(
 	end
 	local sourceStats = StatsService.get(source)
 	local periodic = options ~= nil and options.Periodic == true
+	-- Esquiva: golpes diretos na janela de invulnerabilidade nao acertam (DoT continua).
+	if not periodic and DodgeService.tryEvade(target) then
+		return 0
+	end
 	local charged = not periodic and StatusService.has(target, States.ArcaneCharge)
 
 	local damage = DamageMath.computeSpellDamage({
@@ -88,6 +98,7 @@ function DamageService.applySpellDamage(
 			Killed = humanoid.Health <= 0,
 		})
 	end
+	DamageService.Damaged:Fire(source, target, healthDamage, periodic, school)
 	return healthDamage
 end
 

@@ -14,14 +14,15 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 
 ## Mapa (`roblox/`)
 ```
-src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK),
+src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK, CombatMath),
              Config/, SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
              SoundCatalog (ids de som; vazios = silencio), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
              Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning),
              Combat/ (Targeting, Modifiers, StaffBuilder)
 src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx) e
-             Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio)
+             Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
+             Creatures)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -56,8 +57,11 @@ tests/       Lune (*.spec.luau + TestKit)
   com antecipação/mola, câmera de ombro esquerdo com tremor e kick de FOV, mira dinâmica com marcador de
   acerto, HUD completo (barras com trilha, slots com custo/recarga/falha, XP, nível), barras de inimigo e
   de chefe. Sem assistência de mira. Sons: ganchos prontos, ids vazios em `SoundCatalog`.
-- **Inimigos lutam** (RT-02): `server/Combat/EnemyCatalog` (o que cada um faz) + `EnemyBrain` (IA por
-  0,1 s); telegraphs no cliente (`Effects.dangerZone`, eventos `EnemyTelegraph`/`Slam`/`Explosion`/`Blink`);
-  HUD com bordas de dano e tela de morte.
-- `lune run tests` = 128 ok; `tests/smoke` valida efeitos, cajado, mundo e HUD. Polimento ainda não visto no Studio.
-- Próximo: R1 — tarefas RT-01, RT-03..RT-06 em `Docs/07-Roblox.md` §5.
+- **Combate** (RT-02+): criaturas com corpo proprio (`Combat/CreatureBuilder`: esqueleto de capuz, gosmas
+  gelatinosas, bulbo flutuante, golem de cristal) animadas no cliente (`Vfx/Creatures`). IA em
+  `EnemyBrain`: estados Idle/Alert/Combat/Search/Return/Flee, personalidade por individuo, bando, flanco,
+  desvio de magias; ataques telegrafados (bote, rajada, pancada, linha de cristais, explosao) que o
+  equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift com invulnerabilidade
+  e esquiva perfeita (+mana). Regras em `Math/CombatMath` (testado).
+- `lune run tests` = 151 ok; `tests/smoke` valida efeitos, cajado, mundo, HUD e corpos das criaturas. Polimento ainda não visto no Studio.
+- Próximo: R1 — tarefas RT-01, RT-03..RT-05 em `Docs/07-Roblox.md` §5.

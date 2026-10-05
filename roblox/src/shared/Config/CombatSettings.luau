@@ -30,6 +30,21 @@ return table.freeze({
 	-- Rede: tolerancia da mira enviada pelo cliente
 	MaxAimOriginOffset = 12, -- studs entre a origem enviada e a cabeca do personagem
 
+	-- Esquiva do jogador (Q / Shift esquerdo / B no controle)
+	DodgeCooldown = 0.9,
+	DodgeInvulnerability = 0.35, -- segundos sem tomar dano direto (DoT continua)
+	DodgeSpeed = 62, -- studs/s do impulso (aplicado pelo cliente, dono da fisica do personagem)
+	DodgeDuration = 0.2,
+	PerfectDodgeMana = 12, -- desviou de um golpe de verdade durante a janela: recupera mana
+
+	-- Equilibrio e empurrao dos inimigos (Math/CombatMath)
+	PoiseRecoverDelay = 1.5,
+	PoiseRecoverPerSecond = 0.6,
+	StaggerImmunity = 2.5,
+	KnockbackSpeed = 36,
+	KnockbackMinFraction = 0.12,
+	KnockbackDuration = 0.16,
+
 	-- Inimigos
 	EliteChance = 0.10,
 	EnemyRespawnSeconds = 8,

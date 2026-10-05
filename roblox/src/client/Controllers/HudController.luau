@@ -4,7 +4,8 @@
 -- * vida e mana com gradiente e "trilha" de dano que desce devagar;
 -- * nivel e barra de XP; faixa de "subiu de nivel";
 -- * 5 slots: cor/forma da escola, custo, recarga com contagem, escurece sem mana,
---   pulo ao conjurar, tremor + aviso ao falhar.
+--   pulo ao conjurar, tremor + aviso ao falhar;
+-- * esquiva: indicador de recarga ao lado da vida e aviso dourado na esquiva perfeita.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -161,6 +162,10 @@ local levelBanner: TextLabel
 local manaBar: Bar
 local hurtEdges: { Frame } = {}
 local deathOverlay: Frame
+local dodgeFill: Frame
+local dodgeScale: UIScale
+local dodgeReadyAt = 0
+local dodgeTotal = 1
 
 function HudController.castPulse(slot: number)
 	local ui = slots[slot]
@@ -173,6 +178,8 @@ end
 
 function HudController.feedback(reason: string, slot: number?)
 	local message = FEEDBACK_TEXT[reason] or reason
+	toast.TextColor3 = Color3.fromRGB(255, 120, 130)
+	toast.TextSize = 18
 	toast.Text = message
 	toast.TextTransparency = 0
 	toast.TextStrokeTransparency = 0.3
@@ -198,6 +205,29 @@ function HudController.feedback(reason: string, slot: number?)
 		manaBar.Root.BackgroundColor3 = Color3.fromRGB(160, 40, 60)
 		tween(manaBar.Root, 0.5, { BackgroundColor3 = PANEL })
 	end
+end
+
+-- Aviso curto com cor propria (ex.: esquiva perfeita).
+function HudController.notice(text: string, color: Color3)
+	toast.Text = text
+	toast.TextColor3 = color
+	toast.TextTransparency = 0
+	toast.TextStrokeTransparency = 0.3
+	toast.TextSize = 26
+	tween(toast, 0.25, { TextSize = 20 }, Enum.EasingStyle.Back)
+	task.delay(1.1, function()
+		if toast.Text == text then
+			tween(toast, 0.4, { TextTransparency = 1, TextStrokeTransparency = 1 })
+		end
+	end)
+end
+
+-- Esquiva usada: o indicador esvazia e enche durante a recarga.
+function HudController.dodged(cooldown: number)
+	dodgeReadyAt = os.clock() + cooldown
+	dodgeTotal = cooldown
+	dodgeScale.Scale = 0.8
+	tween(dodgeScale, 0.25, { Scale = 1 }, Enum.EasingStyle.Back)
 end
 
 -- Bordas da tela ficam vermelhas ao receber dano (mais forte quanto maior o golpe).
@@ -527,6 +557,38 @@ function HudController.start()
 	corner(levelBadge, 22)
 	new("UIStroke", { Color = Color3.fromRGB(255, 200, 90), Thickness = 2 }, levelBadge)
 
+	-- Esquiva (espelho do nivel, a direita da vida): enche de baixo para cima na recarga.
+	local dodge = new("Frame", {
+		Size = UDim2.fromOffset(44, 44),
+		Position = UDim2.new(0.5, 226, 1, -102),
+		AnchorPoint = Vector2.new(0.5, 1),
+		BackgroundColor3 = PANEL,
+		BackgroundTransparency = 0.15,
+		ClipsDescendants = true,
+	}, gui)
+	corner(dodge, 22)
+	new("UIStroke", { Color = Color3.fromRGB(150, 220, 255), Thickness = 2 }, dodge)
+	dodgeScale = new("UIScale", { Scale = 1 }, dodge)
+	dodgeFill = new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		Position = UDim2.fromScale(0, 1),
+		AnchorPoint = Vector2.new(0, 1),
+		BackgroundColor3 = Color3.fromRGB(90, 170, 230),
+		BackgroundTransparency = 0.35,
+		BorderSizePixel = 0,
+	}, dodge)
+	new("TextLabel", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamBlack,
+		TextSize = 10,
+		TextColor3 = TEXT,
+		TextStrokeTransparency = 0.4,
+		Text = "Q\nESQUIVA",
+		TextWrapped = true,
+		ZIndex = 2,
+	}, dodge)
+
 	toast = new("TextLabel", {
 		Size = UDim2.fromOffset(400, 26),
 		Position = UDim2.new(0.5, 0, 1, -236),
@@ -564,7 +626,7 @@ function HudController.start()
 		TextColor3 = Color3.fromRGB(210, 206, 224),
 		TextTransparency = 0.25,
 		TextStrokeTransparency = 0.7,
-		Text = "1-5 magias  •  Clique: magia selecionada  •  Roda: trocar  •  Segure 4: canalizar  •  V: trocar ombro  •  Alt: soltar o mouse",
+		Text = "1-5 magias  •  Clique: magia selecionada  •  Roda: trocar  •  Segure 4: canalizar  •  Q/Shift: esquivar  •  V: trocar ombro  •  Alt: soltar o mouse",
 	}, gui)
 
 	-- Subiu de nivel: faixa central.
@@ -614,6 +676,10 @@ function HudController.start()
 		local xpNext = player:GetAttribute("XPToNext") or 1
 		updateBar(xpBar, if xpNext > 0 then xp / xpNext else 1, dt)
 		levelBadge.Text = tostring(math.floor(player:GetAttribute("Level") or 1))
+
+		local dodgeLeft = dodgeReadyAt - os.clock()
+		dodgeFill.Size = UDim2.fromScale(1, 1 - math.clamp(dodgeLeft / dodgeTotal, 0, 1))
+		dodgeFill.BackgroundTransparency = if dodgeLeft > 0 then 0.65 else 0.35
 
 		local now = Workspace:GetServerTimeNow()
 		for i, ui in slots do

@@ -29,6 +29,8 @@ return table.freeze({
 	LifeDrain = s("", 0.5),
 	-- Combate e interface
 	Death = s("", 0.6, 0.85, 1.1),
+	Dodge = s("", 0.45, 0.95, 1.1), -- esquiva (sopro rapido)
+	Interrupt = s("", 0.7, 1, 1.1), -- golpe inimigo interrompido (estalo metalico)
 	LevelUp = s("", 0.7, 1, 1),
 	Fail = s("", 0.35, 1, 1),
 	Select = s("", 0.25, 1, 1.1),

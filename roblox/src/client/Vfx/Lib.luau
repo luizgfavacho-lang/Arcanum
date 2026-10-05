@@ -265,6 +265,15 @@ function Lib.muzzleOf(model: Instance?, fallback: Vector3): Vector3
 	return fallback
 end
 
+-- Chao logo abaixo de um ponto (ignora o proprio modelo e os efeitos). Sem chao: 2,8 studs abaixo.
+function Lib.groundBelow(position: Vector3, ignore: Instance?): Vector3
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = if ignore then { Lib.folder(), ignore } else { Lib.folder() }
+	local hit = Workspace:Raycast(position, Vector3.new(0, -40, 0), params)
+	return if hit then hit.Position else position - Vector3.new(0, 2.8, 0)
+end
+
 function Lib.rootPosition(model: Instance?): Vector3?
 	local root = model and model:FindFirstChild("HumanoidRootPart") :: BasePart?
 	return if root then root.Position else nil

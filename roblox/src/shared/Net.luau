@@ -6,6 +6,8 @@
 --   AimUpdate(origin: Vector3, aimPoint: Vector3)        [unreliable] mira durante canalizacao
 --   ChannelStop(slot: number)
 --   EquipSpell(spellId: string, slot: number)
+--   Dodge(direction: Vector3)                            esquiva: o cliente ja aplicou o impulso; o
+--                                                        servidor valida a recarga e abre a invulnerabilidade
 -- Servidor -> Cliente(s)
 --   Vfx(kind: string, payload: table)                     efeitos importantes (todos os clientes)
 --   VfxFast(kind: string, payload: table)                 [unreliable] ticks de canalizacao, numeros de dano
@@ -21,6 +23,7 @@ local DEFINITIONS: { [string]: string } = {
 	AimUpdate = "UnreliableRemoteEvent",
 	ChannelStop = "RemoteEvent",
 	EquipSpell = "RemoteEvent",
+	Dodge = "RemoteEvent",
 	Vfx = "RemoteEvent",
 	VfxFast = "UnreliableRemoteEvent",
 	SpellState = "RemoteEvent",

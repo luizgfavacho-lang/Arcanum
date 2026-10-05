@@ -20,6 +20,7 @@ local Numbers = require(Vfx.Numbers)
 local Staff = require(Vfx.Staff)
 local Auras = require(Vfx.Auras)
 local Audio = require(Vfx.Audio)
+local Creatures = require(Vfx.Creatures)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -83,7 +84,7 @@ local function dissolve(model: Model, palette: Lib.Palette, boss: boolean)
 		Effects.flash(root, palette, 1.6 * scale, true)
 		Lib.burst(root, "Wisp", palette, math.floor(24 * scale), { Speed = NumberRange.new(3, 9) })
 		Lib.burst(root, "Star", palette, math.floor(14 * scale))
-		Effects.shockwave(root - Vector3.new(0, 2.8, 0), palette, 5 * scale)
+		Effects.shockwave(Lib.groundBelow(root, model), palette, 5 * scale)
 		Audio.play("Death", root)
 	end
 end
@@ -108,6 +109,41 @@ local function pulseWarning(model: Model, duration: number, color: Color3)
 end
 
 local DANGER = Color3.fromRGB(255, 70, 60)
+local GOLD = Color3.fromRGB(255, 214, 90)
+local DODGE = Color3.fromRGB(150, 220, 255)
+
+-- Avisos ativos por criatura: um golpe interrompido apaga o aviso na hora.
+type Telegraph = { Cancel: () -> (), EndsAt: number }
+local telegraphs: { [Model]: { Telegraph } } = {}
+
+local function trackTelegraph(model: Model?, cancel: () -> (), duration: number)
+	if not model then
+		return
+	end
+	local now = os.clock()
+	local list = telegraphs[model] or {}
+	for i = #list, 1, -1 do
+		if list[i].EndsAt < now then
+			table.remove(list, i)
+		end
+	end
+	table.insert(list, { Cancel = cancel, EndsAt = now + duration })
+	telegraphs[model] = list
+end
+
+local function cancelTelegraphs(model: Model)
+	local list = telegraphs[model]
+	if list then
+		for _, t in list do
+			t.Cancel()
+		end
+		telegraphs[model] = nil
+	end
+end
+
+local function sourcePosition(source: any): Vector3?
+	return if typeof(source) == "Instance" then Lib.rootPosition(source) else nil
+end
 
 local HANDLERS: { [string]: (any) -> () } = {
 	Cast = function(p)
@@ -190,6 +226,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Numbers.damage(target, p.Amount, Lib.palette(p.School), p.Periodic == true)
 		if not p.Periodic then
 			hitFlash(target)
+			Creatures.flinch(target, sourcePosition(p.Source), math.clamp(p.Amount / 4, 0.4, 1.2))
 		end
 		if isMine(p.Source) and not p.Periodic then
 			HudController.hitmarker(p.Killed == true)
@@ -214,12 +251,22 @@ local HANDLERS: { [string]: (any) -> () } = {
 	EnemyTelegraph = function(p)
 		local palette = Lib.palette(p.School)
 		if p.Kind == "Slam" then
-			Effects.dangerZone(p.Position, p.Radius, p.Duration, DANGER)
+			trackTelegraph(p.Model, Effects.dangerZone(p.Position, p.Radius, p.Duration, DANGER), p.Duration)
 		elseif p.Kind == "Explode" then
 			if p.Model and p.Model.Parent then
 				pulseWarning(p.Model, p.Duration, palette.Halo)
-				local root = Lib.rootPosition(p.Model) or p.Position
-				Effects.dangerZone(root - Vector3.new(0, 2.8, 0), p.Radius, p.Duration, DANGER)
+			end
+			local root = (p.Model and Lib.rootPosition(p.Model)) or p.Position
+			local ground = Lib.groundBelow(root, p.Model)
+			trackTelegraph(p.Model, Effects.dangerZone(ground, p.Radius, p.Duration, DANGER), p.Duration)
+		elseif p.Kind == "Line" then
+			trackTelegraph(p.Model, Effects.dangerLine(p.From, p.To, p.Width, p.Duration, DANGER), p.Duration)
+		elseif p.Kind == "Pounce" then
+			-- O agachamento vem do atributo Windup (Vfx/Creatures); aqui so poeira e brilho.
+			local root = p.Model and Lib.rootPosition(p.Model)
+			if root then
+				Lib.burst(root, "Smoke", palette, 4, { Speed = NumberRange.new(2, 4) })
+				Lib.burst(root, "Star", palette, 6, { Speed = NumberRange.new(-5, -2) })
 			end
 		elseif p.Kind == "Charge" then
 			-- A pose de conjuracao vem do evento Cast; aqui so um brilho crescente na gema.
@@ -231,6 +278,92 @@ local HANDLERS: { [string]: (any) -> () } = {
 				8,
 				{ Speed = NumberRange.new(-6, -3), Lifetime = NumberRange.new(0.2, 0.3) }
 			)
+		end
+	end,
+
+	-- Golpe interrompido (equilibrio quebrado): aviso some, faiscas e texto dourado.
+	Interrupt = function(p)
+		local model = p.Model
+		if not model or not model.Parent then
+			return
+		end
+		cancelTelegraphs(model)
+		local root = Lib.rootPosition(model)
+		if root then
+			Effects.flash(root, { Core = Color3.new(1, 1, 1), Halo = GOLD, Accent = GOLD, Shape = "" }, 1.4, true)
+		end
+		Numbers.label(model, "INTERROMPIDO!", GOLD)
+		Audio.play("Interrupt", root)
+	end,
+
+	Stagger = function(p)
+		local model = p.Model
+		if not model or not model.Parent then
+			return
+		end
+		local palette = Lib.palette(model:GetAttribute("School"))
+		Effects.stunStars(model, palette, p.Duration or 0.8)
+		Creatures.flinch(model, nil, 1.4)
+		local root = Lib.rootPosition(model)
+		if root then
+			Lib.burst(root, "Star", palette, 10)
+			shakeNear(root, 0.25, 40)
+		end
+	end,
+
+	Pounce = function(p)
+		local palette = Lib.palette(p.School)
+		Lib.burst(p.Position, "Smoke", palette, 6, { Speed = NumberRange.new(3, 7) })
+		Lib.burst(p.Position + Vector3.new(0, 0.5, 0), "Star", palette, 6)
+	end,
+
+	Spikes = function(p)
+		local palette = Lib.palette(p.School)
+		Effects.crystalSpikes(p.From, p.To, p.Width, palette)
+		shakeNear((p.From + p.To) / 2, 0.5, 60)
+		Audio.play("Impact_" .. tostring(p.School), p.From)
+	end,
+
+	-- Chefe enfurecido: rugido com duas ondas e tremor forte.
+	Roar = function(p)
+		local model = p.Model
+		local root = model and Lib.rootPosition(model)
+		if not root then
+			return
+		end
+		local palette = Lib.palette(p.School)
+		local ground = Lib.groundBelow(root, model)
+		Effects.flash(root + Vector3.new(0, 3, 0), palette, 4, true)
+		Effects.shockwave(ground, palette, 18)
+		task.delay(0.35, Effects.shockwave, ground, palette, 26)
+		Lib.burst(root, "Wisp", palette, 40, { Speed = NumberRange.new(6, 14) })
+		shakeNear(root, 1, 120)
+		local highlight = Instance.new("Highlight")
+		highlight.FillColor = palette.Halo
+		highlight.FillTransparency = 0.8
+		highlight.OutlineColor = palette.Core
+		highlight.Parent = model
+		Numbers.label(model, "FÚRIA!", palette.Halo)
+	end,
+
+	Dodge = function(p)
+		if p.Model and p.Model.Parent and not isMine(p.Model) then
+			Effects.afterimage(p.Model, DODGE)
+		end
+	end,
+
+	PerfectDodge = function(p)
+		local model = p.Model
+		if not model or not model.Parent then
+			return
+		end
+		local root = Lib.rootPosition(model)
+		if root then
+			Effects.flash(root, { Core = Color3.new(1, 1, 1), Halo = DODGE, Accent = DODGE, Shape = "" }, 1.6, true)
+		end
+		if isMine(model) then
+			HudController.notice("ESQUIVA PERFEITA!  +mana", DODGE)
+			CameraController.kick(-3)
 		end
 	end,
 
@@ -246,7 +379,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 	Explosion = function(p)
 		local palette = Lib.palette(p.School)
 		Effects.flash(p.Position, palette, 3, true)
-		Effects.shockwave(p.Position - Vector3.new(0, 2.5, 0), palette, p.Radius)
+		Effects.shockwave(Lib.groundBelow(p.Position, nil), palette, p.Radius)
 		for i = 1, 7 do
 			local angle = (i / 7) * math.pi * 2
 			local reach = p.Radius * (0.8 + math.random() * 0.6)
@@ -271,6 +404,9 @@ local HANDLERS: { [string]: (any) -> () } = {
 	end,
 
 	Death = function(p)
+		if p.Model then
+			cancelTelegraphs(p.Model)
+		end
 		if p.Model and p.Model.Parent then
 			dissolve(p.Model, Lib.palette(p.School), p.Boss == true)
 		end
@@ -313,8 +449,28 @@ local function levelUpEffect()
 	CameraController.kick(4)
 end
 
+-- Esquiva do proprio jogador: desenhada na hora (sem esperar o servidor).
+function VfxController.dodgeLocal(character: Model, direction: Vector3)
+	Effects.afterimage(character, DODGE)
+	local root = Lib.rootPosition(character)
+	if root then
+		Lib.burst(
+			root - Vector3.new(0, 2.6, 0),
+			"Smoke",
+			Lib.palette("Energy"),
+			5,
+			{ Speed = NumberRange.new(2, 5), EmissionDirection = Enum.NormalId.Top }
+		)
+		Lib.burst(root, "Wisp", { Core = Color3.new(1, 1, 1), Halo = DODGE, Accent = DODGE, Shape = "" }, 6)
+	end
+	CameraController.kick(2)
+	Audio.play("Dodge", root)
+	local _ = direction
+end
+
 function VfxController.start()
 	Lib.folder()
+	Creatures.start()
 	Projectiles.start()
 	Numbers.start()
 	Staff.start()

@@ -15,7 +15,8 @@ type Pending = { Amount: number, Color: Color3, Small: boolean }
 local pending: { [Model]: Pending } = {}
 
 local function show(target: Model, text: string, color: Color3, amount: number, small: boolean)
-	local head = target:FindFirstChild("Head") :: BasePart?
+	-- Criaturas sem cabeca (gosmas, bulbo) usam o corpo.
+	local head = (target:FindFirstChild("Head") or target:FindFirstChild("Body")) :: BasePart?
 	if not head then
 		return
 	end
@@ -61,6 +62,11 @@ function Numbers.damage(target: Model, amount: number, palette: Lib.Palette, per
 		return
 	end
 	show(target, string.format("%.1f", amount), Color3.new(1, 1, 1):Lerp(palette.Halo, 0.25), amount, false)
+end
+
+-- Texto de destaque sobre o alvo (ex.: "INTERROMPIDO!").
+function Numbers.label(target: Model, text: string, color: Color3)
+	show(target, text, color, 6, false)
 end
 
 function Numbers.heal(target: Model, amount: number)

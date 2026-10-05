@@ -11,6 +11,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage.Shared
 local Net = require(Shared.Net)
+local Signal = require(Shared.Signal)
 local Units = require(Shared.Units)
 local Targeting = require(script.Parent.Parent.Combat.Targeting)
 local Context = require(script.Parent.Context)
@@ -37,6 +38,9 @@ type Projectile = {
 }
 
 local Projectile = {}
+
+-- (conjurador, posicao, velocidade) de cada projetil criado: a IA usa para tentar desviar.
+Projectile.Launched = Signal.new() :: Signal.Signal<Model, Vector3, Vector3>
 
 local active: { [string]: Projectile } = {}
 
@@ -184,6 +188,7 @@ function Projectile.cast(ctx: Context.Context)
 			School = row.School,
 			Caster = ctx.Caster,
 		})
+		Projectile.Launched:Fire(ctx.Caster, p.Position, p.Velocity)
 	end
 end
 

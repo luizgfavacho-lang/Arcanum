@@ -75,7 +75,7 @@ dono → `Vfx Cast` para todos → `Projectile`/`Hitscan`/`ChainLightning` → `
 4. No Studio: **Novo → Baseplate** (ou um lugar vazio). Na aba **Plugins → Rojo → Connect**.
 5. Aperte **Play** (F5). O mapa de teste é gerado por código (`WorldService`).
 6. Controles: **1–5** magias (4 é canalizada: segure), **clique** = magia selecionada, **roda** troca,
-   **Alt** solta o mouse.
+   **Q/Shift** esquiva, **V** troca o ombro, **Alt** solta o mouse.
 7. Ao terminar, salve o lugar (`.rbxl`) fora do Git; o código fica no repositório.
 
 **Testes e dados:**
@@ -109,13 +109,37 @@ e cole como `"rbxassetid://ID"` no evento correspondente.
 
 ## 5. Próximas tarefas (sessões locais com Sonnet)
 - **RT-01 Grimório:** UI para equipar magias nos 5 slots (`EquipSpell` já existe no servidor).
-- ~~**RT-02 IA básica**~~ *(feito)*: `Combat/EnemyCatalog` (comportamento por inimigo, dano do CSV) +
-  `Combat/EnemyBrain` (aggro, coleira, ataques com telegraph). Ossomante: Bola de Fogo com mira
-  antecipada, teleporta quando o jogador chega perto. Gosma: saltos, dano por contato, divide em 2
-  Gosminhas. Bulbo: kamikaze com aviso. Golem: pancada em área + mísseis teleguiados. Jogador: bordas
-  vermelhas ao tomar dano e tela "VOCÊ CAIU".
+- ~~**RT-02 IA**~~ *(feito)*: ver §6.
 - **RT-03 Lâmina de Sangue:** tipo `Melee` no catálogo; custo em vida (já suportado); sangramento.
 - **RT-04 Save:** ProfileStore com nível, XP, afinidades e slots.
 - **RT-05 Passiva Condutor:** fonte em `Combat/Modifiers` (+1 alvo em Eletricidade) e cura/mana no
   `DamageService` quando o atacante tem a passiva.
-- **RT-06 Morte estilizada:** inimigo vira partículas da escola e some.
+- ~~**RT-06 Morte estilizada**~~ *(feito)*: o corpo se desfaz em luz da escola.
+
+## 6. Combate e IA (como funciona)
+
+**Jogador.** Esquiva (Q, Shift ou B): impulso curto aplicado pelo cliente + 0,35 s de invulnerabilidade
+validada no servidor (`DodgeService`); recarga 0,9 s. Desviar de um golpe de verdade dentro da janela é
+*esquiva perfeita*: +12 de mana. Números em `Config/CombatSettings`, regras em `Math/CombatMath`.
+
+**Equilíbrio (poise).** Cada golpe direto soma dano ao equilíbrio da criatura; passou do limite
+(`EnemyCatalog.Poise`), ela fica **atordoada** e o golpe que estava preparando é **interrompido**
+("INTERROMPIDO!"), com 2,5 s de imunidade depois. Golpes grandes empurram criaturas leves (`Weight`).
+
+**Corpos.** `Combat/CreatureBuilder` monta tudo por código: Ossomante (esqueleto de capuz e manto, olhos
+em brasa), Gosmas (gelatina com núcleo e olhos), Bulbo (membrana elétrica flutuante com tentáculos) e
+Golem (pedra, punhos e cristais). `client/Vfx/Creatures` dá vida: squash & stretch, flutuar, inchar,
+cabeça seguindo o alvo e tranco ao apanhar.
+
+**IA** (`Combat/EnemyBrain`, 10 Hz). Estados: Ocioso (passeia e olha em volta) → Alerta ("!", reage no
+tempo dele, aponta e chama o bando) → Combate → Procura ("?", vai até onde te viu) → Volta (coleira,
+regenerando) e Fuga (pouca vida, conforme a coragem). Cada criatura sorteia personalidade (reação,
+agressividade, agilidade, coragem, velocidade, distância preferida). Visão em cone + audição de perto;
+apanhar revela de onde veio o golpe.
+
+| Criatura | Comportamento | Ataques |
+|---|---|---|
+| Ossomante | Mantém distância, anda de lado com pausas, contorna para achar ângulo, **desvia de projéteis** (passo ou teleporte), foge com pouca vida, zomba ao acertar | Bola de Fogo com mira antecipada; os agressivos disparam rajada de 2 |
+| Gosma / Gosminha | Cerca o alvo junto com o bando (cada uma por um ângulo), saltita | **Bote** (agacha tremendo e salta), contato; divide em 2 que já nascem atrás do matador |
+| Bulbo Tempestuoso | Flutua em zigue-zague | Incha e explode; **morto antes, estoura igual e fere todos — inclusive outras criaturas** |
+| Golem de Cristal | Avança devagar, guarda posição | Pancada em área, **linha de cristais** até o alvo, mísseis teleguiados; com 50% de vida **enfurece** (ruge, mais rápido, pancada dupla) |

@@ -1,8 +1,8 @@
 --!strict
--- Gera criaturas nos pontos ArcanumWorld/EnemySpawns, com stats de Data/Enemies.csv, e roda a IA
--- de cada uma (Combat/EnemyBrain + Combat/EnemyCatalog).
--- 10% dos mobs magicos viram elite (vida x2, dano x1,5 via +50 de Poder Magico, XP x2).
--- Renascem apos EnemyRespawnSeconds; filhotes (ex.: gosmas divididas) nao renascem.
+-- Gera criaturas nos pontos ArcanumWorld/EnemySpawns, com stats de Data/Enemies.csv, corpo de
+-- Combat/CreatureBuilder e IA de Combat/EnemyBrain + Combat/EnemyCatalog.
+-- 10% dos mobs magicos viram elite (vida x2, dano x1,5 via +50 de Poder Magico, XP x2, reagem
+-- mais rapido). Renascem apos EnemyRespawnSeconds; filhotes (ex.: gosmas divididas) nao renascem.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -19,8 +19,11 @@ local DamageService = require(script.Parent.DamageService)
 local ProgressionService = require(script.Parent.ProgressionService)
 local WorldService = require(script.Parent.WorldService)
 local StaffService = require(script.Parent.StaffService)
-local EnemyBrain = require(script.Parent.Parent.Combat.EnemyBrain)
-local EnemyCatalog = require(script.Parent.Parent.Combat.EnemyCatalog)
+local Combat = script.Parent.Parent.Combat
+local EnemyBrain = require(Combat.EnemyBrain)
+local EnemyCatalog = require(Combat.EnemyCatalog)
+local CreatureBuilder = require(Combat.CreatureBuilder)
+local Targeting = require(Combat.Targeting)
 
 -- Nomes exibidos (originais; ver Docs/01-GDD.md §5). TODO: mover para String Table.
 local DISPLAY_NAMES: { [string]: string } = {
@@ -35,52 +38,57 @@ local DISPLAY_NAMES: { [string]: string } = {
 	CrystalGolem = "Golem de Cristal",
 }
 
--- Animacoes padrao do R15 (catalogo do Roblox).
-local IDLE_ANIMATION = "rbxassetid://507766666"
-local WALK_ANIMATION = "rbxassetid://507777826"
+-- Animacoes padrao do R15 (catalogo do Roblox, liberadas para qualquer jogo).
+local ANIMATIONS: { [string]: string } = {
+	Idle = "rbxassetid://507766666",
+	Walk = "rbxassetid://507777826",
+	Run = "rbxassetid://507767714",
+	Point = "rbxassetid://507770453", -- avistou o alvo
+	Cheer = "rbxassetid://507770677", -- bracos para cima (preparo de pancada / rugido)
+	Laugh = "rbxassetid://507770818", -- zomba ao acertar ou vencer
+}
+local RUN_ABOVE = 11 -- studs/s: acima disso corre em vez de andar
 local AI_TICK = 0.1
 
 local EnemyService = {}
 
 local enemiesFolder: Folder
 local vfx = Net.get("Vfx")
-local brains: { [Model]: EnemyBrain.Brain } = {}
 
 local function buildModel(rowName: string, row: any, elite: boolean): Model
-	local palette = Schools[row.School]
-	local description = Instance.new("HumanoidDescription")
-	local body = if palette then palette.Halo:Lerp(Color3.new(0.2, 0.2, 0.25), 0.55) else Color3.fromRGB(90, 90, 100)
-	description.HeadColor = body
-	description.TorsoColor = body
-	description.LeftArmColor = body
-	description.RightArmColor = body
-	description.LeftLegColor = body
-	description.RightLegColor = body
-
-	local model = Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
-	model.Name = rowName
-	if row.bBoss then
-		model:ScaleTo(2.2)
+	local palette = Schools[row.School] or Schools.Energy
+	local model = CreatureBuilder.buildBlob(rowName, palette)
+	if not model then
+		local description = Instance.new("HumanoidDescription")
+		CreatureBuilder.describe(rowName, description, palette)
+		local rig = Players:CreateHumanoidModelFromDescription(description, Enum.HumanoidRigType.R15)
+		if row.bBoss then
+			rig:ScaleTo(2.2)
+		end
+		CreatureBuilder.dress(rig, rowName, palette)
+		model = rig
 	end
+	local m = model :: Model
+	m.Name = rowName
 
-	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
+	local humanoid = m:FindFirstChildOfClass("Humanoid") :: Humanoid
 	humanoid.DisplayName = DISPLAY_NAMES[rowName] or rowName
 	-- A barra de vida e o nome sao desenhados pelo cliente (client/Controllers/EnemyBars).
 	humanoid.HealthDisplayType = Enum.HumanoidHealthDisplayType.AlwaysOff
 	humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None
 	-- Morre inteiro (o cliente o desfaz em luz) em vez de desmontar.
 	humanoid.BreakJointsOnDeath = false
-	model:SetAttribute("DisplayName", humanoid.DisplayName)
-	model:SetAttribute("School", row.School)
-	model:SetAttribute("Boss", row.bBoss)
+	m:SetAttribute("DisplayName", humanoid.DisplayName)
+	m:SetAttribute("School", row.School)
+	m:SetAttribute("Boss", row.bBoss)
 
 	if elite then
 		local highlight = Instance.new("Highlight")
 		highlight.FillTransparency = 1
 		highlight.OutlineColor = Color3.fromRGB(255, 200, 60)
-		highlight.Parent = model
+		highlight.Parent = m
 	end
-	return model
+	return m
 end
 
 local function loadAnimation(animator: Animator, id: string): AnimationTrack?
@@ -92,40 +100,106 @@ local function loadAnimation(animator: Animator, id: string): AnimationTrack?
 	return if ok then track else nil
 end
 
--- Idle sempre; caminhada misturada pela velocidade (nao desliza parado no lugar).
-local function setupAnimations(humanoid: Humanoid)
+-- Idle sempre; andar/correr misturados pela velocidade (nao desliza parado no lugar).
+-- Cada criatura toca num ritmo um pouco diferente (ninguem respira em sincronia).
+local function setupAnimations(humanoid: Humanoid, tempo: number): { [string]: AnimationTrack }
 	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator")
 	animator.Parent = humanoid
-	local idle = loadAnimation(animator :: Animator, IDLE_ANIMATION)
-	local walk = loadAnimation(animator :: Animator, WALK_ANIMATION)
+	local tracks: { [string]: AnimationTrack } = {}
+	for name, id in ANIMATIONS do
+		local track = loadAnimation(animator :: Animator, id)
+		if track then
+			tracks[name] = track
+		end
+	end
+	local idle, walk, run = tracks.Idle, tracks.Walk, tracks.Run
 	if idle then
 		idle.Looped = true
-		idle:Play(0.2, 1, 0.8 + math.random() * 0.4)
+		idle.Priority = Enum.AnimationPriority.Idle
+		idle:Play(0.2, 1, tempo * (0.85 + math.random() * 0.3))
+	end
+	for _, name in { "Point", "Cheer", "Laugh" } do
+		local track = tracks[name]
+		if track then
+			track.Looped = false
+			track.Priority = Enum.AnimationPriority.Action
+		end
 	end
 	if walk then
 		walk.Looped = true
-		humanoid.Running:Connect(function(speed: number)
-			if speed > 0.5 then
-				if not walk.IsPlaying then
-					walk:Play(0.15)
-				end
-				walk:AdjustSpeed(math.clamp(speed / 14, 0.5, 1.6))
-			elseif walk.IsPlaying then
-				walk:Stop(0.2)
-			end
-		end)
+		walk.Priority = Enum.AnimationPriority.Movement
 	end
+	if run then
+		run.Looped = true
+		run.Priority = Enum.AnimationPriority.Movement
+	end
+	humanoid.Running:Connect(function(speed: number)
+		local running = speed > RUN_ABOVE and run ~= nil
+		local active = if running then run else walk
+		local other = if running then walk else run
+		if other and other.IsPlaying then
+			other:Stop(0.25)
+		end
+		if not active then
+			return
+		end
+		if speed > 0.5 then
+			if not active.IsPlaying then
+				active:Play(0.2)
+			end
+			local reference = if running then 20 else 12
+			active:AdjustSpeed(math.clamp(speed / reference, 0.5, 1.6) * tempo)
+		elseif active.IsPlaying then
+			active:Stop(0.25)
+		end
+	end)
+	return tracks
 end
 
-local spawnEnemy: (rowName: string, cframe: CFrame, respawnPart: BasePart?) -> ()
+-- Bulbo morto antes de explodir: estoura de qualquer jeito e fere TODOS em volta (jogadores e
+-- outras criaturas). Matar o bulbo perto do bando e uma tatica.
+local function deathBurst(
+	model: Model,
+	row: any,
+	burst: { DamageScale: number, Delay: number, RadiusMeters: number },
+	killer: Model?,
+	position: Vector3
+)
+	local radius = Units.meters(burst.RadiusMeters)
+	vfx:FireAllClients("EnemyTelegraph", {
+		Kind = "Explode",
+		Model = model,
+		Position = position,
+		Radius = radius,
+		Duration = burst.Delay,
+		School = row.School,
+	})
+	task.delay(burst.Delay, function()
+		local damage = row.AttackDamage * burst.DamageScale
+		vfx:FireAllClients("Explosion", { Position = position, Radius = radius, School = row.School })
+		for other, stats in StatsService.all() do
+			if
+				other ~= model
+				and stats.Humanoid.Health > 0
+				and (Targeting.position(other) - position).Magnitude <= radius
+			then
+				-- Criaturas atingidas contam como golpe do jogador (XP do abate vai para ele).
+				local source = if stats.Team == "Monsters" then killer else model
+				DamageService.applySpellDamage(source, other, damage, row.School)
+			end
+		end
+	end)
+end
 
-spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?)
+local spawnEnemy: (rowName: string, cframe: CFrame, respawnPart: BasePart?) -> Model?
+
+spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): Model?
 	local row = Enemies[rowName]
 	if not row then
 		warn("[Enemy] linha inexistente em Enemies.csv: " .. tostring(rowName))
-		return
+		return nil
 	end
-
+	local behavior = EnemyCatalog.get(rowName)
 	local elite = row.bMagical and not row.bBoss and math.random() < Settings.EliteChance
 	local model = buildModel(rowName, row, elite)
 	model:PivotTo(cframe)
@@ -144,13 +218,14 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?)
 		WalkSpeed = Units.meters(row.MoveSpeedMetersPerSecond),
 	})
 	model:SetAttribute("Elite", elite)
-	-- Criaturas magicas humanoides carregam cajado (bosses tem armas proprias no R3).
-	if row.bMagical and not row.bBoss then
+	if behavior.Staff then
 		task.spawn(StaffService.equip, model, row.School)
 	end
 
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
-	setupAnimations(humanoid)
+	local tracks = if CreatureBuilder.isBlob(rowName)
+		then {}
+		else setupAnimations(humanoid, if row.bBoss then 0.75 else 1)
 
 	-- Orientacao suave (AlignOrientation); a IA define para onde olhar.
 	local align: AlignOrientation? = nil
@@ -161,7 +236,7 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?)
 		local a = Instance.new("AlignOrientation")
 		a.Mode = Enum.OrientationAlignmentMode.OneAttachment
 		a.Attachment0 = attachment
-		a.Responsiveness = 10
+		a.Responsiveness = if row.bBoss then 6 else 12
 		a.MaxTorque = math.huge
 		a.CFrame = root.CFrame
 		a.Parent = root
@@ -169,19 +244,21 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?)
 		align = a
 	end
 
-	local behavior = EnemyCatalog.get(rowName)
-	local brain = EnemyBrain.new(model, row, behavior, align, cframe.Position)
+	local brain = EnemyBrain.new(model, row, behavior, align, cframe.Position, elite)
 	if brain then
-		brains[model] = brain
+		brain.Anims = tracks
 	end
 
 	humanoid.Died:Connect(function()
-		brains[model] = nil
+		local position = if root then root.Position else cframe.Position
+		local selfDestructed = brain ~= nil and brain.SelfDestructed
+		EnemyBrain.remove(model)
+		model:SetAttribute("Windup", nil)
+		model:SetAttribute("Awareness", nil)
 		-- Solta a orientacao para o corpo tombar enquanto se desfaz.
 		if align then
 			align:Destroy()
 		end
-		local position = if root then root.Position else cframe.Position
 		vfx:FireAllClients("Death", { Model = model, School = row.School, Boss = row.bBoss })
 
 		local killer = DamageService.getLastAttacker(model)
@@ -190,18 +267,27 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?)
 			ProgressionService.addXP(player, row.XPReward * (if elite then 2 else 1))
 		end
 
-		-- Divisao (Gosma Arcana -> gosminhas), espalhadas em volta.
+		if behavior.DeathBurst and not selfDestructed then
+			deathBurst(model, row, behavior.DeathBurst, killer, position)
+		end
+
+		-- Divisao (Gosma Arcana -> gosminhas), espalhadas em volta e ja de olho no matador.
 		if behavior.SplitInto then
-			for i = 1, behavior.SplitCount or 2 do
-				local angle = (i / (behavior.SplitCount or 2)) * math.pi * 2
+			local count = behavior.SplitCount or 2
+			for i = 1, count do
+				local angle = (i / count) * math.pi * 2 + math.random()
 				local offset = Vector3.new(math.cos(angle), 0, math.sin(angle)) * 3
-				task.delay(
-					0.15,
-					spawnEnemy,
-					behavior.SplitInto,
-					CFrame.new(position + offset + Vector3.new(0, 1, 0)),
-					nil
-				)
+				task.delay(0.15, function()
+					local child = spawnEnemy(
+						behavior.SplitInto :: string,
+						CFrame.new(position + offset + Vector3.new(0, 1, 0)),
+						nil
+					)
+					local childBrain = if child then EnemyBrain.get(child) else nil
+					if childBrain and killer and StatsService.isAlive(killer) then
+						EnemyBrain.provoke(childBrain, killer)
+					end
+				end)
 			end
 		end
 
@@ -218,6 +304,7 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?)
 			)
 		end
 	end)
+	return model
 end
 
 function EnemyService.start()
@@ -225,6 +312,19 @@ function EnemyService.start()
 	enemiesFolder = Instance.new("Folder")
 	enemiesFolder.Name = "Enemies"
 	enemiesFolder.Parent = world
+
+	-- Cada golpe recebido vai para a IA (aggro, atordoamento, empurrao); acertar o jogador
+	-- pode render uma zombaria.
+	DamageService.Damaged:Connect(function(source: Model?, target: Model, amount: number, periodic: boolean)
+		local victim = EnemyBrain.get(target)
+		if victim then
+			EnemyBrain.hurt(victim, source, amount, periodic)
+		end
+		local attacker = if source then EnemyBrain.get(source) else nil
+		if attacker and amount > 0 and not periodic then
+			EnemyBrain.landed(attacker)
+		end
+	end)
 
 	local spawns = world:FindFirstChild("EnemySpawns")
 	if not spawns then
@@ -241,17 +341,7 @@ function EnemyService.start()
 	-- Laco da IA.
 	while true do
 		task.wait(AI_TICK)
-		for model, brain in brains do
-			if not model.Parent then
-				brains[model] = nil
-			else
-				local ok, err = pcall(EnemyBrain.step, brain)
-				if not ok then
-					warn("[Enemy] erro na IA de " .. model.Name .. ": " .. tostring(err))
-					brains[model] = nil
-				end
-			end
-		end
+		EnemyBrain.stepAll()
 	end
 end
 

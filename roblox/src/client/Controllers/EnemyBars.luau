@@ -18,6 +18,9 @@ local BOSS_RANGE = 90
 
 type Entry = {
 	Gui: BillboardGui,
+	Awareness: TextLabel,
+	AwarenessScale: UIScale,
+	LastAwareness: any,
 	Fill: Frame,
 	Trail: Frame,
 	Humanoid: Humanoid,
@@ -50,17 +53,23 @@ local function attach(model: Model)
 		return
 	end
 	local humanoid = model:FindFirstChildOfClass("Humanoid") or model:WaitForChild("Humanoid", 5)
-	local head = model:FindFirstChild("Head") or model:WaitForChild("Head", 5)
+	-- Criaturas sem cabeca (gosmas, bulbo) usam o corpo; a altura da barra vem do servidor.
+	local head = model:FindFirstChild("Head") or model:FindFirstChild("Body") or model:WaitForChild("Head", 5)
 	if not humanoid or not humanoid:IsA("Humanoid") or not head then
 		return
 	end
+	local barOffset = model:GetAttribute("BarOffset")
 	local palette = Schools[model:GetAttribute("School") or ""] or Schools.Energy
 	local elite = model:GetAttribute("Elite") == true
 
 	local gui = new("BillboardGui", {
 		Name = "ArcanumBar",
 		Size = UDim2.new(5, 0, 1.1, 0),
-		StudsOffsetWorldSpace = Vector3.new(0, 2.6 * (if model:GetAttribute("Boss") then 2.2 else 1), 0),
+		StudsOffsetWorldSpace = Vector3.new(
+			0,
+			if typeof(barOffset) == "number" then barOffset else 2.6 * (if model:GetAttribute("Boss") then 2.2 else 1),
+			0
+		),
 		Adornee = head,
 		AlwaysOnTop = false,
 		MaxDistance = 110,
@@ -96,8 +105,32 @@ local function attach(model: Model)
 		fill
 	)
 
+	-- "!" (avistou) e "?" (procurando) acima do nome.
+	local awareness = new("TextLabel", {
+		Size = UDim2.fromScale(0.4, 1.1),
+		Position = UDim2.fromScale(0.5, -1.15),
+		AnchorPoint = Vector2.new(0.5, 0),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamBlack,
+		TextScaled = true,
+		TextStrokeTransparency = 0.2,
+		TextStrokeColor3 = Color3.fromRGB(40, 20, 10),
+		Text = "",
+	}, gui)
+	local awarenessScale = new("UIScale", { Scale = 1 }, awareness)
+
 	gui.Parent = player:WaitForChild("PlayerGui")
-	entries[model] = { Gui = gui, Fill = fill, Trail = trail, Humanoid = humanoid, Shown = 1, TrailValue = 1 }
+	entries[model] = {
+		Gui = gui,
+		Awareness = awareness,
+		AwarenessScale = awarenessScale,
+		LastAwareness = nil,
+		Fill = fill,
+		Trail = trail,
+		Humanoid = humanoid,
+		Shown = 1,
+		TrailValue = 1,
+	}
 end
 
 local function buildBossBar()
@@ -177,6 +210,17 @@ function EnemyBars.start()
 			entry.Shown, entry.TrailValue = smooth(entry.Shown, entry.TrailValue, fraction, dt)
 			entry.Fill.Size = UDim2.fromScale(entry.Shown, 1)
 			entry.Trail.Size = UDim2.fromScale(entry.TrailValue, 1)
+
+			local awareness = model:GetAttribute("Awareness")
+			if awareness ~= entry.LastAwareness then
+				entry.LastAwareness = awareness
+				entry.Awareness.Text = if awareness == "Alert" then "!" elseif awareness == "Search" then "?" else ""
+				entry.Awareness.TextColor3 = if awareness == "Alert"
+					then Color3.fromRGB(255, 205, 60)
+					else Color3.fromRGB(170, 210, 255)
+				entry.AwarenessScale.Scale = 1.8 -- "pop"
+			end
+			entry.AwarenessScale.Scale += (1 - entry.AwarenessScale.Scale) * (1 - math.exp(-dt * 14))
 
 			if model:GetAttribute("Boss") and myRoot then
 				local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?

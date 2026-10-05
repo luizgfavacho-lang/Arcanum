@@ -184,17 +184,18 @@ end
 
 -- Zona de perigo (telegrafia de ataque inimigo): aro no chao + disco que enche do centro para a
 -- borda durante `duration`. Quando o disco encosta no aro, o golpe acontece.
-function Effects.dangerZone(center: Vector3, radius: number, duration: number, color: Color3)
+-- Retorna uma funcao que cancela o aviso (golpe interrompido).
+function Effects.dangerZone(center: Vector3, radius: number, duration: number, color: Color3): () -> ()
 	local flat = CFrame.new(center + Vector3.new(0, 0.08, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	local segments = 32
-	local ringParts = {}
+	local parts: { BasePart } = {}
 	for i = 1, segments do
 		local angle = (i / segments) * math.pi * 2
 		local arc = 2 * math.pi * radius / segments
 		local pos = center + Vector3.new(math.cos(angle) * radius, 0.1, math.sin(angle) * radius)
 		local tangent = Vector3.new(-math.sin(angle), 0, math.cos(angle))
 		table.insert(
-			ringParts,
+			parts,
 			Lib.part(
 				Vector3.new(0.25, 0.12, arc * 1.05),
 				color,
@@ -203,20 +204,178 @@ function Effects.dangerZone(center: Vector3, radius: number, duration: number, c
 			)
 		)
 	end
-	local base = Lib.part(Vector3.new(0.06, radius * 2, radius * 2), color, flat, {
-		Shape = Enum.PartType.Cylinder,
-		Transparency = 0.82,
-		Material = Enum.Material.SmoothPlastic,
-	})
+	table.insert(
+		parts,
+		Lib.part(Vector3.new(0.06, radius * 2, radius * 2), color, flat, {
+			Shape = Enum.PartType.Cylinder,
+			Transparency = 0.82,
+			Material = Enum.Material.SmoothPlastic,
+		})
+	)
 	local fill =
 		Lib.part(Vector3.new(0.07, 0.2, 0.2), color, flat, { Shape = Enum.PartType.Cylinder, Transparency = 0.55 })
+	table.insert(parts, fill)
 	Lib.tween(fill, duration, { Size = Vector3.new(0.07, radius * 2, radius * 2) }, Enum.EasingStyle.Linear)
-	task.delay(duration, function()
-		for _, p in ringParts do
-			Lib.fade(p, 0.2, { Transparency = 1 })
+
+	local done = false
+	local function finish(fast: boolean)
+		if done then
+			return
 		end
-		Lib.fade(base, 0.2, { Transparency = 1 })
-		Lib.fade(fill, 0.2, { Transparency = 1 })
+		done = true
+		for _, p in parts do
+			Lib.fade(p, if fast then 0.12 else 0.2, { Transparency = 1 })
+		end
+	end
+	task.delay(duration, finish, false)
+	return function()
+		finish(true)
+	end
+end
+
+-- Faixa de perigo no chao (linha de cristais do chefe): contorno + faixa que enche de `from` a `to`.
+function Effects.dangerLine(from: Vector3, to: Vector3, width: number, duration: number, color: Color3): () -> ()
+	local delta = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local length = math.max(delta.Magnitude, 0.5)
+	local direction = delta.Unit
+	local ground = Vector3.new(0, 0.1, 0)
+	local mid = from + direction * length / 2 + ground
+	local frame = CFrame.lookAt(mid, mid + direction)
+	local side = direction:Cross(Vector3.yAxis)
+	local parts: { BasePart } = {}
+	table.insert(
+		parts,
+		Lib.part(
+			Vector3.new(width, 0.06, length),
+			color,
+			frame,
+			{ Transparency = 0.82, Material = Enum.Material.SmoothPlastic }
+		)
+	)
+	for _, s in { -1, 1 } do
+		table.insert(
+			parts,
+			Lib.part(Vector3.new(0.22, 0.12, length), color, frame + side * s * width / 2, { Transparency = 0.05 })
+		)
+	end
+	local startCenter = from + direction * 0.1 + ground
+	local fill = Lib.part(
+		Vector3.new(width, 0.08, 0.2),
+		color,
+		CFrame.lookAt(startCenter, startCenter + direction),
+		{ Transparency = 0.5 }
+	)
+	table.insert(parts, fill)
+	Lib.tween(fill, duration, { Size = Vector3.new(width, 0.08, length), CFrame = frame }, Enum.EasingStyle.Linear)
+
+	local done = false
+	local function finish(fast: boolean)
+		if done then
+			return
+		end
+		done = true
+		for _, p in parts do
+			Lib.fade(p, if fast then 0.12 else 0.2, { Transparency = 1 })
+		end
+	end
+	task.delay(duration, finish, false)
+	return function()
+		finish(true)
+	end
+end
+
+-- Cristais que rompem o chao em sequencia ao longo da linha.
+function Effects.crystalSpikes(from: Vector3, to: Vector3, width: number, palette: Lib.Palette)
+	local delta = Vector3.new(to.X - from.X, 0, to.Z - from.Z)
+	local length = delta.Magnitude
+	if length < 0.5 then
+		return
+	end
+	local direction = delta.Unit
+	local side = direction:Cross(Vector3.yAxis)
+	local count = math.max(math.floor(length / 2.2), 2)
+	for i = 1, count do
+		task.delay(i * 0.025, function()
+			local base = from + direction * (i - 0.5) * (length / count) + side * (math.random() - 0.5) * width * 0.6
+			local height = 2.5 + math.random() * 2.5
+			local tilt =
+				CFrame.Angles(math.rad(math.random(-18, 18)), math.random() * math.pi, math.rad(math.random(-18, 18)))
+			local final = CFrame.new(base + Vector3.new(0, height * 0.35, 0)) * tilt
+			local crystal = Lib.part(
+				Vector3.new(0.9, height, 0.9),
+				palette.Halo:Lerp(Color3.new(1, 1, 1), 0.25),
+				final - Vector3.new(0, height, 0),
+				{ Material = Enum.Material.Glass, Transparency = 0.2, Reflectance = 0.2 }
+			)
+			local core = Lib.part(Vector3.new(0.4, height * 0.8, 0.4), palette.Halo, final - Vector3.new(0, height, 0))
+			Lib.tween(crystal, 0.08, { CFrame = final }, Enum.EasingStyle.Back)
+			Lib.tween(core, 0.08, { CFrame = final }, Enum.EasingStyle.Back)
+			Lib.burst(base + Vector3.new(0, 0.3, 0), "Spark", palette, 5)
+			task.delay(0.7, function()
+				Lib.fade(crystal, 0.35, { Transparency = 1, CFrame = final - Vector3.new(0, height * 0.6, 0) })
+				Lib.fade(core, 0.35, { Transparency = 1, CFrame = final - Vector3.new(0, height * 0.6, 0) })
+			end)
+		end)
+	end
+end
+
+-- Imagem residual (esquiva): copia translucida do corpo que fica para tras e some.
+function Effects.afterimage(model: Model, color: Color3)
+	for _, part in model:GetChildren() do
+		if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency < 1 then
+			local ok, ghost = pcall(function()
+				return part:Clone()
+			end)
+			if ok and ghost then
+				ghost:ClearAllChildren()
+				ghost.Anchored = true
+				ghost.CanCollide = false
+				ghost.CanQuery = false
+				ghost.CanTouch = false
+				ghost.CastShadow = false
+				ghost.Material = Enum.Material.ForceField
+				ghost.Color = color
+				ghost.Transparency = 0.15
+				ghost.CFrame = part.CFrame
+				ghost.Parent = Lib.folder()
+				Lib.fade(ghost, 0.4, { Transparency = 1 })
+			end
+		end
+	end
+end
+
+-- Estrelas girando sobre a cabeca (atordoado).
+function Effects.stunStars(model: Model, palette: Lib.Palette, duration: number)
+	local head = (model:FindFirstChild("Head") or model:FindFirstChild("Body")) :: BasePart?
+	if not head then
+		return
+	end
+	local stars: { BasePart } = {}
+	for _ = 1, 3 do
+		table.insert(
+			stars,
+			Lib.part(Vector3.one * 0.35, palette.Core:Lerp(Color3.fromRGB(255, 220, 90), 0.6), head.CFrame, {
+				Shape = Enum.PartType.Ball,
+			})
+		)
+	end
+	local started = os.clock()
+	local connection: RBXScriptConnection
+	connection = RunService.RenderStepped:Connect(function()
+		local t = os.clock() - started
+		if t >= duration or not head.Parent then
+			connection:Disconnect()
+			for _, star in stars do
+				star:Destroy()
+			end
+			return
+		end
+		local top = head.Position + Vector3.new(0, head.Size.Y * 0.5 + 0.9, 0)
+		for i, star in stars do
+			local angle = t * 6 + i * math.pi * 2 / 3
+			star.CFrame =
+				CFrame.new(top + Vector3.new(math.cos(angle) * 1.1, math.sin(t * 9 + i) * 0.15, math.sin(angle) * 1.1))
+		end
 	end)
 end
 
@@ -226,7 +385,7 @@ function Effects.castSignature(caster: Model, palette: Lib.Palette, tier: number
 	if not root then
 		return
 	end
-	local feet = root - Vector3.new(0, 2.9, 0)
+	local feet = Lib.groundBelow(root, caster) + Vector3.new(0, 0.1, 0)
 	Effects.runeCircle(feet, palette, 2.2 + tier * 0.5, 0.45 + tier * 0.1)
 	for i = 1, 6 do
 		local angle = (i / 6) * math.pi * 2

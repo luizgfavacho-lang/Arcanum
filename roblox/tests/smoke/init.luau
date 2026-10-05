@@ -35,7 +35,7 @@ local services = {
 		end,
 	},
 	Debris = { AddItem = noop },
-	RunService = { RenderStepped = signal, Heartbeat = signal },
+	RunService = { RenderStepped = signal, Heartbeat = signal, Stepped = signal },
 	Players = {
 		LocalPlayer = {},
 		GetPlayers = function()
@@ -133,6 +133,9 @@ local function load(path: string, scriptRef)
 	}
 	e.TERRAIN = { FillBlock = noop, FillBall = noop, SetMaterialColor = noop }
 	e.SIGNAL = signal
+	e.VELOCITY = function()
+		return roblox.Vector3.zero
+	end
 	e.SIGNAL_OF = function()
 		return signal
 	end
@@ -154,6 +157,10 @@ local function load(path: string, scriptRef)
 	source = source:gsub(":WaitForChild%(", ":FindFirstChild(")
 	source = source:gsub("([%w_]+):GetAttributeChangedSignal%b()", "SIGNAL_OF(%1)")
 	-- O LocalPlayer simulado e uma Folder: sem personagem nem CharacterAdded.
+	-- Velocidade de montagem nao e simulada no Lune: criatura parada.
+	if path:find("Creatures") then
+		source = source:gsub("([%w_]+)%.AssemblyLinearVelocity", "VELOCITY(%1)")
+	end
 	if path:find("HudController") then
 		source = source:gsub("player%.CharacterAdded", "SIGNAL")
 		source = source:gsub("player%.Character%f[^%w_]", "nil")
@@ -189,7 +196,9 @@ for school in modules.Schools do
 	end
 	Effects.flash(V.new(0, 5, 0), palette, 2, true)
 	Effects.shockwave(V.new(0, 0, 0), palette, 6)
-	Effects.dangerZone(V.new(0, 0, 0), 5, 1, palette.Core)
+	Effects.dangerZone(V.new(0, 0, 0), 5, 1, palette.Core)()
+	Effects.dangerLine(V.new(0, 0, 0), V.new(20, 0, 5), 3, 1, palette.Core)()
+	Effects.crystalSpikes(V.new(0, 0, 0), V.new(20, 0, 5), 3, palette)
 	Effects.runeCircle(V.new(0, 0, 0), palette, 3, 0.5)
 	Lightning.bolt(V.new(0, 5, 0), V.new(30, 5, 10), palette)
 	Lightning.braid(V.new(0, 5, 0), V.new(20, 5, 0), palette, 7, 0.12)
@@ -220,6 +229,10 @@ head.CFrame = roblox.CFrame.new(0, 5, 0)
 head.Parent = fakeCaster
 Numbers.heal(fakeCaster, 2.5)
 Numbers.damage(fakeCaster, 6, Lib.palette("Fire"), false)
+Numbers.label(fakeCaster, "INTERROMPIDO!", roblox.Color3.new(1, 0.8, 0.3))
+Effects.afterimage(fakeCaster, roblox.Color3.new(0.6, 0.85, 1))
+Effects.stunStars(fakeCaster, Lib.palette("Energy"), 1)
+assert(Lib.groundBelow(V.new(0, 10, 0), nil).Y < 10, "groundBelow sem chao deve descer")
 
 -- Cajado: monta todos os estilos e confere a gema contra Shared/StaffPose.
 local StaffPose = modules.StaffPose
@@ -297,11 +310,125 @@ Hud.start()
 Hud.feedback("Mana", 1)
 Hud.hitmarker(true)
 Hud.castPulse(2)
+Hud.notice("ESQUIVA PERFEITA!", roblox.Color3.new(0.6, 0.85, 1))
+Hud.dodged(0.9)
 local EnemyBars = load("client/Controllers/EnemyBars.luau", controllersScript)
 EnemyBars.start()
 local guiCount = #playerGui:GetDescendants()
 assert(guiCount > 50, "HUD incompleto")
 print(string.format("HUD: ok (%d elementos)", guiCount))
+
+-- Criaturas: monta cada corpo (bolhas inteiras; humanoides sobre um R15 falso com as partes e
+-- tamanhos padrao), confere solda de todas as pecas e anima um quadro de cada (Vfx/Creatures).
+local CreatureBuilder = load("server/Combat/CreatureBuilder.luau", {})
+local Creatures = load("client/Vfx/Creatures.luau", vfxScript)
+services.Players.GetPlayerByUserId = function()
+	return nil
+end
+local enemiesFolder = roblox.Instance.new("Folder")
+enemiesFolder.Name = "Enemies"
+enemiesFolder.Parent = workspaceFolder
+
+local function checkWelds(model, label)
+	local root = model:FindFirstChild("HumanoidRootPart")
+	for _, p in model:GetDescendants() do
+		if p:IsA("BasePart") and p ~= root and p.Name ~= "Body" and not p:FindFirstChildWhichIsA("JointInstance") then
+			local isRig = p.Name:match("Torso$")
+				or p.Name:match("Arm$")
+				or p.Name:match("Leg$")
+				or p.Name:match("Hand$")
+				or p.Name:match("Foot$")
+				or p.Name == "Head"
+			assert(isRig, label .. ": peca solta " .. p.Name)
+		end
+	end
+end
+
+local creatureCount = 0
+for _, rowName in { "ArcaneSlime", "ArcaneSlimeSmall", "StormBloater" } do
+	local blob = CreatureBuilder.buildBlob(rowName, Lib.palette("Energy"))
+	assert(blob and blob.PrimaryPart and blob:FindFirstChildOfClass("Humanoid"), rowName .. " incompleto")
+	assert(blob.HumanoidRootPart:FindFirstChild("Body"), rowName .. " sem Motor6D Body")
+	checkWelds(blob, rowName)
+	blob.Parent = enemiesFolder
+	blob:SetAttribute("Windup", if rowName == "StormBloater" then "Explode" else "Pounce")
+	Creatures.debugStep(blob, 1 / 60)
+	Creatures.flinch(blob, V.new(5, 0, 0), 1)
+	Creatures.debugStep(blob, 1 / 60)
+	creatureCount += #blob:GetDescendants()
+end
+
+local function fakeR15()
+	local model = roblox.Instance.new("Model")
+	local sizes = {
+		HumanoidRootPart = V.new(2, 2, 1),
+		Head = V.new(1.2, 1.2, 1.2),
+		UpperTorso = V.new(2, 1.6, 1),
+		LowerTorso = V.new(2, 0.4, 1),
+		LeftUpperArm = V.new(1, 1.2, 1),
+		RightUpperArm = V.new(1, 1.2, 1),
+		LeftLowerArm = V.new(1, 1.2, 1),
+		RightLowerArm = V.new(1, 1.2, 1),
+		LeftHand = V.new(1, 0.3, 1),
+		RightHand = V.new(1, 0.3, 1),
+		LeftUpperLeg = V.new(1, 1.2, 1),
+		LeftLowerLeg = V.new(1, 1.2, 1),
+		LeftFoot = V.new(1, 0.3, 1),
+	}
+	for name, size in sizes do
+		local p = roblox.Instance.new("Part")
+		p.Name = name
+		p.Size = size
+		p.CFrame = roblox.CFrame.new(0, 3, 0)
+		p.Parent = model
+	end
+	local face = roblox.Instance.new("Decal")
+	face.Name = "face"
+	face.Parent = model.Head
+	local neck = roblox.Instance.new("Motor6D")
+	neck.Name = "Neck"
+	neck.Part0 = model.UpperTorso
+	neck.Part1 = model.Head
+	neck.Transform = roblox.CFrame.new() -- no Studio o Animator escreve isto a cada quadro
+	neck.Parent = model.Head
+	local waist = roblox.Instance.new("Motor6D")
+	waist.Name = "Root"
+	waist.Part0 = model.HumanoidRootPart
+	waist.Part1 = model.LowerTorso
+	waist.Transform = roblox.CFrame.new()
+	waist.Parent = model.LowerTorso
+	roblox.Instance.new("Humanoid").Parent = model
+	return model
+end
+
+for _, rowName in { "SkeletonMage", "CrystalGolem" } do
+	local description = roblox.Instance.new("HumanoidDescription")
+	CreatureBuilder.describe(rowName, description, Lib.palette("Fire"))
+	local rig = fakeR15()
+	CreatureBuilder.dress(rig, rowName, Lib.palette("Fire"))
+	assert(rig:GetAttribute("Creature") ~= "Plain", rowName .. " sem tipo")
+	assert(not rig.Head:FindFirstChildOfClass("Decal"), rowName .. " manteve o rosto padrao")
+	checkWelds(rig, rowName)
+	rig.Parent = enemiesFolder
+	rig:SetAttribute("Staggered", true)
+	Creatures.flinch(rig, V.new(0, 3, -5), 1)
+	Creatures.debugStep(rig, 1 / 60)
+	creatureCount += #rig:GetDescendants()
+end
+print(string.format("Criaturas: ok (%d pecas)", creatureCount))
+
+-- Fisica da esquiva e do empurrao: mesmas propriedades usadas no jogo.
+local push = roblox.Instance.new("LinearVelocity")
+push.RelativeTo = roblox.Enum.ActuatorRelativeTo.World
+push.VelocityConstraintMode = roblox.Enum.VelocityConstraintMode.Vector
+push.VectorVelocity = V.new(1, 0, 0)
+push.MaxForce = math.huge
+local dash = roblox.Instance.new("LinearVelocity")
+dash.VelocityConstraintMode = roblox.Enum.VelocityConstraintMode.Plane
+dash.PrimaryTangentAxis = V.new(1, 0, 0)
+dash.SecondaryTangentAxis = V.new(0, 0, 1)
+dash.PlaneVelocity = roblox.Vector2.new(1, 0)
+print("Fisica: ok")
 
 local count = 0
 for _ in workspaceFolder:GetDescendants() do
