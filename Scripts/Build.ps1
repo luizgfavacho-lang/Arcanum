@@ -18,6 +18,6 @@ $batch = if ($platform -eq "Win64") { Join-Path $engine "Engine/Build/BatchFiles
 $code = $LASTEXITCODE
 
 # error C2065 / warning C4996 (MSVC), file.cpp:10: error (clang), UHT/UBT errors.
-Show-Filtered $log '(\berror\b|warning C\d+|: warning:|Error:|Result: )' 40
+Show-Filtered $log '(\berror\b|warning C\d+|: warning|Result: |UnrealHeaderTool|UHT|failed)' 60
 Write-Host ("BUILD {0} ({1} {2} {3}) - log: {4}" -f ($(if ($code -eq 0) { "OK" } else { "FALHOU" })), $Target, $platform, $Config, $log)
 exit $code

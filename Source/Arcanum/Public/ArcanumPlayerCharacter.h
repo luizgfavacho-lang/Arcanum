@@ -14,7 +14,7 @@ struct FInputActionValue;
  * Mago controlado pelo jogador: camera de ombro, Enhanced Input e 5 atalhos de magia.
  * O ASC vive no AArcanumPlayerState. Cada atalho manda Pressed/Released para o InputID
  * igual ao indice do slot (canalizadas terminam ao soltar).
- * Assets de input (IA_*/IMC_Default) sao ligados no BP_PlayerCharacter — ver Docs/04.
+ * Assets de input (IA_<Nome> e IMC_Default) sao ligados no BP_PlayerCharacter - ver Docs/04.
  */
 UCLASS()
 class ARCANUM_API AArcanumPlayerCharacter : public AArcanumCharacterBase
