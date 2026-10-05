@@ -479,7 +479,7 @@ function HudController.start()
 		TextColor3 = Color3.fromRGB(210, 206, 224),
 		TextTransparency = 0.25,
 		TextStrokeTransparency = 0.7,
-		Text = "1-5 magias  •  Clique: magia selecionada  •  Roda: trocar  •  Segure 4: canalizar  •  Alt: soltar o mouse",
+		Text = "1-5 magias  •  Clique: magia selecionada  •  Roda: trocar  •  Segure 4: canalizar  •  V: trocar ombro  •  Alt: soltar o mouse",
 	}, gui)
 
 	-- Subiu de nivel: faixa central.

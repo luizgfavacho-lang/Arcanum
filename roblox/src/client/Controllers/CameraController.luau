@@ -2,7 +2,7 @@
 -- Camera de ombro para conjurar: atras do ombro ESQUERDO, um pouco mais alta e afastada.
 -- O cajado fica do lado direito, entao a gema, a conjuracao e o comeco do trajeto aparecem
 -- a direita da mira. Mouse travado no centro; o personagem vira com a camera.
--- Alt esquerdo solta o mouse (para clicar na interface).
+-- Alt esquerdo solta o mouse (para clicar na interface). V troca o ombro (transicao suave).
 --
 -- Mira: raio exato pelo centro da tela (sem assistencia). AimTarget = inimigo sob a mira (so
 -- para o HUD pintar a mira). "Juice": tremor (shake) e leve aumento de FOV ao conjurar.
@@ -14,8 +14,10 @@ local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 
-local SHOULDER_OFFSET = Vector3.new(-2.4, 1.4, 0)
-local ZOOM = 16
+-- Ajuste fino da camera (studs): lado (negativo = ombro esquerdo), altura acima da cabeca, distancia.
+local SHOULDER_SIDE = 2.3
+local SHOULDER_HEIGHT = 3.2
+local ZOOM = 17
 local BASE_FOV = 72
 local AIM_DISTANCE = 600
 
@@ -27,6 +29,8 @@ CameraController.AimTarget = nil :: Model?
 CameraController.ShakeScale = 1
 
 local trauma = 0 -- 0..1, decai sozinho; tremor = trauma^2
+local side = -1 -- -1 = ombro esquerdo, 1 = direito
+local currentOffset = Vector3.new(-SHOULDER_SIDE, SHOULDER_HEIGHT, 0)
 local fovKick = 0
 
 -- Tremor de camera: intensity ~0.2 (leve) a 1 (forte). Soma e satura em 1.
@@ -94,7 +98,7 @@ end
 
 local function onCharacter(character: Model)
 	local humanoid = character:WaitForChild("Humanoid") :: Humanoid
-	humanoid.CameraOffset = SHOULDER_OFFSET
+	humanoid.CameraOffset = currentOffset
 	humanoid.AutoRotate = false
 end
 
@@ -107,8 +111,13 @@ function CameraController.start()
 	end
 
 	UserInputService.InputBegan:Connect(function(input, processed)
-		if not processed and input.KeyCode == Enum.KeyCode.LeftAlt then
+		if processed then
+			return
+		end
+		if input.KeyCode == Enum.KeyCode.LeftAlt then
 			CameraController.MouseFree = not CameraController.MouseFree
+		elseif input.KeyCode == Enum.KeyCode.V then
+			side = -side
 		end
 	end)
 
@@ -123,6 +132,14 @@ function CameraController.start()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+
+		-- Ombro: transicao suave ao trocar de lado.
+		local goalOffset = Vector3.new(side * SHOULDER_SIDE, SHOULDER_HEIGHT, 0)
+		currentOffset = currentOffset:Lerp(goalOffset, 1 - math.exp(-dt * 10))
+		if humanoid then
+			humanoid.CameraOffset = currentOffset
+		end
+
 		if root and humanoid and humanoid.Health > 0 and humanoid.WalkSpeed > 0 then
 			local look = camera.CFrame.LookVector
 			local flat = Vector3.new(look.X, 0, look.Z)
