@@ -182,6 +182,44 @@ function Effects.runeCircle(center: Vector3, palette: Lib.Palette, radius: numbe
 	end)
 end
 
+-- Zona de perigo (telegrafia de ataque inimigo): aro no chao + disco que enche do centro para a
+-- borda durante `duration`. Quando o disco encosta no aro, o golpe acontece.
+function Effects.dangerZone(center: Vector3, radius: number, duration: number, color: Color3)
+	local flat = CFrame.new(center + Vector3.new(0, 0.08, 0)) * CFrame.Angles(0, 0, math.rad(90))
+	local segments = 32
+	local ringParts = {}
+	for i = 1, segments do
+		local angle = (i / segments) * math.pi * 2
+		local arc = 2 * math.pi * radius / segments
+		local pos = center + Vector3.new(math.cos(angle) * radius, 0.1, math.sin(angle) * radius)
+		local tangent = Vector3.new(-math.sin(angle), 0, math.cos(angle))
+		table.insert(
+			ringParts,
+			Lib.part(
+				Vector3.new(0.25, 0.12, arc * 1.05),
+				color,
+				CFrame.lookAt(pos, pos + tangent),
+				{ Transparency = 0.05 }
+			)
+		)
+	end
+	local base = Lib.part(Vector3.new(0.06, radius * 2, radius * 2), color, flat, {
+		Shape = Enum.PartType.Cylinder,
+		Transparency = 0.82,
+		Material = Enum.Material.SmoothPlastic,
+	})
+	local fill =
+		Lib.part(Vector3.new(0.07, 0.2, 0.2), color, flat, { Shape = Enum.PartType.Cylinder, Transparency = 0.55 })
+	Lib.tween(fill, duration, { Size = Vector3.new(0.07, radius * 2, radius * 2) }, Enum.EasingStyle.Linear)
+	task.delay(duration, function()
+		for _, p in ringParts do
+			Lib.fade(p, 0.2, { Transparency = 1 })
+		end
+		Lib.fade(base, 0.2, { Transparency = 1 })
+		Lib.fade(fill, 0.2, { Transparency = 1 })
+	end)
+end
+
 -- Assinatura de conjuracao: circulo runico aos pes + runas subindo em volta do mago.
 function Effects.castSignature(caster: Model, palette: Lib.Palette, tier: number)
 	local root = Lib.rootPosition(caster)

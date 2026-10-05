@@ -159,6 +159,8 @@ local hitmarker: Frame
 local spread = 0
 local levelBanner: TextLabel
 local manaBar: Bar
+local hurtEdges: { Frame } = {}
+local deathOverlay: Frame
 
 function HudController.castPulse(slot: number)
 	local ui = slots[slot]
@@ -195,6 +197,87 @@ function HudController.feedback(reason: string, slot: number?)
 	if reason == "Mana" then
 		manaBar.Root.BackgroundColor3 = Color3.fromRGB(160, 40, 60)
 		tween(manaBar.Root, 0.5, { BackgroundColor3 = PANEL })
+	end
+end
+
+-- Bordas da tela ficam vermelhas ao receber dano (mais forte quanto maior o golpe).
+function HudController.hurt(amount: number)
+	local strength = math.clamp(amount / 6, 0.25, 1)
+	for _, edge in hurtEdges do
+		edge.BackgroundTransparency = 1 - 0.55 * strength
+		tween(edge, 0.6, { BackgroundTransparency = 1 })
+	end
+end
+
+local function buildHurtEdges(gui: ScreenGui)
+	-- Quatro faixas com gradiente de transparencia (forte na borda, some para o centro).
+	local specs = {
+		{ Size = UDim2.new(1, 0, 0.22, 0), Position = UDim2.fromScale(0, 0), Rotation = 90 },
+		{ Size = UDim2.new(1, 0, 0.22, 0), Position = UDim2.fromScale(0, 0.78), Rotation = -90 },
+		{ Size = UDim2.new(0.16, 0, 1, 0), Position = UDim2.fromScale(0, 0), Rotation = 0 },
+		{ Size = UDim2.new(0.16, 0, 1, 0), Position = UDim2.fromScale(0.84, 0), Rotation = 180 },
+	}
+	for _, spec in specs do
+		local edge = new("Frame", {
+			Size = spec.Size,
+			Position = spec.Position,
+			BackgroundColor3 = Color3.fromRGB(200, 20, 30),
+			BackgroundTransparency = 1,
+			BorderSizePixel = 0,
+			ZIndex = 0,
+		}, gui)
+		new("UIGradient", { Rotation = spec.Rotation, Transparency = NumberSequence.new(0, 1) }, edge)
+		table.insert(hurtEdges, edge)
+	end
+end
+
+-- Tela de morte: escurece e mostra "Você caiu" ate o personagem renascer.
+local function buildDeathOverlay(gui: ScreenGui)
+	deathOverlay = new("Frame", {
+		Size = UDim2.fromScale(1, 1),
+		BackgroundColor3 = Color3.fromRGB(10, 4, 12),
+		BackgroundTransparency = 1,
+		Visible = false,
+		ZIndex = 20,
+	}, gui)
+	new("TextLabel", {
+		Size = UDim2.fromOffset(600, 70),
+		Position = UDim2.fromScale(0.5, 0.42),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamBlack,
+		TextSize = 54,
+		TextColor3 = Color3.fromRGB(235, 90, 100),
+		TextStrokeTransparency = 0.4,
+		Text = "VOCÊ CAIU",
+		ZIndex = 21,
+	}, deathOverlay)
+	new("TextLabel", {
+		Size = UDim2.fromOffset(600, 30),
+		Position = UDim2.fromScale(0.5, 0.5),
+		AnchorPoint = Vector2.new(0.5, 0.5),
+		BackgroundTransparency = 1,
+		Font = FONT_LIGHT,
+		TextSize = 18,
+		TextColor3 = TEXT,
+		Text = "Renascendo...",
+		ZIndex = 21,
+	}, deathOverlay)
+
+	local function watch(character: Model)
+		deathOverlay.Visible = false
+		deathOverlay.BackgroundTransparency = 1
+		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+		if humanoid then
+			humanoid.Died:Connect(function()
+				deathOverlay.Visible = true
+				tween(deathOverlay, 1.2, { BackgroundTransparency = 0.35 })
+			end)
+		end
+	end
+	player.CharacterAdded:Connect(watch)
+	if player.Character then
+		task.spawn(watch, player.Character)
 	end
 end
 
@@ -399,8 +482,10 @@ function HudController.start()
 		ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	}, player:WaitForChild("PlayerGui"))
 
+	buildHurtEdges(gui)
 	buildCrosshair(gui)
 	buildSlots(gui)
+	buildDeathOverlay(gui)
 
 	local healthBar = makeBar(
 		gui,

@@ -109,8 +109,11 @@ e cole como `"rbxassetid://ID"` no evento correspondente.
 
 ## 5. Próximas tarefas (sessões locais com Sonnet)
 - **RT-01 Grimório:** UI para equipar magias nos 5 slots (`EquipSpell` já existe no servidor).
-- **RT-02 IA básica:** `EnemyService` → módulo `Ai/` com perseguir/atacar à distância usando o mesmo
-  pipeline de magias (o inimigo "conjura" via `SpellService` com `Player = nil`).
+- ~~**RT-02 IA básica**~~ *(feito)*: `Combat/EnemyCatalog` (comportamento por inimigo, dano do CSV) +
+  `Combat/EnemyBrain` (aggro, coleira, ataques com telegraph). Ossomante: Bola de Fogo com mira
+  antecipada, teleporta quando o jogador chega perto. Gosma: saltos, dano por contato, divide em 2
+  Gosminhas. Bulbo: kamikaze com aviso. Golem: pancada em área + mísseis teleguiados. Jogador: bordas
+  vermelhas ao tomar dano e tela "VOCÊ CAIU".
 - **RT-03 Lâmina de Sangue:** tipo `Melee` no catálogo; custo em vida (já suportado); sangramento.
 - **RT-04 Save:** ProfileStore com nível, XP, afinidades e slots.
 - **RT-05 Passiva Condutor:** fonte em `Combat/Modifiers` (+1 alvo em Eletricidade) e cura/mana no

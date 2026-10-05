@@ -88,6 +88,27 @@ local function dissolve(model: Model, palette: Lib.Palette, boss: boolean)
 	end
 end
 
+-- Corpo piscando (telegrafia do Bulbo): cada vez mais rapido ate explodir.
+local function pulseWarning(model: Model, duration: number, color: Color3)
+	local highlight = Instance.new("Highlight")
+	highlight.Name = "ArcanumWarning"
+	highlight.FillColor = color
+	highlight.OutlineColor = Color3.new(1, 1, 1)
+	highlight.FillTransparency = 1
+	highlight.Parent = model
+	task.spawn(function()
+		local started = os.clock()
+		while os.clock() - started < duration and model.Parent do
+			local progress = (os.clock() - started) / duration
+			highlight.FillTransparency = if highlight.FillTransparency > 0.5 then 0.2 else 0.9
+			task.wait(0.22 * (1 - progress) + 0.04)
+		end
+		highlight:Destroy()
+	end)
+end
+
+local DANGER = Color3.fromRGB(255, 70, 60)
+
 local HANDLERS: { [string]: (any) -> () } = {
 	Cast = function(p)
 		if not p.Caster or not p.Caster.Parent then
@@ -175,6 +196,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		end
 		if isMine(target) then
 			CameraController.shake(math.clamp(p.Amount / 8, 0.15, 0.6))
+			HudController.hurt(p.Amount)
 		end
 	end,
 
@@ -186,6 +208,66 @@ local HANDLERS: { [string]: (any) -> () } = {
 				Lib.burst(root, "Wisp", Lib.palette("Necromancy"), 8)
 			end
 		end
+	end,
+
+	-- Ataques de inimigos ------------------------------------------------------------------
+	EnemyTelegraph = function(p)
+		local palette = Lib.palette(p.School)
+		if p.Kind == "Slam" then
+			Effects.dangerZone(p.Position, p.Radius, p.Duration, DANGER)
+		elseif p.Kind == "Explode" then
+			if p.Model and p.Model.Parent then
+				pulseWarning(p.Model, p.Duration, palette.Halo)
+				local root = Lib.rootPosition(p.Model) or p.Position
+				Effects.dangerZone(root - Vector3.new(0, 2.8, 0), p.Radius, p.Duration, DANGER)
+			end
+		elseif p.Kind == "Charge" then
+			-- A pose de conjuracao vem do evento Cast; aqui so um brilho crescente na gema.
+			local gem = Lib.muzzleOf(p.Model, Lib.rootPosition(p.Model) or Vector3.zero)
+			Lib.burst(
+				gem,
+				"Star",
+				palette,
+				8,
+				{ Speed = NumberRange.new(-6, -3), Lifetime = NumberRange.new(0.2, 0.3) }
+			)
+		end
+	end,
+
+	Slam = function(p)
+		local palette = Lib.palette(p.School)
+		Effects.shockwave(p.Position, palette, p.Radius)
+		Effects.flash(p.Position + Vector3.new(0, 1, 0), palette, 2.4, true)
+		Lib.burst(p.Position, "Smoke", palette, 14, { Speed = NumberRange.new(6, 14) })
+		Lib.burst(p.Position + Vector3.new(0, 1, 0), "Star", palette, 20, { Speed = NumberRange.new(10, 22) })
+		shakeNear(p.Position, 0.7, 70)
+	end,
+
+	Explosion = function(p)
+		local palette = Lib.palette(p.School)
+		Effects.flash(p.Position, palette, 3, true)
+		Effects.shockwave(p.Position - Vector3.new(0, 2.5, 0), palette, p.Radius)
+		for i = 1, 7 do
+			local angle = (i / 7) * math.pi * 2
+			local reach = p.Radius * (0.8 + math.random() * 0.6)
+			local to = p.Position + Vector3.new(math.cos(angle) * reach, math.random() * 3 - 1, math.sin(angle) * reach)
+			Lightning.bolt(p.Position, to, palette, { Width = 0.2, Forks = 1, Flickers = 2, Duration = 0.18 })
+		end
+		Lib.burst(p.Position, "Spark", palette, 30)
+		Audio.play("Impact_" .. tostring(p.School), p.Position)
+		shakeNear(p.Position, 0.8, 70)
+	end,
+
+	Blink = function(p)
+		local palette = Lib.palette(p.School)
+		Effects.flash(p.From, palette, 1.8, false)
+		Effects.flash(p.To, palette, 1.8, true)
+		Lib.burst(p.From, "Wisp", palette, 16, { Speed = NumberRange.new(3, 8) })
+		Lib.burst(p.To, "Star", palette, 14)
+	end,
+
+	Impact = function(p)
+		Effects.flash(p.Position, Lib.palette(p.School), p.Scale or 1, false)
 	end,
 
 	Death = function(p)

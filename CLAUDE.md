@@ -56,5 +56,8 @@ tests/       Lune (*.spec.luau + TestKit)
   com antecipação/mola, câmera de ombro esquerdo com tremor e kick de FOV, mira dinâmica com marcador de
   acerto, HUD completo (barras com trilha, slots com custo/recarga/falha, XP, nível), barras de inimigo e
   de chefe. Sem assistência de mira. Sons: ganchos prontos, ids vazios em `SoundCatalog`.
+- **Inimigos lutam** (RT-02): `server/Combat/EnemyCatalog` (o que cada um faz) + `EnemyBrain` (IA por
+  0,1 s); telegraphs no cliente (`Effects.dangerZone`, eventos `EnemyTelegraph`/`Slam`/`Explosion`/`Blink`);
+  HUD com bordas de dano e tela de morte.
 - `lune run tests` = 128 ok; `tests/smoke` valida efeitos, cajado, mundo e HUD. Polimento ainda não visto no Studio.
-- Próximo: R1 — tarefas RT-01..RT-06 em `Docs/07-Roblox.md` §5.
+- Próximo: R1 — tarefas RT-01, RT-03..RT-06 em `Docs/07-Roblox.md` §5.

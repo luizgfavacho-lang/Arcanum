@@ -153,6 +153,11 @@ local function load(path: string, scriptRef)
 	end
 	source = source:gsub(":WaitForChild%(", ":FindFirstChild(")
 	source = source:gsub("([%w_]+):GetAttributeChangedSignal%b()", "SIGNAL_OF(%1)")
+	-- O LocalPlayer simulado e uma Folder: sem personagem nem CharacterAdded.
+	if path:find("HudController") then
+		source = source:gsub("player%.CharacterAdded", "SIGNAL")
+		source = source:gsub("player%.Character%f[^%w_]", "nil")
+	end
 	return luau.load(source, { environment = e })()
 end
 
@@ -184,6 +189,7 @@ for school in modules.Schools do
 	end
 	Effects.flash(V.new(0, 5, 0), palette, 2, true)
 	Effects.shockwave(V.new(0, 0, 0), palette, 6)
+	Effects.dangerZone(V.new(0, 0, 0), 5, 1, palette.Core)
 	Effects.runeCircle(V.new(0, 0, 0), palette, 3, 0.5)
 	Lightning.bolt(V.new(0, 5, 0), V.new(30, 5, 10), palette)
 	Lightning.braid(V.new(0, 5, 0), V.new(20, 5, 0), palette, 7, 0.12)
