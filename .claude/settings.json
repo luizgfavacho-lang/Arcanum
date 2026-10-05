@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./Binaries/**)",
+      "Read(./Intermediate/**)",
+      "Read(./Saved/**)",
+      "Read(./DerivedDataCache/**)",
+      "Read(./Build/**)",
+      "Read(./Plugins/*/Binaries/**)",
+      "Read(./Plugins/*/Intermediate/**)",
+      "Read(./.vs/**)",
+      "Read(**/*.uasset)",
+      "Read(**/*.umap)",
+      "Read(**/*.png)",
+      "Read(**/*.jpg)",
+      "Read(**/*.jpeg)",
+      "Read(**/*.tga)",
+      "Read(**/*.exr)",
+      "Read(**/*.hdr)",
+      "Read(**/*.psd)",
+      "Read(**/*.kra)",
+      "Read(**/*.spp)",
+      "Read(**/*.sbsar)",
+      "Read(**/*.fbx)",
+      "Read(**/*.obj)",
+      "Read(**/*.abc)",
+      "Read(**/*.blend)",
+      "Read(**/*.wav)",
+      "Read(**/*.ogg)",
+      "Read(**/*.mp3)",
+      "Read(**/*.mp4)",
+      "Read(**/*.mov)",
+      "Read(**/*.bank)",
+      "Read(**/*.dll)",
+      "Read(**/*.pdb)",
+      "Read(**/*.exe)",
+      "Read(**/*.zip)"
+    ]
+  }
+}

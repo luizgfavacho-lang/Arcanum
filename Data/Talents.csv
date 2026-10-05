@@ -1,0 +1,26 @@
+Name,School,Node,RequiredPointsInBranch,GrantedTag,Value1,Value2,Value3,Notes
+Overload,Electricity,1,0,Talent.Electricity.Overload,2,0.45,0,Faisca +Value1 dano e Value2 chance de paralisar
+Conductivity,Electricity,2,0,Talent.Electricity.Conductivity,1.5,6,9,Paralisias x Value1; Campo Estatico raio Value2 e Value3 s
+ForkedChain,Electricity,3,1,Talent.Electricity.ForkedChain,2,0.1,0,Corrente +Value1 saltos; queda Value2 por salto
+SwiftStep,Electricity,4,1,Talent.Electricity.SwiftStep,0.5,12,2,Passo Relampago: recarga x Value1; Value2 m; dano x Value3
+EyeOfTheStorm,Electricity,5,3,Talent.Electricity.EyeOfTheStorm,18,2,0,Tempestade com Value1 raios; Raio Invocado cai Value2 vezes
+Combustion,Fire,1,0,Talent.Fire.Combustion,2.5,0,0,Bola de Fogo explode em raio Value1 m
+LingeringFlames,Fire,2,0,Talent.Fire.LingeringFlames,2,9,0,Queimaduras x Value1 de duracao; Muralha dura Value2 s
+VolcanicCore,Fire,3,1,Talent.Fire.VolcanicCore,6,3,0,Lanca de Magma perfura Value1 e +Value2 dano
+ScaldingArmor,Fire,4,1,Talent.Fire.ScaldingArmor,40,2,0,Armadura de Brasas dura Value1 s e reflete x Value2
+HeartOfTheSun,Fire,5,3,Talent.Fire.HeartOfTheSun,7,5,0,Meteoro raio Value1; chao em chamas Value2 s
+MissileBarrage,Energy,1,0,Talent.Energy.MissileBarrage,5,0,0,Missil Arcano com Value1 orbes
+EfficientShield,Energy,2,0,Talent.Energy.EfficientShield,1.25,25,0,Escudo: Value1 mana por dano; Value2 s
+FocusedBeam,Energy,3,1,Talent.Energy.FocusedBeam,1.3,1.5,0.75,Raio Arcano dano x Value1; largura x Value2; custo x Value3
+Stasis,Energy,4,1,Talent.Energy.Stasis,8,0.6,0,Prisao dura Value1 s; Pulso recarga x Value2
+EventHorizon,Energy,5,3,Talent.Energy.EventHorizon,10,1.5,0,Singularidade puxa a Value1 m; implosao x Value2
+SoulThirst,Necromancy,1,0,Talent.Necromancy.SoulThirst,1.0,24,0,Drenar Vida cura Value1 do dano; alcance Value2 m
+DarkPact,Necromancy,2,0,Talent.Necromancy.DarkPact,1.5,1.3,0,Servos duracao x Value1; dano x Value2
+BoneLegion,Necromancy,3,1,Talent.Necromancy.BoneLegion,2,1.4,0,+Value1 servos; vida x Value2
+Necrosis,Necromancy,4,1,Talent.Necromancy.Necrosis,5,0.3,15,Maldicao raio Value1; +Value2 dano recebido por Value3 s
+LordOfTheDead,Necromancy,5,3,Talent.Necromancy.LordOfTheDead,8,30,0.5,Exercito Value1 servos por Value2 s; Toque Mortal recarga x Value3
+Hemophilia,Blood,1,0,Talent.Blood.Hemophilia,1.5,7,0,Sangramentos x Value1; Hemorragia raio Value2
+HungryBlade,Blood,2,0,Talent.Blood.HungryBlade,60,0.1,0,Lamina dura Value1 s e cura Value2 do dano
+IronVeins,Blood,3,1,Talent.Blood.IronVeins,0.7,0,0,Custos em vida x Value1
+CrimsonBond,Blood,4,1,Talent.Blood.CrimsonBond,0.75,15,0,Corrente Carmesim desvia Value1 por Value2 s
+SanguineAvatar,Blood,5,3,Talent.Blood.SanguineAvatar,0.2,0.3,0,Pacto custa Value1 da vida; roubo de vida Value2

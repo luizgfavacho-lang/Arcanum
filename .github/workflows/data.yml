@@ -1,0 +1,19 @@
+name: Dados
+
+on:
+  push:
+    paths: ["Data/**", "Content/Text/**", "Config/Tags/**", "Source/ArcanumCore/Public/Data/**", "Scripts/validate_data.py"]
+  pull_request:
+    paths: ["Data/**", "Content/Text/**", "Config/Tags/**", "Source/ArcanumCore/Public/Data/**", "Scripts/validate_data.py"]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python3 Scripts/validate_data.py --strict

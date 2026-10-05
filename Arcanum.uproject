@@ -1,0 +1,32 @@
+{
+	"FileVersion": 3,
+	"EngineAssociation": "5.5",
+	"Category": "",
+	"Description": "ARCANUM - RPG de acao em mundo aberto focado em magia.",
+	"Modules": [
+		{
+			"Name": "ArcanumCore",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault"
+		},
+		{
+			"Name": "Arcanum",
+			"Type": "Runtime",
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"ArcanumCore"
+			]
+		}
+	],
+	"Plugins": [
+		{ "Name": "GameplayAbilities", "Enabled": true },
+		{ "Name": "EnhancedInput", "Enabled": true },
+		{ "Name": "CommonUI", "Enabled": true },
+		{ "Name": "Niagara", "Enabled": true },
+		{ "Name": "PCG", "Enabled": true },
+		{ "Name": "PythonScriptPlugin", "Enabled": true },
+		{ "Name": "EditorScriptingUtilities", "Enabled": true },
+		{ "Name": "FunctionalTestingEditor", "Enabled": true }
+	]
+}

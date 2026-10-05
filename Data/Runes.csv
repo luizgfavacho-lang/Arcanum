@@ -1,0 +1,10 @@
+Name,School,DamageMultiplier,CostMultiplier,CooldownMultiplier
+Power,None,1.2,1.2,1
+Efficiency,None,1,0.75,1
+Celerity,None,1,1,0.8
+Fire,Fire,1.15,1,1
+Storm,Electricity,1.15,1,1
+Arcane,Energy,1.15,1,1
+Grave,Necromancy,1.15,1,1
+Blood,Blood,1.15,1,1
+Void,None,1,0.9,0.9

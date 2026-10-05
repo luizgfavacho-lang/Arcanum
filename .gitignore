@@ -1,0 +1,27 @@
+# Unreal - gerados
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+Build/
+Plugins/*/Binaries/
+Plugins/*/Intermediate/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.sdf
+*.VC.db
+*.opensdf
+*.xcworkspace
+*.xcodeproj
+
+# Python
+__pycache__/
+*.pyc
+
+# Local do Claude Code
+.claude/settings.local.json
