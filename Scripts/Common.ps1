@@ -36,8 +36,12 @@ function Show-Filtered([string]$LogPath, [string]$Pattern, [int]$Max = 40) {
 }
 
 function Get-Python {
-    foreach ($candidate in @("python3", "python", "py")) {
-        if (Get-Command $candidate -ErrorAction SilentlyContinue) { return $candidate }
+    # "python3" no Windows costuma ser um atalho da Microsoft Store que nao executa nada: testa de verdade.
+    foreach ($candidate in @("py", "python", "python3")) {
+        if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+            & $candidate -c "import sys" 2>$null
+            if ($LASTEXITCODE -eq 0) { return $candidate }
+        }
     }
     Write-Host "ERRO: Python 3 nao encontrado no PATH."
     exit 2

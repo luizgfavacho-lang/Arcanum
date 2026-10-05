@@ -49,8 +49,8 @@ Docs/                 01-GDD, 02-Arquitetura, 03-Renderizacao, 04-FatiaVertical,
 9. Recarga global de 0,4 s; canalizadas sem recarga e sem GCD.
 
 ## Estado atual
-- **M0 concluído no código** (não compilado neste ambiente: ainda não houve build com a engine).
-  Primeira ação numa máquina com UE: `Build.ps1` → corrigir erros → `Test.ps1` (10 testes).
+- **M0:** compila no UE 5.7 (Win64, ArcanumEditor Development).
+  Pendente: rodar `Test.ps1` (10 testes) e o setup do editor (`Docs/04-FatiaVertical.md` §4).
 - Próximo: M1 — tarefas T-01..T-08 em `Docs/06-Tarefas.md`.
 
 ## Perguntas em aberto (premissas em uso)
