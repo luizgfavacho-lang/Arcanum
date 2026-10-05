@@ -8,26 +8,28 @@
 
 namespace
 {
+	/** Capturas pelos getters publicos do AttributeSet (os membros sao protected). */
 	struct FDamageCaptures
 	{
-		DECLARE_ATTRIBUTE_CAPTUREDEF(SpellPower);
-		DECLARE_ATTRIBUTE_CAPTUREDEF(Armor);
-		DECLARE_ATTRIBUTE_CAPTUREDEF(AffinityElectricity);
-		DECLARE_ATTRIBUTE_CAPTUREDEF(AffinityFire);
-		DECLARE_ATTRIBUTE_CAPTUREDEF(AffinityEnergy);
-		DECLARE_ATTRIBUTE_CAPTUREDEF(AffinityNecromancy);
-		DECLARE_ATTRIBUTE_CAPTUREDEF(AffinityBlood);
+		FGameplayEffectAttributeCaptureDefinition SpellPowerDef;
+		FGameplayEffectAttributeCaptureDefinition ArmorDef;
+		FGameplayEffectAttributeCaptureDefinition AffinityElectricityDef;
+		FGameplayEffectAttributeCaptureDefinition AffinityFireDef;
+		FGameplayEffectAttributeCaptureDefinition AffinityEnergyDef;
+		FGameplayEffectAttributeCaptureDefinition AffinityNecromancyDef;
+		FGameplayEffectAttributeCaptureDefinition AffinityBloodDef;
 
 		FDamageCaptures()
 		{
+			using ECapture = EGameplayEffectAttributeCaptureSource;
 			// Snapshot = false: usa os valores no momento do acerto (buffs aplicados durante o voo contam).
-			DEFINE_ATTRIBUTE_CAPTUREDEF(UArcanumAttributeSet, SpellPower, Source, false);
-			DEFINE_ATTRIBUTE_CAPTUREDEF(UArcanumAttributeSet, Armor, Target, false);
-			DEFINE_ATTRIBUTE_CAPTUREDEF(UArcanumAttributeSet, AffinityElectricity, Source, false);
-			DEFINE_ATTRIBUTE_CAPTUREDEF(UArcanumAttributeSet, AffinityFire, Source, false);
-			DEFINE_ATTRIBUTE_CAPTUREDEF(UArcanumAttributeSet, AffinityEnergy, Source, false);
-			DEFINE_ATTRIBUTE_CAPTUREDEF(UArcanumAttributeSet, AffinityNecromancy, Source, false);
-			DEFINE_ATTRIBUTE_CAPTUREDEF(UArcanumAttributeSet, AffinityBlood, Source, false);
+			SpellPowerDef = FGameplayEffectAttributeCaptureDefinition(UArcanumAttributeSet::GetSpellPowerAttribute(), ECapture::Source, false);
+			ArmorDef = FGameplayEffectAttributeCaptureDefinition(UArcanumAttributeSet::GetArmorAttribute(), ECapture::Target, false);
+			AffinityElectricityDef = FGameplayEffectAttributeCaptureDefinition(UArcanumAttributeSet::GetAffinityElectricityAttribute(), ECapture::Source, false);
+			AffinityFireDef = FGameplayEffectAttributeCaptureDefinition(UArcanumAttributeSet::GetAffinityFireAttribute(), ECapture::Source, false);
+			AffinityEnergyDef = FGameplayEffectAttributeCaptureDefinition(UArcanumAttributeSet::GetAffinityEnergyAttribute(), ECapture::Source, false);
+			AffinityNecromancyDef = FGameplayEffectAttributeCaptureDefinition(UArcanumAttributeSet::GetAffinityNecromancyAttribute(), ECapture::Source, false);
+			AffinityBloodDef = FGameplayEffectAttributeCaptureDefinition(UArcanumAttributeSet::GetAffinityBloodAttribute(), ECapture::Source, false);
 		}
 
 		const FGameplayEffectAttributeCaptureDefinition* AffinityFor(EArcanumSchool School) const

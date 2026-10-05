@@ -1,5 +1,6 @@
 #include "Modules/ModuleManager.h"
 #include "Internationalization/StringTableRegistry.h"
+#include "Misc/Paths.h"
 
 /**
  * Registra as String Tables carregadas direto de CSV (Content/Text/*.csv), sem asset binario.
