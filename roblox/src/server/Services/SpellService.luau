@@ -17,6 +17,7 @@ local States = require(Shared.States)
 local StatsService = require(script.Parent.StatsService)
 local StatusService = require(script.Parent.StatusService)
 local ProgressionService = require(script.Parent.ProgressionService)
+local StaffService = require(script.Parent.StaffService)
 local SpellsFolder = script.Parent.Parent.Spells
 local Modifiers = require(script.Parent.Parent.Combat.Modifiers)
 local Context = require(SpellsFolder.Context)
@@ -118,7 +119,8 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 	spellStateRemote:FireClient(player, spell.Id, state.Cooldowns[spell.Id] or 0, state.GcdUntil)
 
 	ProgressionService.recordCast(player, row.School)
-	vfx:FireAllClients("Cast", { Caster = character, School = row.School })
+	StaffService.setSchool(character, row.School)
+	vfx:FireAllClients("Cast", { Caster = character, School = row.School, Tier = row.Tier, SpellId = spell.Id })
 
 	local ctx: Context.Context = {
 		Player = player,

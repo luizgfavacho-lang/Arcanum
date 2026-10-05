@@ -44,12 +44,14 @@ roblox/
     Schools, States, Units, Signal
   src/server/   → ServerScriptService.Server
     init.server.luau        inicializa os serviços (init → start)
-    Services/               World, Progression, Stats, Status, Damage, Spell, Enemy
+    Services/               World, Progression, Stats, Staff, Status, Damage, Spell, Enemy
     Spells/                 Context, Projectile, Hitscan, ChainLightning
-    Combat/                 Targeting, Modifiers (runas/talentos/passiva)
+    Combat/                 Targeting, Modifiers (runas/talentos/passiva), StaffBuilder (cajado por código)
   src/client/   → StarterPlayerScripts.Client
-    Controllers/            ClientState, Camera (ombro), Input, Hud, Vfx
-  tests/                    Lune: `lune run tests`
+    Controllers/            ClientState, Camera (ombro), Input, Hud, Vfx (despacha eventos visuais)
+    Vfx/                    Lib (primitivas/presets), Effects (clarão, onda de choque, círculo rúnico),
+                            Lightning, Projectiles, LifeStream, Numbers, Staff (pose), Auras (estados)
+  tests/                    Lune: `lune run tests` (regras/dados) e `lune run tests/smoke` (efeitos)
   tools/gen_data.py         CSV → Luau
 ```
 

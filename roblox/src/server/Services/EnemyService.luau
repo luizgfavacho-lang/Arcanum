@@ -16,6 +16,7 @@ local StatsService = require(script.Parent.StatsService)
 local DamageService = require(script.Parent.DamageService)
 local ProgressionService = require(script.Parent.ProgressionService)
 local WorldService = require(script.Parent.WorldService)
+local StaffService = require(script.Parent.StaffService)
 
 -- Nomes exibidos (originais; ver Docs/01-GDD.md §5). TODO: mover para String Table.
 local DISPLAY_NAMES: { [string]: string } = {
@@ -92,6 +93,10 @@ local function spawnEnemy(spawnPart: BasePart)
 		WalkSpeed = Units.meters(row.MoveSpeedMetersPerSecond),
 	})
 	model:SetAttribute("Elite", elite)
+	-- Criaturas magicas humanoides tambem carregam cajado (bosses tem armas proprias no R3).
+	if row.bMagical and not row.bBoss then
+		task.spawn(StaffService.equip, model, row.School)
+	end
 
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	humanoid.Died:Connect(function()

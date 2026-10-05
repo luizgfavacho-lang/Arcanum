@@ -165,7 +165,7 @@ function HudController.start()
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid and character then
 			healthFill.Size = UDim2.fromScale(math.clamp(humanoid.Health / math.max(humanoid.MaxHealth, 1), 0, 1), 1)
-			healthLabel.Text = string.format("Vida %d / %d", math.ceil(humanoid.Health), math.floor(humanoid.MaxHealth))
+			healthLabel.Text = string.format("Vida %d / %d", math.ceil(humanoid.Health), math.ceil(humanoid.MaxHealth))
 
 			local mana = character:GetAttribute("Mana") or 0
 			local maxMana = character:GetAttribute("MaxMana") or 1

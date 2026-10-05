@@ -6,7 +6,8 @@ RPG de ação focado em magia (5 escolas, covis selados, coop). **Plataforma ati
 Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/07-Roblox.md`.
 
 ## Comandos (dentro de `roblox/`; saída curta)
-- Testes: `lune run tests` (regras de dano/mana/progressão + consistência dos dados)
+- Testes: `lune run tests` (regras + dados) e `lune run tests/smoke` (cria todos os efeitos com
+  instâncias reais do `@lune/roblox`: pega propriedade com nome/tipo errado sem abrir o Studio)
 - Dados: `python ../Scripts/validate_data.py` → `python tools/gen_data.py` (CSV → `src/shared/Data`)
 - Formatação: `stylua src tests` · Lint: `selene src`
 - Jogo: `rojo serve` + plugin Rojo no Studio → Play
@@ -16,8 +17,10 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado), Config/, SpellCatalog,
              Spells, Net (remotes e contratos), Schools, States, Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
-             Spell, Enemy), Spells/ (Context, Projectile, Hitscan, ChainLightning), Combat/ (Targeting, Modifiers)
-src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, Vfx)
+             Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning),
+             Combat/ (Targeting, Modifiers, StaffBuilder)
+src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, Vfx) e
+             Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, Auras)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -44,7 +47,9 @@ tests/       Lune (*.spec.luau + TestKit)
 8. Monetização sem vender poder.
 
 ## Estado atual
-- **R0 (base) pronto no código:** 5 magias (Faísca, Bola de Fogo, Míssil Arcano, Corrente em Cadeia,
-  Drenar Vida), inimigos parados no Sandbox gerado por código, HUD, VFX placeholder, nível/XP/afinidade
-  (sem save). `lune run tests` = 122 ok. Ainda não testado dentro do Studio.
+- **R0 testado no Studio:** 5 magias funcionando contra inimigos parados no Sandbox, HUD, nível/XP/afinidade (sem save).
+- **Visual v2:** cajado montado por código (gema na cor da escola, pose de conjuração local, magias saem
+  da gema); efeitos em camadas (clarão com raios, onda de choque, círculo rúnico, raio ramificado que
+  tremula, fios trançados na Corrente, chamas/brasas/fumaça na Bola de Fogo, corrente de vida, números
+  agregados, auras de estado). `lune run tests` = 122 ok; `tests/smoke` ok. Visual v2 ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-01..RT-06 em `Docs/07-Roblox.md` §5.

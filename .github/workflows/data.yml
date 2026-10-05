@@ -29,4 +29,6 @@ jobs:
           echo "$HOME/.lune" >> "$GITHUB_PATH"
       - name: Testes Luau
         working-directory: roblox
-        run: lune run tests
+        run: |
+          lune run tests
+          lune run tests/smoke

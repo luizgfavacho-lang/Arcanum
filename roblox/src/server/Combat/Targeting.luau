@@ -12,8 +12,14 @@ function Targeting.position(model: Model): Vector3
 	return if root then root.Position else model:GetPivot().Position
 end
 
--- Ponto de saida das magias: mao direita (cajado) ou na frente da cabeca.
+-- Ponto de saida das magias: gema do cajado, mao direita ou a frente da cabeca.
 function Targeting.muzzle(model: Model): Vector3
+	local staff = model:FindFirstChild("ArcanumStaff")
+	local gem = staff and staff:FindFirstChild("Gem")
+	local muzzle = gem and gem:FindFirstChild("Muzzle") :: Attachment?
+	if muzzle then
+		return muzzle.WorldPosition
+	end
 	local hand = model:FindFirstChild("RightHand") :: BasePart?
 	if hand then
 		return hand.Position
