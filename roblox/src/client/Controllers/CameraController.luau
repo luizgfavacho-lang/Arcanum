@@ -4,8 +4,8 @@
 -- a direita da mira. Mouse travado no centro; o personagem vira com a camera.
 -- Alt esquerdo solta o mouse (para clicar na interface).
 --
--- Mira: raio pelo centro da tela + assistencia leve (esfera de AIM_ASSIST_RADIUS). Se passar perto
--- de um inimigo, a mira trava no centro do corpo dele (o HUD pinta a mira de vermelho).
+-- Mira: raio exato pelo centro da tela (sem assistencia). AimTarget = inimigo sob a mira (so
+-- para o HUD pintar a mira). "Juice": tremor (shake) e leve aumento de FOV ao conjurar.
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -14,24 +14,29 @@ local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 
-local SHOULDER_OFFSET = Vector3.new(-2.4, 1.4, 0) -- ombro esquerdo, acima da cabeca
+local SHOULDER_OFFSET = Vector3.new(-2.4, 1.4, 0)
 local ZOOM = 16
-local FIELD_OF_VIEW = 72
+local BASE_FOV = 72
 local AIM_DISTANCE = 600
-local AIM_ASSIST_RADIUS = 1.6
 
 local CameraController = {}
 
 CameraController.MouseFree = false
--- Atualizado a cada quadro (o HUD usa para colorir a mira).
 CameraController.AimTarget = nil :: Model?
+-- Intensidade global de tremor/flash (opcao de acessibilidade; 0 desliga).
+CameraController.ShakeScale = 1
 
-local function isHostile(model: Model): boolean
-	local character = player.Character
-	local myTeam = character and character:GetAttribute("Team")
-	local team = model:GetAttribute("Team")
-	local humanoid = model:FindFirstChildOfClass("Humanoid")
-	return team ~= nil and team ~= myTeam and humanoid ~= nil and humanoid.Health > 0
+local trauma = 0 -- 0..1, decai sozinho; tremor = trauma^2
+local fovKick = 0
+
+-- Tremor de camera: intensity ~0.2 (leve) a 1 (forte). Soma e satura em 1.
+function CameraController.shake(intensity: number)
+	trauma = math.min(trauma + intensity * CameraController.ShakeScale, 1)
+end
+
+-- Aumento rapido de FOV que volta sozinho (conjuracoes fortes).
+function CameraController.kick(degrees: number)
+	fovKick = math.max(fovKick, degrees * CameraController.ShakeScale)
 end
 
 local function combatantOf(instance: Instance): Model?
@@ -46,7 +51,7 @@ local function combatantOf(instance: Instance): Model?
 end
 
 local function aimParams(): RaycastParams
-	-- Ignora todos os jogadores (sem fogo amigo) e os efeitos visuais.
+	-- Ignora o proprio personagem, aliados (sem fogo amigo) e os efeitos visuais.
 	local ignore: { Instance } = {}
 	for _, other in Players:GetPlayers() do
 		if other.Character then
@@ -63,31 +68,22 @@ local function aimParams(): RaycastParams
 	return params
 end
 
--- Retorna (origem para o servidor, ponto mirado, alvo travado ou nil).
+-- Retorna (origem para o servidor, ponto mirado exato, inimigo sob a mira ou nil).
 function CameraController.getAim(): (Vector3, Vector3, Model?)
 	local camera = Workspace.CurrentCamera
 	local viewport = camera.ViewportSize
 	local ray = camera:ViewportPointToRay(viewport.X / 2, viewport.Y / 2)
-	local params = aimParams()
+	local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, aimParams())
+	local aimPoint = if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
 
-	-- 1) Assistencia: esfera fina pelo centro da tela procura um inimigo.
 	local target: Model? = nil
-	local assist = Workspace:Spherecast(ray.Origin, AIM_ASSIST_RADIUS, ray.Direction * AIM_DISTANCE, params)
-	if assist then
-		local model = combatantOf(assist.Instance)
-		if model and isHostile(model) then
+	if result then
+		local model = combatantOf(result.Instance)
+		local humanoid = model and model:FindFirstChildOfClass("Humanoid")
+		local myTeam = player.Character and player.Character:GetAttribute("Team")
+		if model and humanoid and humanoid.Health > 0 and model:GetAttribute("Team") ~= myTeam then
 			target = model
 		end
-	end
-
-	-- 2) Ponto mirado: centro do inimigo travado, ou o que o raio exato acertar.
-	local aimPoint: Vector3
-	local root = target and target:FindFirstChild("HumanoidRootPart") :: BasePart?
-	if root then
-		aimPoint = root.Position
-	else
-		local result = Workspace:Raycast(ray.Origin, ray.Direction * AIM_DISTANCE, params)
-		aimPoint = if result then result.Position else ray.Origin + ray.Direction * AIM_DISTANCE
 	end
 
 	local character = player.Character
@@ -105,7 +101,6 @@ end
 function CameraController.start()
 	player.CameraMinZoomDistance = ZOOM
 	player.CameraMaxZoomDistance = ZOOM
-	Workspace.CurrentCamera.FieldOfView = FIELD_OF_VIEW
 	player.CharacterAdded:Connect(onCharacter)
 	if player.Character then
 		onCharacter(player.Character)
@@ -117,7 +112,9 @@ function CameraController.start()
 		end
 	end)
 
-	RunService:BindToRenderStep("ArcanumCamera", Enum.RenderPriority.Camera.Value + 1, function()
+	local noiseSeed = math.random() * 100
+	RunService:BindToRenderStep("ArcanumCamera", Enum.RenderPriority.Camera.Value + 1, function(dt)
+		local camera = Workspace.CurrentCamera
 		UserInputService.MouseBehavior = if CameraController.MouseFree
 			then Enum.MouseBehavior.Default
 			else Enum.MouseBehavior.LockCenter
@@ -127,12 +124,27 @@ function CameraController.start()
 		local root = character and character:FindFirstChild("HumanoidRootPart") :: BasePart?
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if root and humanoid and humanoid.Health > 0 and humanoid.WalkSpeed > 0 then
-			local look = Workspace.CurrentCamera.CFrame.LookVector
+			local look = camera.CFrame.LookVector
 			local flat = Vector3.new(look.X, 0, look.Z)
 			if flat.Magnitude > 1e-3 then
-				root.CFrame = CFrame.lookAt(root.Position, root.Position + flat)
+				-- Giro suave do corpo (nao instantaneo).
+				local goal = CFrame.lookAt(root.Position, root.Position + flat)
+				root.CFrame = root.CFrame:Lerp(goal, 1 - math.exp(-dt * 20))
 			end
 		end
+
+		-- Tremor (ruido suave, nao aleatorio quadro a quadro) e kick de FOV.
+		if trauma > 0 then
+			local t = os.clock() * 28
+			local amount = trauma * trauma
+			local rx = math.noise(noiseSeed, t) * 0.035 * amount
+			local ry = math.noise(noiseSeed + 10, t) * 0.035 * amount
+			local rz = math.noise(noiseSeed + 20, t) * 0.02 * amount
+			camera.CFrame = camera.CFrame * CFrame.Angles(rx, ry, rz)
+			trauma = math.max(trauma - dt * 1.6, 0)
+		end
+		fovKick = fovKick * math.exp(-dt * 7)
+		camera.FieldOfView = BASE_FOV + fovKick
 
 		local _, _, target = CameraController.getAim()
 		CameraController.AimTarget = target

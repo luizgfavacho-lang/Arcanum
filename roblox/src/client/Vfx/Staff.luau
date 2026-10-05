@@ -18,6 +18,13 @@ local HandIK = require(script.Parent.HandIK)
 local Staff = {}
 
 local TAG = "ArcanumStaff"
+-- Gesto da mao esquerda ao conjurar (espaco do HumanoidRootPart): palma a frente do peito.
+local LEFT_HAND_CAST = Vector3.new(-0.45, 1.15, -1.75)
+-- Mola da estocada: antecipacao (recua) -> golpe (avanca e passa do ponto) -> volta.
+local THRUST_STIFFNESS = 260
+local THRUST_DAMPING = 17
+local ANTICIPATION = 0.32 -- studs para tras
+local THRUST_KICK = -16 -- velocidade inicial para a frente
 local CAST_HOLD = 0.4 -- segundos na pose Cast apos conjurar
 local RISE_SPEED = 22 -- quanto maior, mais rapido sobe para a pose Cast
 local SETTLE_SPEED = 7 -- volta suave para Idle
@@ -33,6 +40,12 @@ type Entry = {
 	Shards: { Weld },
 	Phase: number,
 	Rig: HandIK.Rig?,
+	LeftRig: HandIK.Rig?,
+	LeftWeight: number,
+	Thrust: number,
+	ThrustVelocity: number,
+	ThrustTarget: number,
+	GemLight: PointLight?,
 }
 
 local entries: { [Model]: Entry } = {}
@@ -64,7 +77,13 @@ local function track(staff: Instance)
 		Tilt = Vector2.zero,
 		Shards = shards,
 		Phase = math.random() * math.pi * 2,
-		Rig = HandIK.rig(character),
+		Rig = HandIK.rig(character, "Right"),
+		LeftRig = HandIK.rig(character, "Left"),
+		LeftWeight = 0,
+		Thrust = 0,
+		ThrustVelocity = 0,
+		ThrustTarget = 0,
+		GemLight = (staff:FindFirstChild("Gem") and (staff :: any).Gem:FindFirstChild("GemLight")) :: PointLight?,
 	}
 end
 
@@ -119,6 +138,12 @@ function Staff.cast(character: Model, palette: Lib.Palette)
 	end
 	entry.CastUntil = os.clock() + CAST_HOLD
 	pulseGem(entry.Model, palette)
+	-- Antecipacao curta e depois o golpe.
+	entry.ThrustTarget = ANTICIPATION
+	task.delay(0.06, function()
+		entry.ThrustTarget = 0
+		entry.ThrustVelocity = THRUST_KICK
+	end)
 end
 
 -- Cor local da gema do proprio personagem (feedback imediato ao trocar de magia).
@@ -161,13 +186,26 @@ local function step(dt: number)
 
 		local speed = if casting then RISE_SPEED else SETTLE_SPEED
 		entry.Current = entry.Current:Lerp(target * sway, 1 - math.exp(-dt * speed))
-		entry.Grip.C0 = entry.Current * StaffPose.AXIS
+
+		-- Mola da estocada (somada a pose, no eixo frente/tras do corpo).
+		local accel = THRUST_STIFFNESS * (entry.ThrustTarget - entry.Thrust) - THRUST_DAMPING * entry.ThrustVelocity
+		entry.ThrustVelocity += accel * math.min(dt, 1 / 30)
+		entry.Thrust += entry.ThrustVelocity * math.min(dt, 1 / 30)
+		local posed = CFrame.new(0, 0, entry.Thrust) * entry.Current * CFrame.Angles(entry.Thrust * 0.35, 0, 0)
+		entry.Grip.C0 = posed * StaffPose.AXIS
+
+		-- Gema pulsando enquanto canaliza.
+		if entry.GemLight then
+			local channeling = character:GetAttribute("Channeling") ~= nil
+			entry.GemLight.Brightness = if channeling then 3.5 + math.sin(now * 22) * 1.5 else 1.5
+			entry.GemLight.Range = if channeling then 14 else 8
+		end
 
 		-- Mao na empunhadura: o alvo vem da MESMA pose suavizada do cajado, entao os dois andam juntos.
 		local humanoid = character:FindFirstChildOfClass("Humanoid")
 		local rig = entry.Rig
 		if rig and humanoid and humanoid.Health > 0 then
-			local grip = (rootPart.CFrame * entry.Current * CFrame.new(0, StaffPose.GRIP_DISTANCE, 0)).Position
+			local grip = (rootPart.CFrame * posed * CFrame.new(0, StaffPose.GRIP_DISTANCE, 0)).Position
 			-- Trava: se a empunhadura sair do alcance do braco, o cajado vem ate a mao (nunca o contrario).
 			local shoulder = HandIK.shoulderPosition(rig)
 			local maxReach = HandIK.reach(rig) * 0.96
@@ -176,10 +214,22 @@ local function step(dt: number)
 				local reachable = shoulder + offset.Unit * maxReach
 				local shift = rootPart.CFrame:VectorToObjectSpace(reachable - grip)
 				entry.Current = CFrame.new(shift) * entry.Current
-				entry.Grip.C0 = entry.Current * StaffPose.AXIS
+				entry.Grip.C0 = CFrame.new(shift) * posed * StaffPose.AXIS
 				grip = reachable
 			end
 			HandIK.apply(rig, grip)
+		end
+
+		-- Mao esquerda: gesto de conjuracao (palma a frente), misturado com a animacao.
+		local leftRig = entry.LeftRig
+		if leftRig and humanoid and humanoid.Health > 0 then
+			entry.LeftWeight += ((if casting then 1 else 0) - entry.LeftWeight) * (1 - math.exp(
+				-dt * (if casting then 18 else 6)
+			))
+			if entry.LeftWeight > 0.01 then
+				local reach = Vector3.new(0, 0, entry.Thrust * 0.6)
+				HandIK.apply(leftRig, rootPart.CFrame:PointToWorldSpace(LEFT_HAND_CAST + reach), entry.LeftWeight)
+			end
 		end
 
 		-- Fragmentos orbitando a gema (mais rapido ao conjurar).

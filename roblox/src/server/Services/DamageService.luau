@@ -79,10 +79,14 @@ function DamageService.applySpellDamage(
 	end
 
 	if healthDamage > 0 then
-		vfxFast:FireAllClients(
-			"Damage",
-			{ Target = target, Amount = healthDamage, School = school, Periodic = periodic }
-		)
+		vfxFast:FireAllClients("Damage", {
+			Target = target,
+			Source = source,
+			Amount = healthDamage,
+			School = school,
+			Periodic = periodic,
+			Killed = humanoid.Health <= 0,
+		})
 	end
 	return healthDamage
 end

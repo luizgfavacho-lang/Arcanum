@@ -36,6 +36,7 @@ local SpellService = {}
 local states: { [Player]: PlayerSpellState } = {}
 local vfx = Net.get("Vfx")
 local spellStateRemote = Net.get("SpellState")
+local feedbackRemote = Net.get("CastFeedback")
 
 local function isFiniteVector(v: any): boolean
 	return typeof(v) == "Vector3"
@@ -81,7 +82,11 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 	local spellId = player:GetAttribute("Slot" .. tostring(math.floor(slot)))
 	local spell = if typeof(spellId) == "string" then Spells.get(spellId) else nil
 	local stats = StatsService.get(character)
-	if not spell or not stats or stats.Humanoid.Health <= 0 or StatusService.has(character, States.Paralyzed) then
+	if not spell or not stats or stats.Humanoid.Health <= 0 then
+		return
+	end
+	if StatusService.has(character, States.Paralyzed) then
+		feedbackRemote:FireClient(player, "Paralyzed", slot)
 		return
 	end
 	local aimOrigin, aimTarget = sanitizeAim(character, origin, aimPoint)
@@ -91,7 +96,11 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 
 	local now = Workspace:GetServerTimeNow()
 	local channeled = SpellCatalog.isChanneled(spell.Id)
-	if now < state.GcdUntil or now < (state.Cooldowns[spell.Id] or 0) then
+	if now < state.GcdUntil then
+		return -- recarga global: silenciosa (acontece ao apertar rapido)
+	end
+	if now < (state.Cooldowns[spell.Id] or 0) then
+		feedbackRemote:FireClient(player, "Cooldown", slot)
 		return
 	end
 
@@ -100,7 +109,12 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 	local mods = Modifiers.gather(player, spell.Id, row.School)
 	local manaCost = row.ManaCost * mods.CostMultiplier
 	local healthCost = row.HealthCostPct * stats.Humanoid.MaxHealth * mods.CostMultiplier
-	if stats.Mana < manaCost or (healthCost > 0 and stats.Humanoid.Health <= healthCost + 1) then
+	if stats.Mana < manaCost then
+		feedbackRemote:FireClient(player, "Mana", slot)
+		return
+	end
+	if healthCost > 0 and stats.Humanoid.Health <= healthCost + 1 then
+		feedbackRemote:FireClient(player, "Health", slot)
 		return
 	end
 	StatsService.trySpendMana(stats, manaCost)
@@ -120,7 +134,14 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 
 	ProgressionService.recordCast(player, row.School)
 	StaffService.setSchool(character, row.School)
-	vfx:FireAllClients("Cast", { Caster = character, School = row.School, Tier = row.Tier, SpellId = spell.Id })
+	vfx:FireAllClients("Cast", {
+		Caster = character,
+		School = row.School,
+		Tier = row.Tier,
+		SpellId = spell.Id,
+		Channeled = channeled,
+		Slot = math.floor(slot),
+	})
 
 	local ctx: Context.Context = {
 		Player = player,

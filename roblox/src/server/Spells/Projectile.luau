@@ -125,10 +125,6 @@ function Projectile.cast(ctx: Context.Context)
 
 	-- O projetil sai do cajado mas converge para onde a camera aponta.
 	local aimTarget, aimPoint = Targeting.aimTrace(ctx.Caster, ctx.Origin, Context.direction(ctx), range, 1.2)
-	if aimTarget then
-		-- Mira no centro do corpo (nao no ponto da superficie), como a mira do cliente.
-		aimPoint = Targeting.position(aimTarget)
-	end
 	local muzzle = Targeting.muzzle(ctx.Caster)
 	local baseDirection = (aimPoint - muzzle).Unit
 
@@ -151,9 +147,13 @@ function Projectile.cast(ctx: Context.Context)
 
 	local spread = def.SpreadDegrees or 0
 	for index = 1, count do
+		-- Leque: espalha na horizontal e alterna para cima/baixo (orbes em arco, nao em fila).
 		local alpha = if count > 1 then (index - 1) / (count - 1) - 0.5 else 0
-		local direction = CFrame.fromAxisAngle(Vector3.yAxis, math.rad(alpha * spread))
-			:VectorToWorldSpace(baseDirection)
+		local lift = if count > 1 then (if index % 2 == 0 then 1 else -0.5) * spread * 0.35 else 0
+		local right = baseDirection:Cross(Vector3.yAxis)
+		right = if right.Magnitude > 1e-3 then right.Unit else Vector3.xAxis
+		local flat = CFrame.fromAxisAngle(Vector3.yAxis, math.rad(alpha * spread)):VectorToWorldSpace(baseDirection)
+		local direction = CFrame.fromAxisAngle(right, math.rad(lift)):VectorToWorldSpace(flat)
 
 		local params = RaycastParams.new()
 		params.FilterType = Enum.RaycastFilterType.Exclude

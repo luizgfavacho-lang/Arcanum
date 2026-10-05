@@ -14,13 +14,14 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 
 ## Mapa (`roblox/`)
 ```
-src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado), Config/, SpellCatalog,
-             Spells, Net (remotes e contratos), Schools, States, StaffPose, Units, Signal
+src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK),
+             Config/, SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
+             SoundCatalog (ids de som; vazios = silencio), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
              Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning),
              Combat/ (Targeting, Modifiers, StaffBuilder)
-src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, Vfx) e
-             Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, Auras)
+src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx) e
+             Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -50,10 +51,10 @@ tests/       Lune (*.spec.luau + TestKit)
    empunhadura. A origem de TODA magia é `Shared/StaffPose.gemWorld(root, "Cast")`, igual no servidor e no cliente.
 
 ## Estado atual
-- **R0 testado no Studio:** 5 magias funcionando contra inimigos parados no Sandbox, HUD, nível/XP/afinidade (sem save).
-- **Visual v2:** cajados estilizados por escola (haste com entalhe em espiral, meia-lua, gema em 3
-  camadas, fragmentos orbitando), presos ao corpo com IK na mão e pose suavizada no cliente; magias saem
-  da gema (StaffPose); efeitos em camadas (clarão com raios, onda de choque, círculo rúnico, raio ramificado que
-  tremula, fios trançados na Corrente, chamas/brasas/fumaça na Bola de Fogo, corrente de vida, números
-  agregados, auras de estado). `lune run tests` = 128 ok; `tests/smoke` ok (inclui geometria do cajado). Cajado v2 ainda não visto no Studio.
+- **R0 + polimento:** 5 magias contra inimigos (idle animado, viram para o jogador, morte que se desfaz em luz)
+  num Sandbox com Terrain, árvores, ruína e cristais. Cajados estilizados com IK nas duas mãos, estocada
+  com antecipação/mola, câmera de ombro esquerdo com tremor e kick de FOV, mira dinâmica com marcador de
+  acerto, HUD completo (barras com trilha, slots com custo/recarga/falha, XP, nível), barras de inimigo e
+  de chefe. Sem assistência de mira. Sons: ganchos prontos, ids vazios em `SoundCatalog`.
+- `lune run tests` = 128 ok; `tests/smoke` valida efeitos, cajado, mundo e HUD. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-01..RT-06 em `Docs/07-Roblox.md` §5.

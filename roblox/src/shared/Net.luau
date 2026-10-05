@@ -10,6 +10,8 @@
 --   Vfx(kind: string, payload: table)                     efeitos importantes (todos os clientes)
 --   VfxFast(kind: string, payload: table)                 [unreliable] ticks de canalizacao, numeros de dano
 --   SpellState(spellId: string, readyAt: number, gcdUntil: number)   recargas (so o dono)
+--   CastFeedback(reason: string, slot: number)            conjuracao recusada: "Mana", "Health",
+--                                                          "Cooldown", "Paralyzed" (so o dono)
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -22,6 +24,7 @@ local DEFINITIONS: { [string]: string } = {
 	Vfx = "RemoteEvent",
 	VfxFast = "UnreliableRemoteEvent",
 	SpellState = "RemoteEvent",
+	CastFeedback = "RemoteEvent",
 }
 
 local folder: Instance

@@ -4,6 +4,7 @@
 -- aureola girando). Impactos: explosao de fogo ou estouro de estrelas.
 
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Lib = require(script.Parent.Lib)
 local Effects = require(script.Parent.Effects)
@@ -19,6 +20,9 @@ type Visual = {
 	Homing: Model?,
 	Born: number,
 	SpellId: string,
+	Seed: number,
+	Light: PointLight?,
+	Position: Vector3, -- posicao no trajeto (o desenho pode oscilar em volta dela)
 }
 
 local active: { [string]: Visual } = {}
@@ -114,6 +118,9 @@ function Projectiles.spawn(payload: any)
 		Homing = payload.Homing,
 		Born = os.clock(),
 		SpellId = payload.SpellId,
+		Seed = math.random() * math.pi * 2,
+		Light = root:FindFirstChildOfClass("PointLight"),
+		Position = start,
 	}
 end
 
@@ -137,6 +144,38 @@ local function destroy(visual: Visual)
 	end
 end
 
+-- Marca queimada no chao, com brasas, que some devagar.
+local function scorch(position: Vector3, palette: Lib.Palette, radius: number)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Include
+	params.FilterDescendantsInstances = { Workspace.Terrain }
+	local ground = Workspace:Raycast(position + Vector3.new(0, 2, 0), Vector3.new(0, -12, 0), params)
+	if not ground then
+		return
+	end
+	local mark = Lib.part(
+		Vector3.new(0.06, radius * 2, radius * 2),
+		Color3.fromRGB(28, 20, 22),
+		CFrame.new(ground.Position + ground.Normal * 0.04, ground.Position + ground.Normal)
+			* CFrame.Angles(0, math.rad(90), 0),
+		{ Shape = Enum.PartType.Cylinder, Material = Enum.Material.SmoothPlastic, Transparency = 0.25 }
+	)
+	local glow = Lib.part(
+		Vector3.new(0.07, radius * 1.2, radius * 1.2),
+		palette.Halo,
+		mark.CFrame,
+		{ Shape = Enum.PartType.Cylinder, Transparency = 0.4 }
+	)
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = mark
+	local embers = Lib.emitter(attachment, "Ember", palette, { Rate = 14, SpreadAngle = Vector2.new(60, 60) })
+	Lib.fade(glow, 1.2, { Transparency = 1 })
+	task.delay(1.5, function()
+		embers.Enabled = false
+	end)
+	Lib.fade(mark, 5, { Transparency = 1 }, Enum.EasingStyle.Sine)
+end
+
 local IMPACTS: { [string]: (Vector3, Lib.Palette, number) -> () } = {
 	Fireball = function(position, palette, radius)
 		Effects.flash(position, palette, 2.2, true)
@@ -151,6 +190,7 @@ local IMPACTS: { [string]: (Vector3, Lib.Palette, number) -> () } = {
 		Lib.burst(position, "Ember", palette, 26, { Speed = NumberRange.new(8, 18) })
 		Lib.burst(position, "Spark", palette, 16)
 		Lib.burst(position, "Smoke", palette, 8, { Speed = NumberRange.new(2, 6) })
+		scorch(position, palette, math.max(radius, 2.5))
 	end,
 	ArcaneMissile = function(position, palette, _)
 		Effects.flash(position, palette, 1.2, false)
@@ -177,22 +217,36 @@ end
 local function step(dt: number)
 	local now = os.clock()
 	for id, visual in active do
-		local position = visual.Root.Position
+		local position = visual.Position
 		local target = visual.Homing
 		local targetPos = if target and target.Parent then Lib.rootPosition(target) else nil
 		if targetPos then
 			local desired = (targetPos - position).Unit * visual.Speed
 			visual.Velocity = visual.Velocity:Lerp(desired, math.clamp(dt * 7, 0, 1))
 		end
+		-- O "Root" segue o trajeto do servidor; o desenho pode oscilar em volta dele.
+		local age = now - visual.Born
 		local nextPos = position + visual.Velocity * dt
 		local cf = CFrame.lookAt(nextPos, nextPos + visual.Velocity)
-		for _, p in visual.Parts do
-			p.CFrame = cf
+		visual.Position = nextPos
+		local drawn = cf
+		if visual.SpellId == "ArcaneMissile" then
+			-- Espiral em volta do trajeto (entra suave nos primeiros quadros).
+			local amplitude = 0.7 * math.clamp(age * 5, 0, 1)
+			local spin = age * 16 + visual.Seed
+			drawn = cf * CFrame.new(math.cos(spin) * amplitude, math.sin(spin) * amplitude, 0)
+		elseif visual.SpellId == "Fireball" then
+			drawn = cf * CFrame.Angles(0, 0, age * 9) -- nucleo girando
+			if visual.Light then
+				visual.Light.Brightness = 2.6 + math.noise(age * 12, visual.Seed) * 1.6 -- chama tremulando
+			end
 		end
-		local age = now - visual.Born
+		for _, p in visual.Parts do
+			p.CFrame = drawn
+		end
 		for i, p in visual.Orbit do
 			local angle = age * 12 + i * (math.pi * 2 / #visual.Orbit)
-			p.CFrame = cf * CFrame.Angles(0, 0, angle) * CFrame.new(0.75, 0, 0) * CFrame.Angles(0, 0, math.rad(45))
+			p.CFrame = drawn * CFrame.Angles(0, 0, angle) * CFrame.new(0.75, 0, 0) * CFrame.Angles(0, 0, math.rad(45))
 		end
 		if age > 8 then
 			active[id] = nil

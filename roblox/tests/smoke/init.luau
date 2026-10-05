@@ -90,14 +90,23 @@ local function env()
 	do
 		e[k] = v
 	end
+	-- task.wait encerra o laco atual: loops "while true" dos controladores nao travam o teste.
 	e.task = {
 		delay = function(_, fn, ...)
-			fn(...)
+			local ok, err = pcall(fn, ...)
+			if not ok and not tostring(err):find("__fim_do_laco") then
+				error(err)
+			end
 		end,
 		spawn = function(fn, ...)
-			fn(...)
+			local ok, err = pcall(fn, ...)
+			if not ok and not tostring(err):find("__fim_do_laco") then
+				error(err)
+			end
 		end,
-		wait = noop,
+		wait = function()
+			error("__fim_do_laco")
+		end,
 	}
 	e.game = {
 		GetService = function(_, name)
@@ -113,7 +122,37 @@ local function load(path: string, scriptRef)
 	local e = env()
 	e.script = scriptRef
 	e.EMIT = noop
-	local source = fs.readFile(ROOT .. path):gsub("([%w_]+):Emit%(", "EMIT(%1, ")
+	-- Raycast nao existe no Lune: chao ausente (efeitos que dependem dele simplesmente nao aparecem).
+	e.RAYCAST = function()
+		return nil
+	end
+	e.RaycastParams = {
+		new = function()
+			return {}
+		end,
+	}
+	e.TERRAIN = { FillBlock = noop, FillBall = noop, SetMaterialColor = noop }
+	e.SIGNAL = signal
+	e.SIGNAL_OF = function()
+		return signal
+	end
+	e.Random = {
+		new = function()
+			return {
+				NextNumber = function(_, a, b)
+					return a + math.random() * (b - a)
+				end,
+			}
+		end,
+	}
+	local source = fs.readFile(ROOT .. path)
+	source = source:gsub("([%w_]+):Emit%(", "EMIT(%1, ")
+	source = source:gsub("Workspace:Raycast%(", "RAYCAST(")
+	if path:find("WorldService") then
+		source = source:gsub("Workspace%.Terrain", "TERRAIN") -- so o mundo usa os metodos do Terrain
+	end
+	source = source:gsub(":WaitForChild%(", ":FindFirstChild(")
+	source = source:gsub("([%w_]+):GetAttributeChangedSignal%b()", "SIGNAL_OF(%1)")
 	return luau.load(source, { environment = e })()
 end
 
@@ -214,6 +253,49 @@ print(
 		idleGem.Z
 	)
 )
+
+-- Mundo (terreno simulado; pecas, luzes e efeitos de iluminacao reais).
+local lighting = dataModel:GetService("Lighting")
+services.Lighting = lighting
+local WorldService = load("server/Services/WorldService.luau", {})
+WorldService.init()
+assert(workspaceFolder:FindFirstChild("ArcanumWorld"), "mundo nao foi criado")
+print("Mundo: ok")
+
+-- HUD e barras de inimigos (interface completa, sem rodar o loop por quadro).
+local localPlayer = roblox.Instance.new("Folder")
+local playerGui = roblox.Instance.new("Folder")
+playerGui.Name = "PlayerGui"
+playerGui.Parent = localPlayer
+localPlayer:SetAttribute("Level", 1)
+services.Players = {
+	LocalPlayer = localPlayer,
+	GetPlayers = function()
+		return {}
+	end,
+}
+local SharedFull = { Schools = "Schools", StaffPose = "StaffPose", SpellCatalog = "SpellCatalog", Spells = "Spells" }
+services.ReplicatedStorage = { Shared = SharedFull }
+modules.SpellCatalog = load("shared/SpellCatalog.luau", {})
+modules.Spells = {
+	get = function()
+		return nil
+	end,
+}
+local controllersScript = { Parent = { CameraController = "CameraController", ClientState = "ClientState" } }
+modules.CameraController = { AimTarget = nil }
+modules.ClientState = { SelectedSlot = 1, Cooldowns = {}, GcdUntil = 0 }
+services.UserInputService = { InputBegan = signal, InputChanged = signal }
+local Hud = load("client/Controllers/HudController.luau", controllersScript)
+Hud.start()
+Hud.feedback("Mana", 1)
+Hud.hitmarker(true)
+Hud.castPulse(2)
+local EnemyBars = load("client/Controllers/EnemyBars.luau", controllersScript)
+EnemyBars.start()
+local guiCount = #playerGui:GetDescendants()
+assert(guiCount > 50, "HUD incompleto")
+print(string.format("HUD: ok (%d elementos)", guiCount))
 
 local count = 0
 for _ in workspaceFolder:GetDescendants() do

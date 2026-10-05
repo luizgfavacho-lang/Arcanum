@@ -87,6 +87,13 @@ stylua src tests                     # formatação
 selene src                           # lint (gera roblox.yml na 1ª vez)
 ```
 
+### Sons
+Os eventos sonoros já estão ligados no código (`src/shared/SoundCatalog.luau`): conjuração e impacto por
+escola, raio, drenar vida, morte, subida de nível, falha e troca de magia. Os ids vêm vazios (silêncio).
+Para preencher: Studio → **Caixa de ferramentas → Áudio** → busque o som (ex.: "fire whoosh"), prefira
+áudios publicados pelo próprio Roblox (livres para qualquer jogo), botão direito → **Copiar ID do ativo**
+e cole como `"rbxassetid://ID"` no evento correspondente.
+
 ## 4. Roadmap Roblox
 
 | Marco | Entrega | Aceite |
