@@ -173,7 +173,14 @@ end
 
 local function buildTerrain()
 	local terrain = Workspace.Terrain
-	terrain.Decoration = true -- grama 3D animada pelo vento
+	-- Grama 3D animada pelo vento. Em algumas versoes a propriedade nao e alteravel por script:
+	-- nesse caso ligue em Workspace > Terrain > Decoration no Studio.
+	local ok = pcall(function()
+		(terrain :: any).Decoration = true
+	end)
+	if not ok then
+		warn("[World] Terrain.Decoration nao pode ser ligado por script; ligue no Studio (Terrain > Decoration).")
+	end
 	terrain:SetMaterialColor(Enum.Material.Grass, Color3.fromRGB(106, 140, 82))
 	terrain:SetMaterialColor(Enum.Material.Ground, Color3.fromRGB(110, 92, 72))
 	terrain:SetMaterialColor(Enum.Material.Rock, Color3.fromRGB(122, 118, 132))
