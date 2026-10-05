@@ -1,8 +1,8 @@
 --!strict
 -- Da um cajado a todo mago (jogadores e criaturas magicas).
 -- O cajado e preso ao HumanoidRootPart (Weld "StaffGrip", pose Idle de StaffPose), e NAO a mao:
--- assim ele nao balanca com a animacao. Um IKControl faz a mao direita segurar o ponto "GripPoint".
--- Cada cliente suaviza a transicao Idle <-> Cast localmente (client/Vfx/Staff.luau).
+-- assim ele nao balanca com a animacao. Cada cliente suaviza a transicao Idle <-> Cast e posiciona
+-- o braco direito por IK para a mao ficar sempre na empunhadura (client/Vfx/Staff.luau).
 -- O cajado recebe a tag "ArcanumStaff" (CollectionService) para os clientes o encontrarem.
 
 local CollectionService = game:GetService("CollectionService")
@@ -17,29 +17,6 @@ local StaffBuilder = require(script.Parent.Parent.Combat.StaffBuilder)
 local StaffService = {}
 
 local TAG = "ArcanumStaff"
-
-local function setupHandIk(character: Model, staff: Model)
-	local humanoid = character:FindFirstChildOfClass("Humanoid")
-	local upperArm = character:FindFirstChild("RightUpperArm")
-	local hand = character:FindFirstChild("RightHand")
-	local root = staff.PrimaryPart
-	local gripPoint = root and root:FindFirstChild("GripPoint")
-	if not humanoid or not upperArm or not hand or not gripPoint then
-		return
-	end
-	if not humanoid:FindFirstChildOfClass("Animator") then
-		Instance.new("Animator").Parent = humanoid
-	end
-	local ik = Instance.new("IKControl")
-	ik.Name = "StaffHandIK"
-	ik.Type = Enum.IKControlType.Position
-	ik.ChainRoot = upperArm
-	ik.EndEffector = hand
-	ik.Target = gripPoint
-	ik.Weight = 1
-	ik.SmoothTime = 0.08
-	ik.Parent = humanoid
-end
 
 function StaffService.equip(character: Model, school: string?)
 	if character:FindFirstChild("ArcanumStaff") then
@@ -63,7 +40,6 @@ function StaffService.equip(character: Model, school: string?)
 
 	staff.Parent = character
 	CollectionService:AddTag(staff, TAG)
-	setupHandIk(character, staff)
 end
 
 -- A gema assume a cor da escola conjurada (replica para todos).

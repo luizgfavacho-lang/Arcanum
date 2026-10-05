@@ -1,6 +1,7 @@
 --!strict
 -- Animacao local dos cajados (todos os personagens, so visual):
 -- * transicao suave entre as poses Idle e Cast de Shared/StaffPose (mola exponencial);
+-- * a mao direita SEMPRE na empunhadura: IK de dois ossos (HandIK) sobrescreve a animacao do braco;
 -- * respiracao leve parado e inclinacao contra o movimento ao andar (sem tremer com a mao);
 -- * fragmentos orbitando a gema; pulso da gema e faiscas espiralando ao conjurar.
 -- O servidor so cria o cajado na pose Idle; nada aqui replica.
@@ -12,6 +13,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = game:GetService("ReplicatedStorage").Shared
 local StaffPose = require(Shared.StaffPose)
 local Lib = require(script.Parent.Lib)
+local HandIK = require(script.Parent.HandIK)
 
 local Staff = {}
 
@@ -30,6 +32,7 @@ type Entry = {
 	Tilt: Vector2,
 	Shards: { Weld },
 	Phase: number,
+	Rig: HandIK.Rig?,
 }
 
 local entries: { [Model]: Entry } = {}
@@ -61,6 +64,7 @@ local function track(staff: Instance)
 		Tilt = Vector2.zero,
 		Shards = shards,
 		Phase = math.random() * math.pi * 2,
+		Rig = HandIK.rig(character),
 	}
 end
 
@@ -159,6 +163,25 @@ local function step(dt: number)
 		entry.Current = entry.Current:Lerp(target * sway, 1 - math.exp(-dt * speed))
 		entry.Grip.C0 = entry.Current * StaffPose.AXIS
 
+		-- Mao na empunhadura: o alvo vem da MESMA pose suavizada do cajado, entao os dois andam juntos.
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		local rig = entry.Rig
+		if rig and humanoid and humanoid.Health > 0 then
+			local grip = (rootPart.CFrame * entry.Current * CFrame.new(0, StaffPose.GRIP_DISTANCE, 0)).Position
+			-- Trava: se a empunhadura sair do alcance do braco, o cajado vem ate a mao (nunca o contrario).
+			local shoulder = HandIK.shoulderPosition(rig)
+			local maxReach = HandIK.reach(rig) * 0.96
+			local offset = grip - shoulder
+			if offset.Magnitude > maxReach then
+				local reachable = shoulder + offset.Unit * maxReach
+				local shift = rootPart.CFrame:VectorToObjectSpace(reachable - grip)
+				entry.Current = CFrame.new(shift) * entry.Current
+				entry.Grip.C0 = entry.Current * StaffPose.AXIS
+				grip = reachable
+			end
+			HandIK.apply(rig, grip)
+		end
+
 		-- Fragmentos orbitando a gema (mais rapido ao conjurar).
 		entry.Phase += dt * (if casting then 6 else 1.6)
 		for i, weld in entry.Shards do
@@ -181,7 +204,10 @@ function Staff.start()
 		task.spawn(track, staff)
 	end)
 	CollectionService:GetInstanceRemovedSignal(TAG):Connect(untrack)
-	RunService.RenderStepped:Connect(step)
+	-- Stepped roda depois da animacao e antes da fisica: o IK vence a animacao de andar.
+	RunService.Stepped:Connect(function(_, dt)
+		step(dt)
+	end)
 end
 
 return Staff

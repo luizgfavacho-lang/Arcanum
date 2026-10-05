@@ -14,10 +14,11 @@ StaffPose.GRIP_DISTANCE = -0.45 -- onde a mao segura (abaixo do centro da haste)
 StaffPose.AXIS = CFrame.Angles(0, 0, math.rad(90))
 
 StaffPose.Poses = table.freeze({
-	-- Em pe ao lado direito, levemente inclinado a frente; ponta quase no chao.
-	Idle = CFrame.new(1.4, -0.5, -0.55) * CFrame.Angles(math.rad(-8), 0, math.rad(-4)),
-	-- Erguido a frente do peito, inclinado na direcao do alvo.
-	Cast = CFrame.new(1.1, 0.1, -1.4) * CFrame.Angles(math.rad(-38), 0, math.rad(-6)),
+	-- Em pe ao lado direito, levemente inclinado a frente. A empunhadura fica ao alcance da mao
+	-- com o braco relaxado (~1,8 stud abaixo do ombro).
+	Idle = CFrame.new(1.25, 0.1, -0.5) * CFrame.Angles(math.rad(-8), 0, math.rad(-4)),
+	-- Apontado a frente como uma varinha, gema na altura da cabeca; braco meio estendido.
+	Cast = CFrame.new(1.1, 1.05, -1.85) * CFrame.Angles(math.rad(-55), 0, math.rad(-6)),
 })
 
 -- Posicao da gema (no mundo) dado o CFrame do HumanoidRootPart e a pose.
