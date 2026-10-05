@@ -40,7 +40,7 @@ public:
 	UArcanumSpellDefinition* GetEquippedSpell(int32 Slot) const;
 
 	UFUNCTION(BlueprintPure, Category = "Arcanum|Spellbook")
-	const TArray<TObjectPtr<UArcanumSpellDefinition>>& GetLearnedSpells() const { return LearnedSpells; }
+	TArray<UArcanumSpellDefinition*> GetLearnedSpells() const { return ObjectPtrDecay(LearnedSpells); }
 
 	UFUNCTION(BlueprintPure, Category = "Arcanum|Spellbook")
 	bool HasLearned(const UArcanumSpellDefinition* Spell) const { return LearnedSpells.Contains(Spell); }
