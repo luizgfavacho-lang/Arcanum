@@ -15,7 +15,7 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 ## Mapa (`roblox/`)
 ```
 src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado), Config/, SpellCatalog,
-             Spells, Net (remotes e contratos), Schools, States, Units, Signal
+             Spells, Net (remotes e contratos), Schools, States, StaffPose, Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
              Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning),
              Combat/ (Targeting, Modifiers, StaffBuilder)
@@ -45,11 +45,14 @@ tests/       Lune (*.spec.luau + TestKit)
 6. Portal Arcano = teleporte estilizado (sem visão ao vivo do outro lado).
 7. Escola de Sangue com visual estilizado (regras de conteúdo do Roblox).
 8. Monetização sem vender poder.
+9. Cajado preso ao HumanoidRootPart (não à mão) + IKControl na mão; a origem de TODA magia é
+   `Shared/StaffPose.gemWorld(root, "Cast")`, usada igual no servidor e no cliente.
 
 ## Estado atual
 - **R0 testado no Studio:** 5 magias funcionando contra inimigos parados no Sandbox, HUD, nível/XP/afinidade (sem save).
-- **Visual v2:** cajado montado por código (gema na cor da escola, pose de conjuração local, magias saem
-  da gema); efeitos em camadas (clarão com raios, onda de choque, círculo rúnico, raio ramificado que
+- **Visual v2:** cajados estilizados por escola (haste com entalhe em espiral, meia-lua, gema em 3
+  camadas, fragmentos orbitando), presos ao corpo com IK na mão e pose suavizada no cliente; magias saem
+  da gema (StaffPose); efeitos em camadas (clarão com raios, onda de choque, círculo rúnico, raio ramificado que
   tremula, fios trançados na Corrente, chamas/brasas/fumaça na Bola de Fogo, corrente de vida, números
-  agregados, auras de estado). `lune run tests` = 122 ok; `tests/smoke` ok. Visual v2 ainda não visto no Studio.
+  agregados, auras de estado). `lune run tests` = 122 ok; `tests/smoke` ok (inclui geometria do cajado). Cajado v2 ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-01..RT-06 em `Docs/07-Roblox.md` §5.

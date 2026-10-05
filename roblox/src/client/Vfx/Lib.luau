@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Schools = require(ReplicatedStorage.Shared.Schools)
+local StaffPose = require(ReplicatedStorage.Shared.StaffPose)
 
 export type Palette = Schools.Palette
 
@@ -254,12 +255,14 @@ function Lib.burst(position: Vector3, preset: string, palette: Palette, count: n
 	e:Emit(count)
 end
 
--- Ponto de saida das magias visto NESTE cliente (a gema ja na pose local de conjuracao).
+-- Ponto de saida das magias: a gema na pose de conjuracao. Mesma conta do servidor
+-- (Shared/StaffPose), entao o efeito nasce exatamente onde o cajado fica ao conjurar.
 function Lib.muzzleOf(model: Instance?, fallback: Vector3): Vector3
-	local staff = model and model:FindFirstChild("ArcanumStaff")
-	local gem = staff and staff:FindFirstChild("Gem")
-	local muzzle = gem and gem:FindFirstChild("Muzzle") :: Attachment?
-	return if muzzle then muzzle.WorldPosition else fallback
+	local root = model and model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root and model and model:FindFirstChild("ArcanumStaff") then
+		return StaffPose.gemWorld(root.CFrame, "Cast")
+	end
+	return fallback
 end
 
 function Lib.rootPosition(model: Instance?): Vector3?

@@ -118,9 +118,10 @@ local function load(path: string, scriptRef)
 end
 
 -- Arvore virtual: script.Parent.X -> chaves
-local Shared = { Schools = "Schools" }
+local Shared = { Schools = "Schools", StaffPose = "StaffPose" }
 services.ReplicatedStorage = { Shared = Shared }
 modules.Schools = load("shared/Schools.luau", {})
+modules.StaffPose = load("shared/StaffPose.luau", {})
 
 local vfxScript = { Parent = { Lib = "Lib", Effects = "Effects", Lightning = "Lightning" } }
 modules.Lib = load("client/Vfx/Lib.luau", vfxScript)
@@ -174,6 +175,37 @@ head.CFrame = roblox.CFrame.new(0, 5, 0)
 head.Parent = fakeCaster
 Numbers.heal(fakeCaster, 2.5)
 Numbers.damage(fakeCaster, 6, Lib.palette("Fire"), false)
+
+-- Cajado: monta todos os estilos e confere a gema contra Shared/StaffPose.
+local StaffPose = modules.StaffPose
+local StaffBuilder = load("server/Combat/StaffBuilder.luau", {})
+for _, school in { "Electricity", "Fire", "Energy", "Necromancy", "Blood", "Default" } do
+	local staff = StaffBuilder.build(school, roblox.Color3.new(1, 0, 1))
+	local gem = staff:FindFirstChild("Gem")
+	assert(staff.PrimaryPart and staff.PrimaryPart.Name == "Root", "PrimaryPart deve ser Root")
+	assert(math.abs(gem.CFrame.Position.X - StaffPose.GEM_DISTANCE) < 1e-3, "gema fora de GEM_DISTANCE")
+	assert(staff.Root:FindFirstChild("GripPoint"), "falta GripPoint")
+	staff.Parent = workspaceFolder
+end
+local castGem = StaffPose.gemWorld(roblox.CFrame.new(), "Cast")
+local idleGem = StaffPose.gemWorld(roblox.CFrame.new(), "Idle")
+-- Na conjuracao: a frente (-Z), a direita (+X) e na altura do ombro (raiz do R15 ~3 studs do chao).
+assert(
+	castGem.Z < -1.5 and castGem.X > 0.3 and castGem.Y > 1.5 and castGem.Y < 3,
+	"gema da pose Cast fora do lugar: " .. tostring(castGem)
+)
+assert(idleGem.Y > 1.5 and idleGem.Y < 3.5, "gema da pose Idle fora do lugar: " .. tostring(idleGem))
+print(
+	string.format(
+		"Cajado: gema Cast (%.2f, %.2f, %.2f)  Idle (%.2f, %.2f, %.2f)",
+		castGem.X,
+		castGem.Y,
+		castGem.Z,
+		idleGem.X,
+		idleGem.Y,
+		idleGem.Z
+	)
+)
 
 local count = 0
 for _ in workspaceFolder:GetDescendants() do

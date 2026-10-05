@@ -1,7 +1,10 @@
 --!strict
 -- Consultas de alvo do servidor: hostilidade, mira, vizinho mais proximo e cadeia.
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Workspace = game:GetService("Workspace")
+
+local StaffPose = require(ReplicatedStorage.Shared.StaffPose)
 
 local StatsService = require(script.Parent.Parent.Services.StatsService)
 
@@ -12,17 +15,12 @@ function Targeting.position(model: Model): Vector3
 	return if root then root.Position else model:GetPivot().Position
 end
 
--- Ponto de saida das magias: gema do cajado, mao direita ou a frente da cabeca.
+-- Ponto de saida das magias: a gema do cajado na pose de conjuracao (mesma conta do cliente,
+-- ver Shared/StaffPose). Sem cajado: a frente da cabeca.
 function Targeting.muzzle(model: Model): Vector3
-	local staff = model:FindFirstChild("ArcanumStaff")
-	local gem = staff and staff:FindFirstChild("Gem")
-	local muzzle = gem and gem:FindFirstChild("Muzzle") :: Attachment?
-	if muzzle then
-		return muzzle.WorldPosition
-	end
-	local hand = model:FindFirstChild("RightHand") :: BasePart?
-	if hand then
-		return hand.Position
+	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root and model:FindFirstChild("ArcanumStaff") then
+		return StaffPose.gemWorld(root.CFrame, "Cast")
 	end
 	local head = model:FindFirstChild("Head") :: BasePart?
 	if head then
