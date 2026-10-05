@@ -6,7 +6,7 @@ servem só para ordenar o trabalho.
 
 | Marco | Entrega | Critérios de aceite |
 |---|---|---|
-| **M0 — Fundação** *(este commit)* | Repositório, CLAUDE.md, módulos C++, GAS (atributos, ASC, custo, recarga, GCD, dano por escola), Projétil e Canalizada, Grimório, dados em CSV, scripts filtrados, testes de regras | Compila no UE 5.5; `Test.ps1` com 10 testes verdes; `ImportData.ps1` gera DT/DA sem erro |
+| **M0 — Fundação** *(este commit)* | Repositório, CLAUDE.md, módulos C++, GAS (atributos, ASC, custo, recarga, GCD, dano por escola), Projétil e Canalizada, Grimório, dados em CSV, scripts filtrados, testes de regras | Compila no UE 5.7; `Test.ps1` com 10 testes verdes; `ImportData.ps1` gera DT/DA sem erro |
 | **M1 — Combate cinza** (3 sem.) | As 6 magias da fatia com placeholders; inimigo dummy e Ossomante com IA simples (StateTree); morte, XP e nível 1–10; passiva Condutor; comandos de debug | Functional Test `FT_Spells` cobre as 6 magias; 2 jogadores em listen server sem dessincronia |
 | **M2 — Look de produção** (4 sem.) | `M_ArcanumMaster`, PP_Toon/Ink/Paint, LUT, céu pintado, presets de Niagara (§8 do guia), hit-stop, flipbooks | Comparação com o *style frame* aprovado; PP ≤ 1,2 ms; 40 efeitos ≤ 2,5 ms |
 | **M3 — UI e Grimório** (2 sem.) | CommonUI: HUD, Grimório, status, opções de acessibilidade (flash, tremor, daltonismo, legendas, remapeamento) | Tudo navegável por controle; textos via String Table |

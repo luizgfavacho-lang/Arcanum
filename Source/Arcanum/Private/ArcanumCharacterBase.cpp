@@ -54,16 +54,19 @@ void AArcanumCharacterBase::HandleOutOfHealth(AActor* Killer, float DamageMagnit
 	if (AbilitySystem)
 	{
 		AbilitySystem->CancelAllAbilities();
-		AbilitySystem->AddLooseGameplayTag(ArcanumTags::State_Dead);
-		AbilitySystem->AddReplicatedLooseGameplayTag(ArcanumTags::State_Dead);
 	}
 
+	// O multicast roda no servidor e nos clientes: e ele que aplica a tag State.Dead em todos.
 	MulticastOnDeath();
 }
 
 void AArcanumCharacterBase::MulticastOnDeath_Implementation()
 {
 	bIsDead = true;
+	if (AbilitySystem && !AbilitySystem->HasMatchingGameplayTag(ArcanumTags::State_Dead))
+	{
+		AbilitySystem->AddLooseGameplayTag(ArcanumTags::State_Dead);
+	}
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetCharacterMovement()->DisableMovement();
 	// TODO(Sonnet): GameplayCue.Character.Death (dissolver pintado) e ragdoll.

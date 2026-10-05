@@ -1,5 +1,5 @@
 # Funcoes compartilhadas pelos scripts. Requer a variavel de ambiente UE_ROOT
-# (ex.: C:\Program Files\Epic Games\UE_5.5) apontando para a raiz da engine.
+# (ex.: C:\Program Files\Epic Games\UE_5.7) apontando para a raiz da engine.
 
 $script:Root = Split-Path -Parent $PSScriptRoot
 $script:Project = Join-Path $script:Root "Arcanum.uproject"
@@ -8,7 +8,7 @@ New-Item -ItemType Directory -Force -Path $script:LogDir | Out-Null
 
 function Get-EngineRoot {
     if (-not $env:UE_ROOT -or -not (Test-Path $env:UE_ROOT)) {
-        Write-Host "ERRO: defina UE_ROOT com a pasta da engine (ex.: C:\Program Files\Epic Games\UE_5.5)."
+        Write-Host "ERRO: defina UE_ROOT com a pasta da engine (ex.: C:\Program Files\Epic Games\UE_5.7)."
         exit 2
     }
     return $env:UE_ROOT

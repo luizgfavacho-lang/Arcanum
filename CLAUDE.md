@@ -1,13 +1,13 @@
 # ARCANUM — contexto para o Claude Code
 
-RPG de ação em mundo aberto focado em magia, em UE 5.5 (C++ + GAS). Visual pintado (toon por
+RPG de ação em mundo aberto focado em magia, em UE 5.7 (C++ + GAS). Visual pintado (toon por
 post-process). Os docs completos estão em `Docs/` — leia só o que a tarefa pedir.
 
 ## Comandos (saída já filtrada; nunca cole log completo no contexto)
-- Build: `pwsh Scripts/Build.ps1` (padrão `ArcanumEditor Development`; requer `UE_ROOT`)
-- Testes: `pwsh Scripts/Test.ps1 [-Filter Arcanum.Damage]` (valida dados e roda Automation)
+- Build: `powershell -ExecutionPolicy Bypass -File Scripts\Build.ps1` (padrão `ArcanumEditor Development`; requer `UE_ROOT`)
+- Testes: `powershell -ExecutionPolicy Bypass -File Scripts\Test.ps1 [-Filter Arcanum.Damage]` (valida dados e roda Automation)
 - Dados: `python3 Scripts/validate_data.py [--strict]` (sem engine, instantâneo)
-- Importar CSV → DataTables/Data Assets: `pwsh Scripts/ImportData.ps1` (editor fechado)
+- Importar CSV → DataTables/Data Assets: `powershell -ExecutionPolicy Bypass -File Scripts\ImportData.ps1` (editor fechado)
 - Logs completos: `Saved/Logs/{Build,Tests,ImportData}.log` — use `Select-String`/`grep` neles.
 
 ## Mapa

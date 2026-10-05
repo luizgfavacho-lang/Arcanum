@@ -11,7 +11,7 @@ Só quatro decisões mudam a arquitetura. Até haver resposta, o projeto segue a
 | # | Pergunta | Premissa adotada |
 |---|---|---|
 | 1 | Mundo **feito à mão** (fixo) ou **procedural por semente**, como no mod? | Mundo fixo feito à mão com World Partition e PCG **no editor**. Variação por semente só em estruturas menores (ruínas, poços, acampamentos) em "slots" pré-posicionados. Com isso a "garantia de covis" fica trivial: os covis são posicionados à mão, e a distância máxima vira regra de level design. |
-| 2 | Versão exata da engine e SO principal de desenvolvimento? | UE **5.5** (o `.uproject` aponta para 5.5; o código compila de 5.4 em diante, com `UE_VERSION_OLDER_THAN` onde a API mudou), Windows + Visual Studio 2022. |
+| 2 | Versão exata da engine e SO principal de desenvolvimento? | UE **5.7** (o `.uproject` aponta para 5.7; o código compila de 5.4 em diante, com `UE_VERSION_OLDER_THAN` onde a API mudou), Windows + Visual Studio 2022. |
 | 3 | Coop online: Steam, EOS ou só LAN/IP direto? | Listen server via OnlineSubsystemNull (LAN/IP) até o marco M7; EOS no M7 (é multiplataforma e gratuito). Servidor dedicado fica fora do escopo. |
 | 4 | Quem produz a arte (texturas pintadas, flipbooks, animação)? Equipe ou solo com assets externos? | Equipe pequena. O pipeline aceita placeholders (kits do Marketplace/Fab repintados) e o estilo vem do shader e do pós-processo. Flipbooks 2D são feitos à mão desde o M2. |
 

@@ -1,6 +1,6 @@
 # ARCANUM
 
-RPG de ação em mundo aberto focado em magia — Unreal Engine 5.5, C++ + Gameplay Ability System,
+RPG de ação em mundo aberto focado em magia — Unreal Engine 5.7, C++ + Gameplay Ability System,
 visual pintado estilizado.
 
 - Visão, regras e decisões: [`Docs/01-GDD.md`](Docs/01-GDD.md)
@@ -11,8 +11,8 @@ visual pintado estilizado.
 - Próximas tarefas: [`Docs/06-Tarefas.md`](Docs/06-Tarefas.md)
 
 ## Primeiros passos
-1. Instale o UE 5.5 e o Git LFS (`git lfs install`).
-2. Defina `UE_ROOT` (ex.: `C:\Program Files\Epic Games\UE_5.5`).
+1. Instale o UE 5.7 e o Git LFS (`git lfs install`).
+2. Defina `UE_ROOT` (ex.: `C:\Program Files\Epic Games\UE_5.7`).
 3. `pwsh Scripts/Build.ps1` → `pwsh Scripts/Test.ps1`.
 4. Siga os passos manuais de [`Docs/04-FatiaVertical.md`](Docs/04-FatiaVertical.md) §4.
 
