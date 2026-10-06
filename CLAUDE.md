@@ -15,17 +15,18 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 ## Mapa (`roblox/`)
 ```
 src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK, CombatMath,
-             ComboMath), Config/, SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
+             ComboMath, SpellMath, ArenaMath), Config/, AimShape (indicador de mira), SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
              SoundCatalog (ids da biblioteca oficial do Roblox/ProSoundEffects), TextureCatalog (imagens publicas
              da Caixa de ferramentas: circulos magicos, aneis, flipbooks de fogo/fumaca, raios), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
-             Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard, Zone, Barrage,
+             Spell, Enemy, Staff, Arena), Arena/ (ArenaBuilder), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard, Zone, Barrage,
              Buff, Movement, Control, Beam, Flamethrower, Melee, Summon),
              Combat/ (Targeting, Modifiers, StaffBuilder, CreatureBuilder, EnemyCatalog, EnemyBrain,
              MinionBrain, RigAnimator, CollisionGroups)
-src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx, Grimoire) e
+src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx, Grimoire,
+             AimIndicator, Arena) e
              Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
-             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx, Impact, FlameFx)
+             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx, Impact, FlameFx, SignatureFx)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -88,5 +89,18 @@ tests/       Lune (*.spec.luau + TestKit)
   **Piromania** (id `InfernalVortex`, mantido por causa das tags da Unreal; substituiu o Vórtice Infernal) =
   lança-chamas canalizado em cone (`Spells/Flamethrower`: 8 m, 4 dano/s em cada alvo, queima, 18 mana/s) com jato
   contínuo em `Vfx/FlameFx`.
-- `lune run tests` = 352 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas e reações. Polimento ainda não visto no Studio.
+- **Magias revisadas com referências de LoL/DotA** (regras em `Math/SpellMath`, visual em `Vfx/SignatureFx`):
+  Faísca ramifica (Arc Lightning), Raio Invocado com onda de choque, Campo Estático mais forte na borda (Plasma
+  Field), Passo Relâmpago deixa resquício (Static Remnant), Tempestade procura inimigos, Bola de Fogo explode,
+  Muralha incinera projéteis, Nova com Combustão, Armadura de Brasas −15% de dano, Meteoro rola (Chaos Meteor),
+  Veredito atordoa no miolo, Pulso Arcano deixa Lento (estado `Slowed`), Singularidade prende no miolo (Black
+  Hole), estrela final na Chuva de Estrelas, Ampulheta deixa vulnerável, Lança do Firmamento marca, Toque Mortal
+  executa (Reaper's Scythe), Maldição contagia ao morrer, Bruto rompe o chão, ponta da Lâmina (+50%), Espinhos
+  atordoam, Anzol vira tiro de habilidade (Meat Hook). Indicador de mira no chão (`Controllers/AimIndicator`).
+- **Arena** (estilo Ratchet & Clank 2): coliseu flutuante em (0, 60, 900), portal no Sandbox perto do nascimento.
+  `Services/ArenaService` (Idle → Countdown → Round → Intermission / Defeat), criaturas caçadoras saindo dos 4
+  portões (`EnemyBrain.setHunter`, `EnemyService.spawn` com escala), chefe a cada 5 rounds, coletáveis de vida e
+  mana no centro (passar por cima), XP por round, recorde do servidor. Regras em `Math/ArenaMath`; HUD em
+  `Controllers/ArenaController`.
+- `lune run tests` = 547 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas, reações, assinaturas das magias e Arena. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.

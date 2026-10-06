@@ -167,3 +167,54 @@ apanhar revela de onde veio o golpe.
 | Gosma / Gosminha | Cerca o alvo junto com o bando (cada uma por um ângulo), saltita | **Bote** (agacha tremendo e salta), contato; divide em 2 que já nascem atrás do matador |
 | Bulbo Tempestuoso | Flutua em zigue-zague | Incha e explode; **morto antes, estoura igual e fere todos — inclusive outras criaturas** |
 | Golem de Cristal | Avança devagar, guarda posição | Pancada em área, **linha de cristais** até o alvo, mísseis teleguiados; com 50% de vida **enfurece** (ruge, mais rápido, pancada dupla) |
+
+## 7. Arena Arcana (rounds)
+
+Inspirada nas arenas de **Ratchet & Clank: Going Commando**. Entre no portal ao lado do ponto de nascer
+(Sandbox) para ir ao coliseu flutuante; o portal azul dentro da Arena traz de volta. Qualquer jogador pode
+entrar a qualquer momento e passa a lutar junto.
+
+| Fase | O que acontece |
+|---|---|
+| Espera | Arena vazia. Entrou alguém: contagem de 5 s |
+| Round N | Criaturas saem dos 4 portões, sempre caçando o jogador mais perto (sem coleira). Só um número limitado fica vivo ao mesmo tempo; o resto espera nos portões |
+| Chefe | A cada 5 rounds: Golem de Cristal (1 no 5, 2 no 10, 3 do 15 em diante), entra primeiro |
+| Vitória do round | +XP para todos (15 × round, +50 no de chefe); vida e mana do centro renascem; 8 s até o próximo |
+| Derrota | Todos caíram ou saíram: a Arena limpa e reabre; o recorde do servidor fica no placar |
+
+**Dificuldade** (`Math/ArenaMath`, testado): criaturas por round `3 + 2·round` (+50% por jogador extra),
+vida ×(1 + 0,15·(round−1)), +5 de Poder Mágico por round (mais dano), elites até 35%, mais criaturas vivas ao
+mesmo tempo e chegando mais rápido. Elenco: Gosmas e Ossomantes no início, Bulbos a partir do round 2.
+
+**Coletáveis**: 2 cristais de vida (35% da vida máxima) e 2 de mana (40% da mana máxima) no centro; passe por
+cima para pegar (só se precisar). Renascem em 18 s ou no fim do round.
+
+## 8. Magias: referências e mecânicas próprias
+
+| Magia | Referência | Mecânica |
+|---|---|---|
+| Faísca | Arc Lightning (Zeus, DotA) | salta para até 2 inimigos (−50% por salto) |
+| Raio Invocado | Lightning Bolt (Zeus) | onda de choque 0,25 s depois (4 de dano, 6 m) |
+| Campo Estático | Plasma Field (Razor) | pulso ×0,6 no centro até ×1,6 na borda |
+| Passo Relâmpago | Static Remnant (Storm Spirit) | resquício explode 0,6 s depois (6 de dano, 3 m) |
+| Tempestade | Static Storm / Thundergod's Wrath | 70% dos raios procuram inimigos na área |
+| Bola de Fogo | Lina / Brand | explosão de 1,5 m (3 de dano) |
+| Muralha de Chamas | Firewall (Diablo) | incinera projéteis inimigos que a cruzam |
+| Nova Flamejante | Pyroclasm (Brand, LoL) | Combustão: ×1,5 em quem já queimava |
+| Armadura de Brasas | Molten Shield (Annie, LoL) | −15% de dano recebido |
+| Meteoro | Chaos Meteor (Invoker) | rola 10 m queimando o caminho |
+| Veredito da Aurora | Sun Strike + Solar Flare | atordoa 1,2 s no miolo |
+| Pulso Arcano | Force Pulse (Kassadin) | Lento 40% por 2,5 s |
+| Singularidade | Black Hole (Enigma) | paralisa quem chega ao miolo |
+| Chuva de Estrelas | Starstorm (Mirana) | estrela final ×2 no inimigo mais perto do centro |
+| Ampulheta Partida | Chronosphere (Faceless Void) | presos ficam vulneráveis (Maldição) |
+| Lança do Firmamento | Final Spark (Lux) | sobreviventes ganham Carga Arcana |
+| Toque Mortal | Reaper's Scythe (Necrophos) | segura 0,35 s; executa abaixo de 15% |
+| Maldição | Maledict (Witch Doctor) | quem morre amaldiçoado passa a praga |
+| Erguer Bruto | Flesh Golem (Undying) | rompe o chão ao surgir (6 de dano, arremessa) |
+| Lâmina de Sangue | Darkin Blade (Aatrox) | ponta da lâmina +50% e arremesso |
+| Espinhos Carmesins | Impale (Lion) | atordoa 0,9 s |
+| Anzol Carmesim | Meat Hook (Pudge) | tiro de habilidade, sem mira automática |
+
+O **indicador de mira** (como os de LoL/DotA) mostra no chão a área da magia selecionada: círculo no ponto mirado,
+em volta do mago, ou faixa (Espinhos e Muralha).

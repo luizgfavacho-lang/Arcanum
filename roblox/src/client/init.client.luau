@@ -12,6 +12,7 @@ for _, name in
 		"EnemyBars",
 		"VfxController",
 		"AimIndicator",
+		"ArenaController",
 		"GrimoireController",
 		"InputController",
 	}

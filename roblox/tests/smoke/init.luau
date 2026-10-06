@@ -173,7 +173,7 @@ local function load(path: string, scriptRef)
 		end
 		source = source:gsub("camera%.ViewportSize", "Vector2.new(1920, 1080)") -- tela nao simulada
 	end
-	if path:find("HudController") then
+	if path:find("HudController") or path:find("ArenaController") then
 		source = source:gsub("player%.CharacterAdded", "SIGNAL")
 		source = source:gsub("player%.Character%f[^%w_]", "nil")
 	end
@@ -435,6 +435,24 @@ WorldService.init()
 assert(workspaceFolder:FindFirstChild("ArcanumWorld"), "mundo nao foi criado")
 print("Mundo: ok")
 
+-- Arena: monta o coliseu, o portal do Sandbox e confere portoes, plataformas e saida.
+local ArenaBuilder = load("server/Arena/ArenaBuilder.luau", {})
+local arenaWorld = workspaceFolder:FindFirstChild("ArcanumWorld")
+local layout = ArenaBuilder.build(arenaWorld)
+assert(#layout.Gates == 4, "arena sem os 4 portoes")
+assert(#layout.Pads == 4, "arena sem as plataformas de vida/mana")
+assert(arenaWorld:FindFirstChild("Arena") and arenaWorld:FindFirstChild("ArenaEntrance"), "arena ou portal faltando")
+local healthPads, manaPads = 0, 0
+for _, pad in layout.Pads do
+	if pad.Kind == "Health" then
+		healthPads += 1
+	elseif pad.Kind == "Mana" then
+		manaPads += 1
+	end
+end
+assert(healthPads == 2 and manaPads == 2, "duas de vida e duas de mana")
+print(string.format("Arena: ok (%d pecas)", #layout.Model:GetDescendants()))
+
 -- HUD e barras de inimigos (interface completa, sem rodar o loop por quadro).
 local localPlayer = roblox.Instance.new("Folder")
 local playerGui = roblox.Instance.new("Folder")
@@ -684,6 +702,32 @@ Grimoire.close()
 local book = playerGui:FindFirstChild("ArcanumGrimoire")
 assert(book and #book:GetDescendants() > 80, "Grimorio incompleto")
 print(string.format("Grimorio: ok (%d elementos)", #book:GetDescendants()))
+
+-- HUD e efeitos da Arena (placar, coletaveis, portoes, teleporte).
+services.CollectionService = {
+	GetTagged = function()
+		return {}
+	end,
+	GetInstanceAddedSignal = function()
+		return signal
+	end,
+}
+modules.CameraController.shake = noop
+local ArenaController = load("client/Controllers/ArenaController.luau", {
+	Parent = {
+		CameraController = "CameraController",
+		Parent = { Vfx = { Lib = "Lib", Effects = "Effects", Audio = "Audio" } },
+	},
+})
+ArenaController.start()
+ArenaController.debugEvent("ArenaSpawn", { Position = V.new(0, 64, 820), School = "Fire", Boss = true })
+ArenaController.debugEvent("ArenaSpawn", { Position = V.new(0, 64, 820), School = "Energy", Boss = false })
+ArenaController.debugEvent("ArenaPickup", { Kind = "Health", Position = V.new(0, 63, 900), Model = fakeCaster })
+ArenaController.debugEvent("ArenaPickup", { Kind = "Mana", Position = V.new(0, 63, 900), Model = nil })
+ArenaController.debugEvent("ArenaTeleport", { Model = fakeCaster, To = V.new(0, 64, 860) })
+ArenaController.debugEvent("ArenaAnnounce", { Text = "ROUND 5", Sub = "CHEFE!", Kind = "Boss" })
+assert(playerGui:FindFirstChild("ArenaHud"), "HUD da Arena nao foi criada")
+print("Arena (cliente): ok")
 
 local count = 0
 for _ in workspaceFolder:GetDescendants() do

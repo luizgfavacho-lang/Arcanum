@@ -118,16 +118,27 @@ local function deathBurst(
 	end)
 end
 
-local spawnEnemy: (rowName: string, cframe: CFrame, respawnPart: BasePart?) -> Model?
+-- Opcoes de quem gera fora do Sandbox (Arena): escala de vida e de poder, chance de elite,
+-- caca no circulo e aviso de cada criatura criada (inclusive filhotes de divisao).
+export type SpawnOptions = {
+	HealthScale: number?,
+	SpellPower: number?,
+	EliteChance: number?,
+	Hunt: { Center: Vector3, Radius: number }?,
+	OnSpawned: ((Model) -> ())?,
+}
 
-spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): Model?
+local spawnEnemy: (rowName: string, cframe: CFrame, respawnPart: BasePart?, options: SpawnOptions?) -> Model?
+
+spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?, options: SpawnOptions?): Model?
 	local row = Enemies[rowName]
 	if not row then
 		warn("[Enemy] linha inexistente em Enemies.csv: " .. tostring(rowName))
 		return nil
 	end
 	local behavior = EnemyCatalog.get(rowName)
-	local elite = row.bMagical and not row.bBoss and math.random() < Settings.EliteChance
+	local eliteChance = if options and options.EliteChance then options.EliteChance else Settings.EliteChance
+	local elite = row.bMagical and not row.bBoss and math.random() < eliteChance
 	local model = buildModel(rowName, row, elite)
 	model:PivotTo(cframe)
 	CollisionGroups.assign(model, CollisionGroups.MONSTERS) -- a Muralha de Chamas bloqueia criaturas
@@ -140,9 +151,11 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): 
 
 	StatsService.register(model, {
 		Team = "Monsters",
-		MaxHealth = row.MaxHealth * (if elite then 2 else 1),
+		MaxHealth = row.MaxHealth * (if elite then 2 else 1) * (if options and options.HealthScale
+			then options.HealthScale
+			else 1),
 		Armor = row.Armor,
-		SpellPower = if elite then 50 else 0,
+		SpellPower = (if elite then 50 else 0) + (if options and options.SpellPower then options.SpellPower else 0),
 		WalkSpeed = Units.meters(row.MoveSpeedMetersPerSecond),
 	})
 	model:SetAttribute("Elite", elite)
@@ -175,6 +188,12 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): 
 	local brain = EnemyBrain.new(model, row, behavior, align, cframe.Position, elite)
 	if brain then
 		brain.Anims = tracks
+		if options and options.Hunt then
+			EnemyBrain.setHunter(brain, options.Hunt.Center, options.Hunt.Radius)
+		end
+	end
+	if options and options.OnSpawned then
+		options.OnSpawned(model)
 	end
 
 	humanoid.Died:Connect(function()
@@ -215,7 +234,8 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): 
 					local child = spawnEnemy(
 						behavior.SplitInto :: string,
 						CFrame.new(position + offset + Vector3.new(0, 1, 0)),
-						nil
+						nil,
+						options -- filhotes herdam a arena (caca, escala, aviso)
 					)
 					local childBrain = if child then EnemyBrain.get(child) else nil
 					if childBrain and killer and StatsService.isAlive(killer) then
@@ -239,6 +259,11 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): 
 		end
 	end)
 	return model
+end
+
+-- Gera uma criatura fora dos pontos do Sandbox (Arena). Nao renasce.
+function EnemyService.spawn(rowName: string, cframe: CFrame, options: SpawnOptions?): Model?
+	return spawnEnemy(rowName, cframe, nil, options)
 end
 
 function EnemyService.start()

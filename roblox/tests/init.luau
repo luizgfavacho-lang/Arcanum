@@ -9,6 +9,7 @@ require("@self/ArmIK.spec")
 require("@self/CombatMath.spec")
 require("@self/ComboMath.spec")
 require("@self/SpellMath.spec")
+require("@self/ArenaMath.spec")
 
 if not TestKit.report() then
 	process.exit(1)

@@ -94,6 +94,8 @@ export type Brain = {
 	CooldownScale: number,
 	SpeedScale: number,
 	SelfDestructed: boolean,
+	-- Arena: sem coleira; sempre caca o jogador vivo mais perto dentro do circulo.
+	Hunt: { Center: Vector3, Radius: number }?,
 }
 
 local EnemyBrain = {}
@@ -187,6 +189,7 @@ function EnemyBrain.new(
 		CooldownScale = 1,
 		SpeedScale = 1,
 		SelfDestructed = false,
+		Hunt = nil,
 	}
 	brains[model] = brain
 	return brain
@@ -347,6 +350,29 @@ local function spot(brain: Brain, wideOpen: boolean): Model?
 			local distance = (Targeting.position(character) - brain.Root.Position).Magnitude
 			if distance < bestDistance and canSee(brain, character, wideOpen) then
 				best, bestDistance = character, distance
+			end
+		end
+	end
+	return best
+end
+
+-- Arena: jogador vivo mais perto dentro do circulo da caca (visto ou nao).
+local function huntTarget(brain: Brain): Model?
+	local hunt = brain.Hunt
+	if not hunt then
+		return nil
+	end
+	local best: Model? = nil
+	local bestDistance = math.huge
+	for _, player in Players:GetPlayers() do
+		local character = player.Character
+		if character and alive(character) then
+			local position = Targeting.position(character)
+			if flat(position - hunt.Center).Magnitude <= hunt.Radius then
+				local distance = (position - brain.Root.Position).Magnitude
+				if distance < bestDistance then
+					best, bestDistance = character, distance
+				end
 			end
 		end
 	end
@@ -810,6 +836,12 @@ local function enrage(brain: Brain)
 end
 
 -- Ja nasce de olho em alguem (ex.: gosminhas que saem da gosma morta).
+-- Arena: transforma a criatura em cacadora (sem coleira, caca dentro do circulo).
+function EnemyBrain.setHunter(brain: Brain, center: Vector3, radius: number)
+	brain.Hunt = { Center = center, Radius = radius }
+	brain.Home = center
+end
+
 function EnemyBrain.provoke(brain: Brain, target: Model)
 	alert(brain, target, true, 0.4)
 end
@@ -1092,7 +1124,7 @@ end
 local function combat(brain: Brain, now: number)
 	local target = brain.Target
 	if not target or not alive(target) then
-		local other = spot(brain, true)
+		local other = spot(brain, true) or huntTarget(brain)
 		if other then
 			setTarget(brain, other)
 			target = other
@@ -1111,6 +1143,9 @@ local function combat(brain: Brain, now: number)
 	if visible then
 		brain.LastSeenPos = targetPos
 		brain.LastSeenAt = now
+	elseif brain.Hunt then
+		-- Cacador nunca perde o rastro: segue para onde o alvo esta.
+		brain.LastSeenPos = targetPos
 	elseif now - brain.LastSeenAt > LOSE_SECONDS then
 		brain.LookAroundUntil = 0
 		setState(brain, "Search")
@@ -1119,7 +1154,7 @@ local function combat(brain: Brain, now: number)
 
 	-- Coleira (mais folgada enquanto esta apanhando).
 	local leash = Units.meters(behavior.LeashMeters) * (if now - brain.LastHurt < 5 then 1.5 else 1)
-	if (position - brain.Home).Magnitude > leash then
+	if not brain.Hunt and (position - brain.Home).Magnitude > leash then
 		setState(brain, "Return")
 		return
 	end
@@ -1157,6 +1192,13 @@ function EnemyBrain.step(brain: Brain)
 	end
 
 	local state = brain.State
+	if brain.Hunt and (state == "Idle" or state == "Search" or state == "Return") then
+		local prey = huntTarget(brain)
+		if prey then
+			alert(brain, prey, true, 0.3)
+			return
+		end
+	end
 	if state == "Idle" then
 		idle(brain, now)
 	elseif state == "Alert" then
