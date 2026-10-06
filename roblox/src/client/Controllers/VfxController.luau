@@ -27,6 +27,7 @@ local ZoneFx = require(Vfx.ZoneFx)
 local StrikeFx = require(Vfx.StrikeFx)
 local Impact = require(Vfx.Impact)
 local FlameFx = require(Vfx.FlameFx)
+local SignatureFx = require(Vfx.SignatureFx)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -194,6 +195,9 @@ local HANDLERS: { [string]: (any) -> () } = {
 			Lib.burst(p.To, "Spark", palette, 18)
 			SpellFx.residueArcs(p.To, palette, 0.6)
 			shakeNear(p.To, 0.15, 40)
+			if p.Forks and #p.Forks > 0 then
+				SignatureFx.forks(p.To, p.Forks, palette)
+			end
 		end
 	end,
 
@@ -357,6 +361,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 	end,
 	VerdictWarn = function(p)
 		StrikeFx.verdictWarn(p)
+		SignatureFx.verdictCore(p.Position, p.Radius, p.Duration, Lib.palette(p.School))
 		Audio.play("VerdictWarn", p.Position)
 	end,
 	Verdict = function(p)
@@ -421,7 +426,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 	end,
 	Hook = function(p)
 		if p.Caster then
-			StrikeFx.hook(p.Caster, p.Target, p.To, Lib.palette(p.School))
+			StrikeFx.hook(p.Caster, p.Target, p.To, Lib.palette(p.School), p.Travel)
 			Audio.play("Hook", p.To)
 		end
 	end,
@@ -528,6 +533,57 @@ local HANDLERS: { [string]: (any) -> () } = {
 		if root then
 			Audio.play("Taunt", root)
 		end
+	end,
+
+	-- Assinaturas das magias (mecanicas proprias) ---------------------------------------------
+	StrikeAftershock = function(p)
+		SignatureFx.aftershock(p.Position, p.Radius, Lib.palette(p.School))
+		shakeNear(p.Position, 0.3, 50)
+	end,
+	StaticPulse = function(p)
+		if p.Caster and p.Caster.Parent then
+			SignatureFx.staticPulse(p.Caster, p.Radius, Lib.palette(p.School))
+		end
+	end,
+	Remnant = function(p)
+		SignatureFx.remnant(p.Position, p.Delay, Lib.palette(p.School))
+	end,
+	RemnantBurst = function(p)
+		SignatureFx.remnantBurst(p.Position, p.Radius, Lib.palette(p.School))
+		shakeNear(p.Position, 0.3, 45)
+	end,
+	Combustion = function(p)
+		SignatureFx.combustion(p.Positions, Lib.palette(p.School))
+	end,
+	WallBurn = function(p)
+		SignatureFx.wallBurn(p.Positions, Lib.palette(p.School))
+	end,
+	MeteorRoll = function(p)
+		SignatureFx.meteorRoll(p.From, p.To, p.Duration, p.Radius, Lib.palette(p.School))
+	end,
+	ShieldHit = function(p)
+		if p.Target and p.Target.Parent then
+			SignatureFx.shieldHit(p.Target, p.Amount or 1)
+		end
+	end,
+	Execute = function(p)
+		if p.Target and p.Target.Parent then
+			SignatureFx.execute(p.Target, Lib.palette(p.School))
+			if isMine(p.Caster) then
+				Impact.screenFlash(Lib.palette(p.School).Halo, 0.8)
+				CameraController.shake(0.5)
+			end
+		end
+	end,
+	CurseSpread = function(p)
+		SignatureFx.curseSpread(p.From, p.Points, Lib.palette(p.School))
+	end,
+	BruteSlam = function(p)
+		SignatureFx.bruteSlam(p.Position, p.Radius, Lib.palette(p.School))
+		shakeNear(p.Position, 0.5, 60)
+	end,
+	SweetSpot = function(p)
+		SignatureFx.sweetSpot(p.Positions, Lib.palette(p.School))
 	end,
 
 	ChannelEnd = function(p)

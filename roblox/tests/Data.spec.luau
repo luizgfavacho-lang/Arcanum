@@ -78,3 +78,23 @@ test("Dados.Grimorio42Jogaveis", function(expect)
 	expect.equal(count, 42, "as 42 magias do CSV estao no catalogo")
 	expect.truthy(Enemies.SkeletonServant and Enemies.BruteServant, "servos do Exercito dos Mortos")
 end)
+
+test("Dados.IndicadorDeMira", function(expect)
+	local AimShape = require("../src/shared/AimShape")
+	local counts = {}
+	for spellId, def in SpellCatalog.Defs do
+		local shape = AimShape.of(def, SpellData[spellId])
+		if shape then
+			counts[shape.Kind] = (counts[shape.Kind] or 0) + 1
+			if shape.Kind == "Target" or shape.Kind == "Self" then
+				expect.truthy(shape.Radius > 0, spellId .. ": indicador sem raio")
+			else
+				expect.truthy(shape.Range > 0 and shape.Width > 0, spellId .. ": faixa sem medidas")
+			end
+		end
+	end
+	expect.truthy((counts.Target or 0) >= 8, "magias de area mirada")
+	expect.truthy((counts.Self or 0) >= 3, "magias em volta do mago")
+	expect.equal(counts.Line, 1, "Espinhos Carmesins")
+	expect.equal(counts.Wall, 1, "Muralha de Chamas")
+end)

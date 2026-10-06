@@ -138,6 +138,26 @@ local FACTORIES: { [string]: Factory } = {
 			)
 		end)
 	end,
+	-- Lento: aneis arcanos pesados abrindo no chao, em volta dos pes.
+	Slowed = function(root)
+		return attachmentWith(root, function(a)
+			a.Position = Vector3.new(0, -2.6, 0)
+			local energy = Schools.Energy
+			Lib.emitter(a, "Ring", energy, {
+				Rate = 3,
+				Brightness = 1.4,
+				Size = Lib.seq(2, 5),
+				Lifetime = NumberRange.new(0.8, 0.8),
+				Transparency = Lib.seq(0.3, 1),
+			})
+			Lib.emitter(a, "Wisp", energy, {
+				Rate = 6,
+				Brightness = 1.4,
+				Acceleration = Vector3.new(0, -6, 0),
+				Speed = NumberRange.new(0.5, 1.5),
+			})
+		end)
+	end,
 	-- Encharcado: gotas pingando e brilho umido (prepara Conducao e Vaporizar).
 	Wet = function(root)
 		return attachmentWith(root, function(a)

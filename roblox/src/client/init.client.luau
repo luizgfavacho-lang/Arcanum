@@ -11,6 +11,7 @@ for _, name in
 		"HudController",
 		"EnemyBars",
 		"VfxController",
+		"AimIndicator",
 		"GrimoireController",
 		"InputController",
 	}

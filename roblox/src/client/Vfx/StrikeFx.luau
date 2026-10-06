@@ -83,11 +83,13 @@ function StrikeFx.barrageHit(p: any)
 		Effects.shockwave(p.Position + UP * 0.2, palette, p.Radius)
 		Lib.burst(p.Position, "Spark", palette, 20)
 	else
-		-- Estrela cadente: cai na diagonal deixando rastro e estoura em luz.
+		-- Estrela cadente: cai na diagonal deixando rastro e estoura em luz (a final e maior).
+		local scale = if p.Big then 2.4 else 1
 		local start = p.Position + Vector3.new(math.random(-14, 14), 40, math.random(-14, 14))
-		local star = Lib.part(Vector3.one * 1.2, palette.Core, CFrame.new(start), { Shape = Enum.PartType.Ball })
+		local star =
+			Lib.part(Vector3.one * 1.2 * scale, palette.Core, CFrame.new(start), { Shape = Enum.PartType.Ball })
 		local glow = Lib.part(
-			Vector3.one * 2.6,
+			Vector3.one * 2.6 * scale,
 			palette.Halo,
 			CFrame.new(start),
 			{ Shape = Enum.PartType.Ball, Transparency = 0.5 }
@@ -113,9 +115,12 @@ function StrikeFx.barrageHit(p: any)
 		task.delay(0.18, function()
 			star:Destroy()
 			glow:Destroy()
-			Effects.flash(p.Position + UP, palette, 2.2, true)
+			Effects.flash(p.Position + UP, palette, 2.2 * scale, true)
 			Effects.shockwave(p.Position + UP * 0.2, palette, p.Radius)
-			Lib.burst(p.Position + UP, "Star", palette, 22, { Speed = NumberRange.new(10, 20) })
+			Lib.burst(p.Position + UP, "Star", palette, math.floor(22 * scale), { Speed = NumberRange.new(10, 20) })
+			if p.Big then
+				Effects.runeCircle(p.Position, palette, p.Radius, 0.8)
+			end
 		end)
 	end
 end
@@ -697,11 +702,36 @@ function StrikeFx.prison(position: Vector3, size: number, duration: number, pale
 	end)
 end
 
-function StrikeFx.hook(caster: Model, target: Model?, to: Vector3, palette: Lib.Palette)
+-- Anzol (Meat Hook): o gancho voa ate `to` em `travel` s; fisgou = volta arrastando o alvo;
+-- errou = recolhe vazio.
+function StrikeFx.hook(caster: Model, target: Model?, to: Vector3, palette: Lib.Palette, travelTime: number?)
 	local from = Lib.muzzleOf(caster, Lib.rootPosition(caster) or Vector3.zero)
 	local head = Lib.part(Vector3.new(0.6, 0.6, 1.2), palette.Halo, CFrame.lookAt(from, to))
 	local line = beamPart(from, from + (to - from).Unit * 0.1, 0.18, palette.Accent)
-	local travel = 0.15
+	local travel = travelTime or 0.15
+	if not target then
+		-- Errou: chega ao fim e volta.
+		TweenService:Create(head, TweenInfo.new(travel), { CFrame = CFrame.lookAt(to, to + (to - from).Unit) }):Play()
+		task.delay(travel, function()
+			Lib.burst(to, "Spark", palette, 4)
+			TweenService:Create(head, TweenInfo.new(travel * 0.8, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				CFrame = CFrame.new(Lib.muzzleOf(caster, from)),
+			}):Play()
+		end)
+		task.spawn(function()
+			local untilTime = os.clock() + travel * 1.8
+			while os.clock() < untilTime and head.Parent do
+				local a = Lib.muzzleOf(caster, Lib.rootPosition(caster) or from)
+				local b = head.CFrame.Position
+				line.Size = Vector3.new(0.18, 0.18, math.max((b - a).Magnitude, 0.1))
+				line.CFrame = CFrame.lookAt((a + b) / 2, b)
+				task.wait()
+			end
+			head:Destroy()
+			line:Destroy()
+		end)
+		return
+	end
 	TweenService:Create(head, TweenInfo.new(travel), { CFrame = CFrame.lookAt(to, to + (to - from).Unit) }):Play()
 	task.spawn(function()
 		local started = os.clock()
