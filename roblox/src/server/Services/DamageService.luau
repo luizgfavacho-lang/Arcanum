@@ -66,7 +66,8 @@ function DamageService.applySpellDamage(
 	}, Settings)
 
 	local healthDamage = damage
-	if StatusService.has(target, States.ManaShield) then
+	local infinite = StatsService.isInfinite(targetStats)
+	if StatusService.has(target, States.ManaShield) and not infinite then
 		local manaSpent
 		healthDamage, manaSpent =
 			DamageMath.resolveManaShield(damage, targetStats.Mana, Settings.ManaShieldManaPerDamage)
@@ -74,7 +75,9 @@ function DamageService.applySpellDamage(
 	end
 
 	local humanoid = targetStats.Humanoid
-	humanoid.Health = math.max(humanoid.Health - healthDamage, 0)
+	if not infinite then
+		humanoid.Health = math.max(humanoid.Health - healthDamage, 0)
+	end
 
 	if charged then
 		StatusService.remove(target, States.ArcaneCharge)

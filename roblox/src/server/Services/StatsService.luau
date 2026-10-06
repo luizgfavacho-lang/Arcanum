@@ -98,7 +98,15 @@ function StatsService.setMana(stats: Stats, value: number)
 	stats.Model:SetAttribute("Mana", stats.Mana)
 end
 
+-- Modo de teste (CombatSettings.DevInfiniteResources): jogador nao gasta mana nem perde vida.
+function StatsService.isInfinite(stats: Stats?): boolean
+	return Settings.DevInfiniteResources == true and stats ~= nil and stats.Player ~= nil
+end
+
 function StatsService.trySpendMana(stats: Stats, amount: number): boolean
+	if StatsService.isInfinite(stats) then
+		return true
+	end
 	if stats.Mana < amount then
 		return false
 	end

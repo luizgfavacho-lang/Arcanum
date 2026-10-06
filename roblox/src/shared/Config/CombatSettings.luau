@@ -3,6 +3,10 @@
 -- Mudou algo aqui? Rode os testes: `lune run tests`.
 
 return table.freeze({
+	-- TESTES: jogadores com mana e vida infinitas (custos, dano e custo de vida nao descontam;
+	-- numeros de dano e tremor continuam aparecendo). DESLIGAR (false) antes de publicar.
+	DevInfiniteResources = true,
+
 	-- Dano (ver Math/DamageMath)
 	ArmorReductionPerPoint = 0.04,
 	MaxArmorReduction = 0.80,

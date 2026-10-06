@@ -119,7 +119,7 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 		return
 	end
 	StatsService.trySpendMana(stats, manaCost)
-	if healthCost > 0 then
+	if healthCost > 0 and not StatsService.isInfinite(stats) then
 		stats.Humanoid.Health -= healthCost
 	end
 
