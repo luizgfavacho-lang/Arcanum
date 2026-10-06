@@ -86,7 +86,7 @@ tests/       Lune (*.spec.luau + TestKit)
   Raise/Slam/Sweep/Thrust). Raio Arcano = feixe contínuo no cliente (`StrikeFx.arcaneBeam`, por quadro, segue a
   mira local) e drena ManaPerSecond (`StatsService.drainMana`; no modo de teste a mana é infinita).
   **Piromania** (id `InfernalVortex`, mantido por causa das tags da Unreal; substituiu o Vórtice Infernal) =
-  lança-chamas canalizado em cone (`Spells/Flamethrower`: 6 m, 4 dano/s em cada alvo, queima, 18 mana/s) com jato
+  lança-chamas canalizado em cone (`Spells/Flamethrower`: 8 m, 4 dano/s em cada alvo, queima, 18 mana/s) com jato
   contínuo em `Vfx/FlameFx`.
 - `lune run tests` = 352 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas e reações. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.
