@@ -12,7 +12,7 @@ export type Def = {
 	SpreadDegrees: number?, -- leque quando Count > 1
 	Visual: string?, -- "Bolt", "LifeStream", "Orb"...
 	DestroysProjectiles: boolean?, -- Nova que apaga projeteis hostis em volta
-	GroundTrail: boolean?, -- projetil que deixa caminho de lava (Spells/Hazard)
+	LavaPool: boolean?, -- projetil que abre poca de lava onde termina (Spells/Hazard)
 }
 
 local Catalog: { [string]: Def } = {
@@ -29,7 +29,7 @@ local Catalog: { [string]: Def } = {
 	LifeDrain = { Kind = "Hitscan", Visual = "LifeStream" },
 	-- Circulo II (Grimorio)
 	SummonedBolt = { Kind = "Strike", ProcState = "Paralyzed" }, -- raio do ceu no ponto mirado
-	MagmaLance = { Kind = "Projectile", Visual = "Lance", GroundTrail = true }, -- perfura e deixa lava
+	MagmaLance = { Kind = "Projectile", Visual = "Lance", LavaPool = true }, -- perfura e abre poca de lava
 	FlameNova = { Kind = "Nova", ProcState = "Burning" }, -- explosao em volta, empurra
 	ArcanePulse = { Kind = "Nova", DestroysProjectiles = true }, -- empurra e apaga projeteis
 	WanderingSouls = { Kind = "Projectile", Homing = true, SpreadDegrees = 40, Visual = "Soul" }, -- cura

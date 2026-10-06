@@ -60,7 +60,7 @@ tests/       Lune (*.spec.luau + TestKit)
 - **Grimório (G):** 42 magias por escola (as não implementadas como "Em breve"), detalhes do CSV e equipar
   nos slots (botões ou 1–5). 11 magias jogáveis: as 5 iniciais + Raio Invocado, Lança de Magma, Nova
   Flamejante, Pulso Arcano, Almas Errantes, Espinhos Carmesins (tipos Strike/Nova/Line em `Spells/Area`).
-  Lança de Magma deixa caminho de lava (`Spells/Hazard`, números no CSV). Cada magia tem detalhes
+  Lança de Magma abre poça de lava irregular onde cai (`Spells/Hazard`, números no CSV). Cada magia tem detalhes
   próprios em `client/Vfx/SpellFx` (floreio na gema, resíduos, anéis, cúpula, nuvem, espinhos...).
 - **Combate** (RT-02+): criaturas com corpo proprio (`Combat/CreatureBuilder`: esqueleto de capuz, gosmas
   gelatinosas, bulbo flutuante, golem de cristal) animadas no cliente (`Vfx/Creatures`). IA em

@@ -22,7 +22,7 @@ FlameNova.Desc,Explosão de fogo em volta de você que empurra os inimigos.
 EmberArmor.Name,Armadura de Brasas
 EmberArmor.Desc,"Por 20 s, imunidade a fogo; quem o atacar corpo a corpo pega fogo."
 MagmaLance.Name,Lança de Magma
-MagmaLance.Desc,"Lança veloz que perfura até 3 alvos e deixa um caminho de lava no chão, queimando quem pisar (2 de dano/s por 4 s)."
+MagmaLance.Desc,"Lança veloz que perfura até 3 alvos e abre uma poça de lava onde cai, queimando quem pisar (2 de dano/s por 4 s)."
 InfernalVortex.Name,Vórtice Infernal
 InfernalVortex.Desc,Tornado de fogo que puxa e queima inimigos por 5 s.
 Meteor.Name,Meteoro

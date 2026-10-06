@@ -281,14 +281,11 @@ local HANDLERS: { [string]: (any) -> () } = {
 		shakeNear((p.From + p.To) / 2, 0.35, 50)
 	end,
 
-	-- Lanca de Magma: caminho de lava atras da lanca.
-	LavaTrail = function(p)
-		SpellFx.lavaTrail(p.Points, p.Delays, p.Width, p.Duration)
-		local first = p.Points[1]
-		if first then
-			Audio.play("LavaSear", first)
-			Audio.play("LavaRumble", p.Points[math.ceil(#p.Points / 2)])
-		end
+	-- Lanca de Magma: poca de lava onde a lanca cai.
+	LavaPool = function(p)
+		SpellFx.lavaPool(p.Position, p.Radius, p.Duration, p.Seed or 1)
+		Audio.play("LavaSear", p.Position)
+		Audio.play("LavaRumble", p.Position)
 	end,
 
 	-- Raio Invocado: nuvem e circulo antes de cair.

@@ -257,7 +257,7 @@ local SpellFx = modules.SpellFx
 for _, spellId in { "Spark", "Fireball", "ArcaneMissile", "LifeDrain", "SummonedBolt", "CrimsonSpikes", "MagmaLance" } do
 	SpellFx.flourish(spellId, fakeCaster, Lib.palette("Fire"), V.new(1, 4, -2))
 end
-SpellFx.lavaTrail({ V.new(0, 0, 0), V.new(0, 0, -3), V.new(0, 0, -6) }, { 0, 0.05, 0.1 }, 3, 4)
+SpellFx.lavaPool(V.new(0, 0, 0), 7, 4, 12345)
 SpellFx.residueArcs(V.new(0, 3, -10), Lib.palette("Electricity"), 0.6)
 SpellFx.fireGround(V.new(0, 3, -10), Lib.palette("Fire"), 3, 1.5)
 SpellFx.runeBurst(V.new(0, 3, -10), Lib.palette("Energy"))

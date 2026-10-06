@@ -47,6 +47,9 @@ local active: { [string]: Projectile } = {}
 
 local function finish(p: Projectile, position: Vector3)
 	active[p.Id] = nil
+	if p.Ctx.Spell.Def.LavaPool then
+		Hazard.lavaPool(p.Ctx, position) -- Lanca de Magma: poca onde a lanca termina
+	end
 	local row = p.Ctx.Spell.Row
 	local radius = Units.meters(row.RadiusMeters)
 	if radius > 0 then
@@ -194,9 +197,6 @@ function Projectile.cast(ctx: Context.Context)
 			Caster = ctx.Caster,
 		})
 		Projectile.Launched:Fire(ctx.Caster, p.Position, p.Velocity)
-		if def.GroundTrail and index == 1 then
-			Hazard.lavaTrail(ctx, p.Position, direction, range, speed)
-		end
 	end
 end
 

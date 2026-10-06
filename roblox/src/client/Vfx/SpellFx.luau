@@ -1,7 +1,7 @@
 --!strict
 -- Detalhes proprios de cada magia (so visual, no cliente):
 --   flourish     floreio na gema ao conjurar (arcos, chamas, almas, runas...)
---   lavaTrail    caminho de lava da Lanca de Magma: acende atras da lanca, borbulha e esfria
+--   lavaPool     poca de lava irregular onde a Lanca de Magma cai: borbulha, brilha e esfria
 --   residueArcs  arcos eletricos que ficam pulando no alvo da Faisca
 --   fireGround   anel de chamas e destrocos caindo no impacto da Bola de Fogo
 --   runeBurst    selo runico e estilhacos no impacto do Missil Arcano
@@ -83,97 +83,132 @@ function SpellFx.flourish(spellId: string?, caster: Model, palette: Lib.Palette,
 end
 
 ---------------------------------------------------------------------------------------------------
--- Lanca de Magma: caminho de lava
+-- Lanca de Magma: poca de lava
 
-local LAVA_HOT = Color3.fromRGB(255, 130, 35)
-local LAVA_GLOW = Color3.fromRGB(255, 196, 90)
-local LAVA_COOL = Color3.fromRGB(80, 18, 10)
-local CRUST = Color3.fromRGB(38, 16, 12)
+local LAVA_DEEP = Color3.fromRGB(150, 28, 10) -- superficie
+local LAVA_HOT = Color3.fromRGB(230, 70, 18) -- veios incandescentes
+local LAVA_CORE = Color3.fromRGB(255, 135, 45) -- pontos mais quentes
+local LAVA_COOL = Color3.fromRGB(45, 14, 10)
+local CRUST = Color3.fromRGB(32, 14, 12)
 
-function SpellFx.lavaTrail(points: { Vector3 }, delays: { number }, width: number, duration: number)
+-- Poca irregular: lobos de tamanhos diferentes em volta do centro (forma vinda do servidor pela
+-- semente, igual para todos), crosta escura na borda, veios incandescentes pulsando, bolhas que
+-- estouram, brasas e fumaca. O terreno embaixo vira lava rachada (a grama nao cobre a poca).
+function SpellFx.lavaPool(center: Vector3, radius: number, duration: number, seed: number)
+	local rng = Random.new(seed)
 	local palette = Lib.palette("Fire")
-	for i, point in points do
-		task.delay(delays[i] or 0, function()
-			local parts: { BasePart } = {}
-			local lava: { BasePart } = {}
-			-- Sem grama sob a lava: o terreno vira lava rachada enquanto ela dura.
-			Lib.swapGround(point, width * 0.75, Enum.Material.CrackedLava, duration + 0.6)
-			local ground = point + UP * 0.12
-			table.insert(parts, flatDisc(ground, width * 1.4, CRUST, { Material = Enum.Material.Basalt }))
-			local pool = flatDisc(ground + UP * 0.03, width, LAVA_HOT)
-			table.insert(parts, pool)
-			table.insert(lava, pool)
-			local nextPoint = points[i + 1]
-			if nextPoint then
-				local a, b = ground + UP * 0.02, nextPoint + UP * 0.07
-				local length = (b - a).Magnitude
-				local mid = (a + b) / 2
-				local crust = Lib.part(
-					Vector3.new(width * 1.2, 0.08, length),
-					CRUST,
-					CFrame.lookAt(mid, b),
-					{ Material = Enum.Material.Basalt }
-				)
-				local strip = Lib.part(
-					Vector3.new(width * 0.75, 0.1, length),
-					LAVA_HOT,
-					CFrame.lookAt(mid + UP * 0.03, b + UP * 0.03)
-				)
-				table.insert(parts, crust)
-				table.insert(parts, strip)
-				table.insert(lava, strip)
-			end
-			-- Bolhas brilhando e brasas subindo; luz a cada poucos pontos.
-			local anchor = Lib.anchor(ground + UP * 0.2, duration + 1.5)
-			local embers = Lib.emitter(anchor, "Ember", palette, { Rate = 5, Speed = NumberRange.new(1, 4) })
-			local smoke = Lib.emitter(anchor, "Smoke", palette, { Rate = 1.5, Size = Lib.seq(0.6, 2) })
-			if i % 4 == 1 then
-				local light = Instance.new("PointLight")
-				light.Color = LAVA_HOT
-				light.Range = 10
-				light.Brightness = 1.6
-				light.Parent = anchor
-				task.delay(duration - 0.6, function()
-					TweenService:Create(light, TweenInfo.new(0.6), { Brightness = 0 }):Play()
-				end)
-			end
-			-- Lava pulsando entre quente e incandescente.
-			for _, p in lava do
-				TweenService:Create(
-					p,
-					TweenInfo.new(
-						0.45 + math.random() * 0.3,
-						Enum.EasingStyle.Sine,
-						Enum.EasingDirection.InOut,
-						-1,
-						true
-					),
-					{ Color = LAVA_GLOW }
-				):Play()
-			end
-			Lib.burst(
-				ground + UP * 0.3,
-				"Flame",
-				palette,
-				3,
-				{ Speed = NumberRange.new(2, 5), Size = Lib.seq(1.4, 0.7, 0) }
-			)
+	Lib.swapGround(center, radius * 1.1, Enum.Material.CrackedLava, duration + 0.6)
+	local base = center + UP * 0.12
 
-			-- Esfria no fim e some.
-			task.delay(math.max(duration - 0.8, 0), function()
-				embers.Enabled = false
-				smoke.Enabled = false
-				for _, p in lava do
-					TweenService:Create(p, TweenInfo.new(0.8), { Color = LAVA_COOL, Transparency = 0.3 }):Play()
-				end
-				task.delay(0.8, function()
-					for _, p in parts do
-						Lib.fade(p, 0.5, { Transparency = 1 })
-					end
-				end)
-			end)
+	type Lobe = { Offset: Vector3, Diameter: number }
+	local lobes: { Lobe } = { { Offset = Vector3.zero, Diameter = radius * 1.25 } }
+	local count = 7
+	for i = 1, count do
+		local angle = i / count * math.pi * 2 + rng:NextNumber(-0.35, 0.35)
+		local distance = radius * rng:NextNumber(0.35, 0.7)
+		table.insert(lobes, {
+			Offset = Vector3.new(math.cos(angle) * distance, 0, math.sin(angle) * distance),
+			Diameter = radius * rng:NextNumber(0.55, 0.95),
+		})
+	end
+
+	local crust: { BasePart } = {}
+	local surface: { BasePart } = {}
+	local veins: { BasePart } = {}
+	local function grow(part: BasePart, delay: number)
+		local size = part.Size
+		part.Size = Vector3.new(size.X, size.Y * 0.1, size.Z * 0.1)
+		task.delay(delay, function()
+			TweenService
+				:Create(part, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = size })
+				:Play()
 		end)
 	end
+	for i, lobe in lobes do
+		local at = base + lobe.Offset
+		local edge = flatDisc(at, lobe.Diameter * 1.18, CRUST, { Material = Enum.Material.Basalt })
+		local lava = flatDisc(at + UP * 0.03, lobe.Diameter, LAVA_DEEP)
+		grow(edge, i * 0.02)
+		grow(lava, i * 0.02)
+		table.insert(crust, edge)
+		table.insert(surface, lava)
+	end
+	for i = 1, 7 do
+		local angle = rng:NextNumber(0, math.pi * 2)
+		local distance = radius * rng:NextNumber(0, 0.7)
+		local at = base + Vector3.new(math.cos(angle) * distance, 0.06, math.sin(angle) * distance)
+		local vein = flatDisc(at, radius * rng:NextNumber(0.18, 0.4), if i <= 2 then LAVA_CORE else LAVA_HOT)
+		grow(vein, 0.1 + i * 0.02)
+		table.insert(veins, vein)
+		TweenService:Create(
+			vein,
+			TweenInfo.new(rng:NextNumber(0.5, 0.9), Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true),
+			{ Color = if i <= 2 then LAVA_HOT else LAVA_CORE }
+		):Play()
+	end
+
+	-- Respingo ao abrir, luz, brasas e fumaca.
+	Lib.burst(base + UP * 0.5, "Flame", palette, 10, { Speed = NumberRange.new(4, 9), Size = Lib.seq(1.6, 0.8, 0) })
+	Lib.burst(base + UP * 0.5, "Ember", palette, 24, { Speed = NumberRange.new(8, 16) })
+	local emitters: { ParticleEmitter } = {}
+	local light: PointLight? = nil
+	for i, lobe in lobes do
+		if i % 2 == 1 then
+			local anchor = Lib.anchor(base + lobe.Offset + UP * 0.2, duration + 1.5)
+			table.insert(emitters, Lib.emitter(anchor, "Ember", palette, { Rate = 3, Speed = NumberRange.new(1, 4) }))
+			table.insert(emitters, Lib.emitter(anchor, "Smoke", palette, { Rate = 1.2, Size = Lib.seq(0.8, 2.6) }))
+			if i == 1 then
+				local l = Instance.new("PointLight")
+				l.Color = LAVA_HOT
+				l.Range = radius * 2.4
+				l.Brightness = 1.4
+				l.Parent = anchor
+				light = l
+			end
+		end
+	end
+
+	-- Bolhas que incham e estouram em pontos aleatorios.
+	local finished = false
+	task.spawn(function()
+		while not finished do
+			local angle = math.random() * math.pi * 2
+			local at = base + Vector3.new(math.cos(angle), 0, math.sin(angle)) * radius * math.random() * 0.75
+			local bubble =
+				Lib.part(Vector3.one * 0.25, LAVA_HOT, CFrame.new(at + UP * 0.1), { Shape = Enum.PartType.Ball })
+			TweenService:Create(bubble, TweenInfo.new(0.35), { Size = Vector3.one * 0.9 }):Play()
+			task.delay(0.35, function()
+				Lib.burst(at + UP * 0.3, "Ember", palette, 4, { Speed = NumberRange.new(3, 6) })
+				Lib.fade(bubble, 0.1, { Transparency = 1, Size = Vector3.one * 1.2 })
+			end)
+			task.wait(0.18 + math.random() * 0.3)
+		end
+	end)
+
+	-- Esfria no fim (escurece de fora para dentro) e some.
+	task.delay(math.max(duration - 0.9, 0), function()
+		finished = true
+		for _, e in emitters do
+			e.Enabled = false
+		end
+		if light then
+			TweenService:Create(light, TweenInfo.new(0.9), { Brightness = 0 }):Play()
+		end
+		for _, v in veins do
+			Lib.fade(v, 0.6, { Transparency = 1 })
+		end
+		for _, p in surface do
+			TweenService:Create(p, TweenInfo.new(0.9), { Color = LAVA_COOL }):Play()
+		end
+		task.delay(0.9, function()
+			for _, p in surface do
+				Lib.fade(p, 0.5, { Transparency = 1 })
+			end
+			for _, p in crust do
+				Lib.fade(p, 0.5, { Transparency = 1 })
+			end
+		end)
+	end)
 end
 
 ---------------------------------------------------------------------------------------------------

@@ -1,9 +1,8 @@
 --!strict
--- Zonas no chao que ferem por tempo. Hoje: o caminho de lava da Lanca de Magma.
--- O caminho segue o trajeto do projetil: cada trecho acende quando a lanca passa por cima
--- (distancia / velocidade) e dura DurationSeconds a partir dai. Quem estiver sobre um trecho aceso
--- leva SecondaryDamage a cada TickIntervalSeconds (dano periodico: numeros somados no cliente).
--- Largura: SecondaryRadiusMeters de cada lado do trajeto.
+-- Zonas no chao que ferem por tempo. Hoje: a poca de lava da Lanca de Magma.
+-- A poca abre onde a lanca termina (parede, chao ou fim do alcance, projetado no chao abaixo) e
+-- dura DurationSeconds. Quem estiver dentro do raio SecondaryRadiusMeters leva SecondaryDamage a
+-- cada TickIntervalSeconds (dano periodico: numeros somados no cliente).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -20,16 +19,13 @@ local Context = require(script.Parent.Context)
 
 local vfx = Net.get("Vfx")
 
-local SAMPLE_STUDS = 3 -- distancia entre pontos do caminho
-local GROUND_PROBE = 16 -- altura maxima do trajeto acima do chao para deixar lava
-local BODY_HEIGHT = 7 -- diferenca de altura maxima entre o corpo e o chao do trecho
+local GROUND_PROBE = 60 -- fim do alcance no ar: procura o chao ate essa distancia abaixo
+local BODY_HEIGHT = 7 -- diferenca de altura maxima entre o corpo e a poca
 
 type Zone = {
 	Ctx: Context.Context,
-	Points: { Vector3 },
-	LitAt: { number }, -- instante em que cada ponto acende
-	Duration: number,
-	HalfWidth: number,
+	Center: Vector3,
+	Radius: number,
 	Tick: number,
 	Damage: number,
 	NextTick: number,
@@ -40,18 +36,13 @@ local Hazard = {}
 
 local zones: { Zone } = {}
 
-local function lit(zone: Zone, i: number, now: number): boolean
-	local t = zone.LitAt[i]
-	return t ~= nil and now >= t and now <= t + zone.Duration
-end
-
--- Caminho de lava sob o trajeto reto de um projetil.
-function Hazard.lavaTrail(ctx: Context.Context, from: Vector3, direction: Vector3, length: number, speed: number)
+-- Poca de lava no chao sob (ou em) `position`.
+function Hazard.lavaPool(ctx: Context.Context, position: Vector3)
 	local row = ctx.Spell.Row
 	if row.DurationSeconds <= 0 or row.SecondaryDamage <= 0 then
 		return
 	end
-	-- Paredes cortam o caminho; criaturas nao (a lanca as atravessa).
+	-- So o terreno/mapa conta como chao (criaturas e o conjurador nao).
 	local ignore: { Instance } = { ctx.Caster }
 	for model in StatsService.all() do
 		table.insert(ignore, model)
@@ -59,52 +50,31 @@ function Hazard.lavaTrail(ctx: Context.Context, from: Vector3, direction: Vector
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
-	local dir = direction.Unit
-	local wall = Workspace:Raycast(from, dir * length, params)
-	local reach = if wall then (wall.Position - from).Magnitude else length
-
-	local now = os.clock()
-	local points: { Vector3 } = {}
-	local delays: { number } = {}
-	local d = 2
-	while d <= reach do
-		local above = from + dir * d
-		local ground = Workspace:Raycast(above + Vector3.new(0, 1, 0), Vector3.new(0, -GROUND_PROBE, 0), params)
-		if ground then
-			table.insert(points, ground.Position)
-			table.insert(delays, d / math.max(speed, 1))
-		end
-		d += SAMPLE_STUDS
-	end
-	if #points == 0 then
+	local ground = Workspace:Raycast(position + Vector3.new(0, 2, 0), Vector3.new(0, -GROUND_PROBE, 0), params)
+	if not ground then
 		return
 	end
-	local litAt = {}
-	for i, delay in delays do
-		litAt[i] = now + delay
-	end
-	local halfWidth = Units.meters(row.SecondaryRadiusMeters)
+	local now = os.clock()
+	local radius = Units.meters(row.SecondaryRadiusMeters)
+	local tick = math.max(row.TickIntervalSeconds, 0.1)
 	table.insert(zones, {
 		Ctx = ctx,
-		Points = points,
-		LitAt = litAt,
-		Duration = row.DurationSeconds,
-		HalfWidth = halfWidth,
-		Tick = math.max(row.TickIntervalSeconds, 0.1),
+		Center = ground.Position,
+		Radius = radius,
+		Tick = tick,
 		Damage = row.SecondaryDamage,
-		NextTick = now + math.max(row.TickIntervalSeconds, 0.1),
-		EndsAt = litAt[#litAt] + row.DurationSeconds,
+		NextTick = now + tick,
+		EndsAt = now + row.DurationSeconds,
 	})
-	vfx:FireAllClients("LavaTrail", {
-		Points = points,
-		Delays = delays,
-		Width = halfWidth * 2,
+	vfx:FireAllClients("LavaPool", {
+		Position = ground.Position,
+		Radius = radius,
 		Duration = row.DurationSeconds,
-		School = row.School,
+		Seed = math.random(1, 1e6),
 	})
 end
 
-local function burn(zone: Zone, now: number)
+local function burn(zone: Zone)
 	local ctx = zone.Ctx
 	if not ctx.Caster.Parent then
 		return
@@ -112,22 +82,13 @@ local function burn(zone: Zone, now: number)
 	local school = ctx.Spell.Row.School
 	for model in StatsService.all() do
 		if Targeting.isHostile(ctx.Caster, model) then
-			local position = Targeting.position(model)
-			for i = 1, #zone.Points do
-				local a = zone.Points[i]
-				local b = zone.Points[i + 1] or a
-				local active = lit(zone, i, now) or (zone.Points[i + 1] ~= nil and lit(zone, i + 1, now))
-				if
-					active
-					and math.abs(position.Y - a.Y) < BODY_HEIGHT
-					and Targeting.distanceToSegment(position, a, b) <= zone.HalfWidth + 1.2
-				then
-					DamageService.applySpellDamage(ctx.Caster, model, zone.Damage, school, {
-						Multiplier = ctx.Mods.DamageMultiplier,
-						Periodic = true,
-					})
-					break
-				end
+			local offset = Targeting.position(model) - zone.Center
+			local flat = Vector3.new(offset.X, 0, offset.Z).Magnitude
+			if flat <= zone.Radius + 1 and math.abs(offset.Y) < BODY_HEIGHT then
+				DamageService.applySpellDamage(ctx.Caster, model, zone.Damage, school, {
+					Multiplier = ctx.Mods.DamageMultiplier,
+					Periodic = true,
+				})
 			end
 		end
 	end
@@ -142,7 +103,7 @@ function Hazard.start()
 				table.remove(zones, i)
 			elseif now >= zone.NextTick then
 				zone.NextTick += zone.Tick
-				burn(zone, now)
+				burn(zone)
 			end
 		end
 	end)
