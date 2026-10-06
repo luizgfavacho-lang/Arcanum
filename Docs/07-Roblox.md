@@ -110,9 +110,9 @@ e cole como número no evento correspondente.
 | **R7 — Lançamento** | Monetização ética, tutorial, celular/console, conquistas (Badges) | Publicado |
 
 ## 5. Próximas tarefas (sessões locais com Sonnet)
-- ~~**RT-01 Grimório**~~ *(feito)*: tecla G; 6 magias novas de Círculo II para ter o que equipar.
+- ~~**RT-01 Grimório**~~ *(feito)*: tecla G; as 42 magias implementadas a partir das artes conceituais.
 - ~~**RT-02 IA**~~ *(feito)*: ver §6.
-- **RT-03 Lâmina de Sangue:** tipo `Melee` no catálogo; custo em vida (já suportado); sangramento.
+- ~~**RT-03 Lâmina de Sangue**~~ *(feito: golpe em arco, sangramento, custa vida)*. Antes: tipo `Melee` no catálogo; custo em vida (já suportado); sangramento.
 - **RT-04 Save:** ProfileStore com nível, XP, afinidades e slots.
 - **RT-05 Passiva Condutor:** fonte em `Combat/Modifiers` (+1 alvo em Eletricidade) e cura/mana no
   `DamageService` quando o atacante tem a passiva.

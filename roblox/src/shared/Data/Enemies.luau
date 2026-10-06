@@ -23,4 +23,6 @@ return table.freeze({
 	InfernalSmith = table.freeze({ MaxHealth = 650, Armor = 14, AttackDamage = 12, MoveSpeedMetersPerSecond = 2.8, XPReward = 1100, School = "Fire", bMagical = false, bUndead = false, bBoss = true }),
 	BloodMatriarch = table.freeze({ MaxHealth = 600, Armor = 6, AttackDamage = 12, MoveSpeedMetersPerSecond = 4.5, XPReward = 1300, School = "Blood", bMagical = false, bUndead = false, bBoss = true }),
 	ArcaneAvatar = table.freeze({ MaxHealth = 1200, Armor = 10, AttackDamage = 14, MoveSpeedMetersPerSecond = 3.5, XPReward = 3000, School = "Energy", bMagical = false, bUndead = false, bBoss = true }),
+	SkeletonServant = table.freeze({ MaxHealth = 12, Armor = 2, AttackDamage = 2, MoveSpeedMetersPerSecond = 4.5, XPReward = 0, School = "Necromancy", bMagical = false, bUndead = true, bBoss = false }),
+	BruteServant = table.freeze({ MaxHealth = 40, Armor = 6, AttackDamage = 5, MoveSpeedMetersPerSecond = 3.5, XPReward = 0, School = "Necromancy", bMagical = false, bUndead = true, bBoss = false }),
 })

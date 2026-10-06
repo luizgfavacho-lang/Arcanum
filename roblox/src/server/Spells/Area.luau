@@ -26,8 +26,9 @@ local Area = {}
 local FLAT = Vector3.new(1, 0, 1)
 local BODY_HEIGHT = 2.5 -- do chao ao centro do corpo (raiz do R15)
 
-local function push(target: Model, velocity: Vector3)
-	if Players:GetPlayerFromCharacter(target) then
+function Area.push(target: Model, velocity: Vector3)
+	-- Jogadores (fisica no cliente) e chefes nao sao arremessados.
+	if Players:GetPlayerFromCharacter(target) or target:GetAttribute("Boss") == true then
 		return
 	end
 	local root = target:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -48,7 +49,7 @@ local function push(target: Model, velocity: Vector3)
 	Debris:AddItem(attachment, 0.2)
 end
 
-local function groundBelow(position: Vector3, ignore: Instance): Vector3
+function Area.groundBelow(position: Vector3, ignore: Instance): Vector3
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = { ignore }
@@ -70,7 +71,7 @@ function Area.strike(ctx: Context.Context)
 	local range = Units.meters(row.RangeMeters)
 	local radius = Units.meters(row.RadiusMeters)
 	local _, point = Targeting.aimTrace(ctx.Caster, ctx.Origin, Context.direction(ctx), range, 0.5)
-	local center = groundBelow(point, ctx.Caster)
+	local center = Area.groundBelow(point, ctx.Caster)
 	-- Aviso curto (nuvem e circulo no chao) antes do raio cair; dano no instante do raio.
 	vfx:FireAllClients("StrikeWarn", { Position = center, Radius = radius, Duration = 0.35, School = row.School })
 	task.delay(0.35, function()
@@ -100,7 +101,7 @@ function Area.nova(ctx: Context.Context)
 		if speed > 0 then
 			local away = (Targeting.position(target) - center) * FLAT
 			away = if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis
-			push(target, away * speed + Vector3.new(0, speed * 0.35, 0))
+			Area.push(target, away * speed + Vector3.new(0, speed * 0.35, 0))
 		end
 	end
 end
@@ -110,7 +111,7 @@ function Area.line(ctx: Context.Context)
 	local direction = flatDirection(ctx)
 	local length = Units.meters(row.RangeMeters)
 	local width = Units.meters(row.RadiusMeters) * 2
-	local from = groundBelow(Targeting.position(ctx.Caster), ctx.Caster) + direction * 1.5
+	local from = Area.groundBelow(Targeting.position(ctx.Caster), ctx.Caster) + direction * 1.5
 	local to = from + direction * length
 	vfx:FireAllClients("SpellLine", { From = from, To = to, Width = width, School = row.School, Caster = ctx.Caster })
 	local lift = Units.meters(row.EffectValue)
@@ -121,7 +122,7 @@ function Area.line(ctx: Context.Context)
 				Context.damage(ctx, target, row.Damage)
 				Context.tryProc(ctx, target)
 				if lift > 0 then
-					push(target, Vector3.new(0, lift, 0) + direction * lift * 0.3)
+					Area.push(target, Vector3.new(0, lift, 0) + direction * lift * 0.3)
 				end
 			end
 		end

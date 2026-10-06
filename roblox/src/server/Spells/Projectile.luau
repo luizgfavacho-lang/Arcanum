@@ -18,6 +18,7 @@ local Context = require(script.Parent.Context)
 local Hazard = require(script.Parent.Hazard)
 
 local vfx = Net.get("Vfx")
+local vfxFast = Net.get("VfxFast")
 
 local COLLISION_RADIUS = 0.8
 local MAGNET_DISTANCE = Units.meters(0.6) -- "ima" dos teleguiados
@@ -36,6 +37,8 @@ type Projectile = {
 	Hits: { [Model]: boolean },
 	Homing: Model?,
 	Params: RaycastParams,
+	FrozenUntil: number, -- Ampulheta Partida: parado no ar ate este instante
+	NextShock: number, -- Bola de Relampago: proximo choque em volta
 }
 
 local Projectile = {}
@@ -52,10 +55,12 @@ local function finish(p: Projectile, position: Vector3)
 	end
 	local row = p.Ctx.Spell.Row
 	local radius = Units.meters(row.RadiusMeters)
+	-- Bola de Relampago: a explosao final usa SecondaryDamage (o Damage e o choque por tick).
+	local finalDamage = if p.Ctx.Spell.Def.ShockOrb then row.SecondaryDamage else row.Damage
 	if radius > 0 then
 		for _, target in Targeting.hostilesInRadius(p.Ctx.Caster, position, radius) do
-			if not p.Hits[target] then
-				Context.damage(p.Ctx, target, row.Damage)
+			if not p.Hits[target] or p.Ctx.Spell.Def.ShockOrb then
+				Context.damage(p.Ctx, target, finalDamage)
 				Context.tryProc(p.Ctx, target)
 			end
 		end
@@ -89,7 +94,36 @@ local function hit(p: Projectile, target: Model, position: Vector3)
 	end
 end
 
+-- Bola de Relampago: choque em ate MaxTargets inimigos a SecondaryRadius, a cada Tick.
+local function shock(p: Projectile)
+	local ctx = p.Ctx
+	local row = ctx.Spell.Row
+	local reach = Units.meters(row.SecondaryRadiusMeters)
+	local victims = Targeting.hostilesInRadius(ctx.Caster, p.Position, reach)
+	table.sort(victims, function(a, b)
+		return (Targeting.position(a) - p.Position).Magnitude < (Targeting.position(b) - p.Position).Magnitude
+	end)
+	local points = {}
+	for i = 1, math.min(#victims, math.max(row.MaxTargets, 1)) do
+		Context.damage(ctx, victims[i], row.Damage)
+		Context.tryProc(ctx, victims[i])
+		table.insert(points, Targeting.position(victims[i]))
+	end
+	if #points > 0 then
+		vfxFast:FireAllClients("OrbShock", { From = p.Position, Points = points, School = row.School })
+	end
+end
+
 local function step(p: Projectile, dt: number)
+	local now = os.clock()
+	if now < p.FrozenUntil then
+		return -- tempo parado
+	end
+	local def = p.Ctx.Spell.Def
+	if def.ShockOrb and now >= p.NextShock then
+		p.NextShock = now + math.max(p.Ctx.Spell.Row.TickIntervalSeconds, 0.1)
+		shock(p)
+	end
 	local homing = p.Homing
 	if homing and Targeting.isHostile(p.Ctx.Caster, homing) then
 		local targetPos = Targeting.position(homing)
@@ -109,7 +143,12 @@ local function step(p: Projectile, dt: number)
 	local result = Workspace:Spherecast(p.Position, COLLISION_RADIUS, delta, p.Params)
 	if result then
 		local model = result.Instance:FindFirstAncestorOfClass("Model")
-		if model and Targeting.isHostile(p.Ctx.Caster, model) then
+		if model and def.ShockOrb and model:FindFirstChildOfClass("Humanoid") then
+			-- O orbe atravessa criaturas (fere so pelos choques).
+			local filter = p.Params.FilterDescendantsInstances
+			table.insert(filter, model)
+			p.Params.FilterDescendantsInstances = filter
+		elseif model and Targeting.isHostile(p.Ctx.Caster, model) then
 			hit(p, model, result.Position)
 			if not active[p.Id] then
 				return
@@ -157,15 +196,30 @@ function Projectile.cast(ctx: Context.Context)
 		end
 	end
 
+	-- Rosa dos Lamentos: nasce na rosa (aos pes) e sai em todas as direcoes, na horizontal.
+	local start = muzzle
+	if def.Radial then
+		start = Targeting.position(ctx.Caster) - Vector3.new(0, 1, 0)
+		local look = Context.direction(ctx) * Vector3.new(1, 0, 1)
+		baseDirection = if look.Magnitude > 1e-3 then look.Unit else Vector3.zAxis
+		vfx:FireAllClients("Rose", { Caster = ctx.Caster, Position = start, School = row.School })
+	end
+
 	local spread = def.SpreadDegrees or 0
 	for index = 1, count do
-		-- Leque: espalha na horizontal e alterna para cima/baixo (orbes em arco, nao em fila).
-		local alpha = if count > 1 then (index - 1) / (count - 1) - 0.5 else 0
-		local lift = if count > 1 then (if index % 2 == 0 then 1 else -0.5) * spread * 0.35 else 0
-		local right = baseDirection:Cross(Vector3.yAxis)
-		right = if right.Magnitude > 1e-3 then right.Unit else Vector3.xAxis
-		local flat = CFrame.fromAxisAngle(Vector3.yAxis, math.rad(alpha * spread)):VectorToWorldSpace(baseDirection)
-		local direction = CFrame.fromAxisAngle(right, math.rad(lift)):VectorToWorldSpace(flat)
+		local direction: Vector3
+		if def.Radial then
+			direction = CFrame.fromAxisAngle(Vector3.yAxis, (index - 1) / count * math.pi * 2)
+				:VectorToWorldSpace(baseDirection)
+		else
+			-- Leque: espalha na horizontal e alterna para cima/baixo (orbes em arco, nao em fila).
+			local alpha = if count > 1 then (index - 1) / (count - 1) - 0.5 else 0
+			local lift = if count > 1 then (if index % 2 == 0 then 1 else -0.5) * spread * 0.35 else 0
+			local right = baseDirection:Cross(Vector3.yAxis)
+			right = if right.Magnitude > 1e-3 then right.Unit else Vector3.xAxis
+			local flat = CFrame.fromAxisAngle(Vector3.yAxis, math.rad(alpha * spread)):VectorToWorldSpace(baseDirection)
+			direction = CFrame.fromAxisAngle(right, math.rad(lift)):VectorToWorldSpace(flat)
+		end
 
 		local params = RaycastParams.new()
 		params.FilterType = Enum.RaycastFilterType.Exclude
@@ -175,15 +229,17 @@ function Projectile.cast(ctx: Context.Context)
 		local p: Projectile = {
 			Id = HttpService:GenerateGUID(false),
 			Ctx = ctx,
-			Position = muzzle,
+			Position = start,
 			Velocity = direction * speed,
 			Speed = speed,
 			Travelled = 0,
 			Range = range,
-			MaxHits = math.max(row.MaxTargets, 1),
+			MaxHits = if def.ShockOrb then math.huge else math.max(row.MaxTargets, 1),
 			Hits = {},
 			Homing = homing,
 			Params = params,
+			FrozenUntil = 0,
+			NextShock = os.clock() + 0.2,
 		}
 		active[p.Id] = p
 		vfx:FireAllClients("ProjectileSpawn", {
@@ -210,6 +266,23 @@ function Projectile.destroyHostileNear(caster: Model, center: Vector3, radius: n
 		end
 	end
 	return positions
+end
+
+-- Ampulheta Partida: projeteis hostis ao conjurador dentro da esfera param no ar.
+function Projectile.freezeHostile(caster: Model, center: Vector3, radius: number, duration: number)
+	local now = os.clock()
+	for _, p in active do
+		if
+			(p.Position - center).Magnitude <= radius
+			and p.Ctx.Caster ~= caster
+			and Targeting.isHostile(caster, p.Ctx.Caster)
+		then
+			if p.FrozenUntil < now then
+				vfxFast:FireAllClients("ProjectileFreeze", { Id = p.Id, Duration = duration })
+			end
+			p.FrozenUntil = now + duration
+		end
+	end
 end
 
 function Projectile.start()

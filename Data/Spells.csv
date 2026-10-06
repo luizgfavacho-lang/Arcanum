@@ -9,35 +9,35 @@ Tempest,Electricity,3,False,120,0,0,60,5,35,8,5,0,12,0,0,0,0,0,2,0,0.3,1,0,"Coun
 Fireball,Fire,1,False,15,0,0,1.5,6,40,0,0,30,0,0,0,0,0,0,0,0,1,3,1,Projetil. Proc=Queimadura 3 s.
 FlameWall,Fire,2,False,40,0,0,12,2,7,0,6,0,0,0,0,0.5,0,0,0,0,1,3,1,"Parede de Range m por Duration; Damage por tick de 0,5 s (= 4/s)."
 FlameNova,Fire,2,False,35,0,0,8,10,0,5,0,0,0,0,0,0,0,0,0,12,1,3,1,Explosao ao redor do conjurador; EffectValue=empurrao (m/s).
-EmberArmor,Fire,2,False,40,0,0,30,0,0,0,20,0,0,0,0,0,0,0,0,0,1,3,1,Imune a fogo por Duration; atacantes corpo a corpo queimam (Proc). [excecao: buff]
+EmberArmor,Fire,2,False,40,0,0,30,0,0,1.5,20,0,0,0,0,0,0,0,0,0,1,3,1,Imune a fogo por Duration; quem bate de perto ou encosta (Radius) queima (Proc). [excecao: buff]
 MagmaLance,Fire,2,False,35,0,0,6,11,40,0,4,55,0,3,0,0.5,0,1,2,0,0,0,0,Projetil veloz; perfura MaxTargets. Onde cai abre uma poca de lava por Duration: SecondaryDamage por Tick (= 2/s) no raio SecondaryRadius.
-InfernalVortex,Fire,2,False,45,0,0,12,3,20,5,5,0,0,0,0,0.5,0,0,0,0,0,0,0,Tornado no ponto mirado; puxa a Radius; Damage a cada Tick.
+InfernalVortex,Fire,2,False,45,0,0,12,3,20,5,5,0,0,0,0,0.5,0,0,0,4,0,0,0,Tornado no ponto mirado; puxa a Radius (EffectValue m/s); Damage a cada Tick.
 Meteor,Fire,3,False,120,0,0,60,38,35,6,0,0,0,0,0,0,0,0,0,0,1,4,1,Grande area; chao em chamas (talento Coracao do Sol).
 ArcaneMissile,Energy,1,False,15,0,0,2,2,30,0,0,20,3,0,0,0,0,0,0,0,1,8,0,Count orbes teleguiados; Damage por orbe (3x2=6). Proc=Carga Arcana.
 ManaShield,Energy,2,False,30,0,0,20,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,Dano absorvido pela mana por Duration (2 mana/dano em ArcanumCombatSettings). [excecao: buff defensivo]
 ArcaneBeam,Energy,2,True,10,0,16,0,7.5,25,0,0,0,0,1,0,0.1,0,0,0,0,0,0,0,Canalizada; feixe preciso. Damage=dano/s.
 ArcanePulse,Energy,2,False,30,0,0,8,10,0,6,0,0,0,0,0,0,0,0,0,15,0,0,0,Arremessa inimigos e destroi projeteis hostis no Radius; EffectValue=impulso.
-EnergyPrison,Energy,2,False,40,0,0,15,0,20,0,5,0,0,0,0,0,0,0,0,0,0,0,0,Prende um alvo numa esfera por Duration. [excecao: controle]
-ArcanePortal,Energy,2,False,50,0,0,6,0,40,0,0,0,3,0,0,0,0,0,0,0,0,0,0,Sistema-vitrine (Docs/01 sec. 7). Ate 3 pares.
-Singularity,Energy,3,False,120,0,0,75,30,30,8,5,0,0,0,0,0,0,0,0,900,0,0,0,Puxa no Radius por Duration e implode com Damage.
+EnergyPrison,Energy,2,False,40,0,0,15,0,20,1.5,5,0,0,0,0,0,0,0,0,0,0,0,0,Prende o alvo (e quem estiver no Radius) numa jaula por Duration. [excecao: controle]
+ArcanePortal,Energy,2,False,50,0,0,6,0,40,0,30,0,3,0,0,0,0,0,0,0,0,0,0,Par de portais (pes e ponto mirado) por Duration; ate Count pares. Sistema-vitrine (Docs/01 sec. 7).
+Singularity,Energy,3,False,120,0,0,75,30,30,8,5,0,0,0,0,0,0,0,0,6,0,0,0,Puxa no Radius por Duration (EffectValue m/s) e implode com Damage.
 StarShower,Energy,3,False,100,0,0,45,9,30,4.5,3,0,10,0,0,0,0,0,2.2,0,0,0,0,Count estrelas em Duration numa area Radius; Damage por estrela com raio SecondaryRadius. [excecao: numeros do mod; estrelas espalhadas]
-RaiseSkeleton,Necromancy,1,False,20,0,0,3,0,0,0,60,0,1,3,0,0,0,0,0,0,0,0,0,Servo arqueiro por Duration. MaxTargets=servos ativos deste tipo.
+RaiseSkeleton,Necromancy,1,False,20,0,0,3,0,0,0,60,0,1,3,0,0,0,0,0,0,0,0,0,Servo guerreiro (Enemies.csv SkeletonServant) por Duration. MaxTargets=servos ativos deste tipo.
 LifeDrain,Necromancy,1,False,12,0,0,1.5,6,16,0,0,0,0,0,0,0,0.5,0,0,0,0,0,0,Cura HealFraction do dano causado.
-RaiseBrute,Necromancy,2,False,45,0,0,12,0,0,0,60,0,1,1,0,0,0,0,0,0,0,0,0,Servo resistente por Duration. MaxTargets=servos ativos.
-DeathTouch,Necromancy,2,False,50,0,0,45,0,4,0,0,0,0,0,0,0,0,40,0,0.25,0,0,0,EffectValue=fracao da vida maxima do alvo; SecondaryDamage=teto em chefes. [excecao: recarga longa por design]
+RaiseBrute,Necromancy,2,False,45,0,0,12,0,0,0,60,0,1,1,0,0,0,0,0,0,0,0,0,Servo bruto (Enemies.csv BruteServant) por Duration. MaxTargets=servos ativos.
+DeathTouch,Necromancy,2,False,50,0,0,45,0,4,0,0,0,0,0,0,0,0,40,0,0.25,1,5,0,EffectValue=fracao da vida maxima do alvo; SecondaryDamage=teto em chefes; Proc=Fraqueza. [excecao: recarga longa por design]
 Curse,Necromancy,2,False,35,0,0,10,0,20,4,10,0,0,0,0,0,0,0,0,0,1,10,1,Area: veneno (Proc DPS) e Maldicao (+20% dano recebido).
 WanderingSouls,Necromancy,2,False,35,0,0,8,4,30,0,0,15,3,0,0,0,0.5,0,0,0,0,0,0,Count almas teleguiadas; a 1a vai no alvo da mira; cura HealFraction.
 ArmyOfTheDead,Necromancy,3,False,130,0,0,90,0,0,0,20,0,4,2,0,0,0,0,0,0,0,0,0,Count esqueletos + MaxTargets brutos por Duration.
-BloodBlade,Blood,1,False,0,0.05,0,3,7,0,0,30,0,0,0,0,0,0,0,0,0,1,4,1,Espada temporaria por Duration; Damage por golpe; custa vida.
-SacrificeRitual,Blood,2,False,0,0.3,0,30,0,0,0,15,0,0,0,0,0,0,0,0,0.3,0,0,0,"Paga 30% da vida: forca, velocidade e mana por Duration. EffectValue=bonus (+30%). [excecao: buff]"
-CrimsonChain,Blood,2,False,30,0,0,15,0,20,0,10,0,0,0,0,0,0,0,0,0.5,0,0,0,EffectValue=fracao do dano recebido desviada ao alvo ligado. [excecao: buff defensivo]
+BloodBlade,Blood,1,False,0,0.05,0,3,7,0,3.5,30,0,0,0,0,0,0,0,0,0,1,4,1,Golpe em arco com lamina de sangue (alcance Radius); Damage por golpe; custa vida.
+SacrificeRitual,Blood,2,False,0,0.3,0,30,12,0,6,15,0,0,0,0,0,0,0,0,0.3,0,0,0,Paga 30% da vida: explosao de sangue (Damage no Radius) e Fortalecido por Duration (EffectValue=+30% dano e velocidade). [excecao: buff]
+CrimsonChain,Blood,2,False,30,0,0,15,0,20,0,10,0,0,0,0,0,0,0,0,0.5,1,1.5,0,Corrente liga o alvo por Duration: prende por ProcDuration e EffectValue do dano recebido vai para ele. [excecao: buff defensivo]
 CrimsonRain,Blood,2,False,40,0,0,15,2,25,6,6,0,0,0,0,1,0,0,0,1,0,0,0,Area: Damage/s em inimigos e EffectValue de cura/s em aliados. [excecao: zona de cura]
-Hemorrhage,Blood,2,False,0,0.1,0,12,0,0,5,0,0,0,0,0,0,0,0,0,0,1,6,2,Sangramento forte em area; custa vida.
+Hemorrhage,Blood,2,False,0,0.1,0,12,0,20,5,0,0,0,0,0,0,0,0,0,0,1,6,2,Marca o alvo da mira: sangramento forte nele e em quem estiver no Radius; custa vida.
 CrimsonSpikes,Blood,2,False,35,0,0,8,7,9,1.5,0,0,0,0,0,0,0,0,0,8,1,4,1,Fileira de Range m que irrompe do chao; EffectValue=impulso vertical (m/s). [excecao: numeros do mod]
 BloodPact,Blood,3,False,0,0.4,0,90,0,0,0,20,0,0,0,0,0,0,0,0,0.5,0,0,0,Paga 40% da vida; berserker por Duration. EffectValue=+dano.
 DawnVerdict,Fire,4,False,150,0,0,120,28,35,3,0,0,0,0,0,0,0,0,0,1.7,0,0,0,Coluna de luz solar apos EffectValue s; Damage dividido entre os alvos no Radius.
-ShatteredHourglass,Energy,4,False,150,0,0,120,0,0,5,4,0,0,0,0,0,0,0,0,0,0,0,0,Esfera que congela o tempo (projeteis param no ar).
+ShatteredHourglass,Energy,4,False,150,0,0,120,0,25,5,4,0,0,0,0,0,0,0,0,0,0,0,0,Esfera no ponto mirado que congela o tempo por Duration: inimigos e projeteis hostis param.
 FirmamentLance,Energy,4,False,150,0,0,120,30,48,0,0,0,0,99,0,0,0,0,0,1.2,0,0,0,Laser carregado; atravessa criaturas.
 CrownOfThunder,Electricity,4,False,150,0,0,120,18,0,40,0,0,0,0,0,0,0,0,0,0,1,2,0,Raio em todos os inimigos no Radius.
-RoseOfLaments,Necromancy,4,False,150,0,0,120,7,20,0,0,0,18,0,0,0,0,0,0,0.2,1,6,0,Count linhas de almas em todas as direcoes; aplica Fraqueza (EffectValue=-dano causado).
+RoseOfLaments,Necromancy,4,False,150,0,0,120,7,20,0,0,14,18,0,0,0,0,0,0,0.2,1,6,0,Count linhas de almas em todas as direcoes a partir da rosa; aplica Fraqueza (EffectValue=-dano causado).
 CrimsonHook,Blood,4,False,150,0,0,120,10,20,0,0,0,0,0,0,0,0,0,0,25,0,0,0,Gancho que puxa o alvo; EffectValue=velocidade do puxao (m/s).

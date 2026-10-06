@@ -17,6 +17,8 @@ local CreatureBuilder = {}
 
 local KINDS: { [string]: string } = {
 	SkeletonMage = "Skeleton",
+	SkeletonServant = "Servant",
+	BruteServant = "Brute",
 	UndeadMage = "Skeleton",
 	CrystalGolem = "Golem",
 	ArcaneSlime = "Slime",
@@ -167,6 +169,15 @@ function CreatureBuilder.describe(rowName: string, description: HumanoidDescript
 		body = STONE
 		description.WidthScale = 1
 		description.DepthScale = 1
+	elseif kind == "Servant" then
+		body = BONE
+		description.WidthScale = 0.75
+		description.DepthScale = 0.75
+	elseif kind == "Brute" then
+		body = Color3.fromRGB(96, 104, 86) -- carne morta acinzentada
+		description.WidthScale = 1
+		description.DepthScale = 1
+		description.HeightScale = 1.05
 	else
 		body = if palette then palette.Halo:Lerp(Color3.new(0.2, 0.2, 0.25), 0.55) else Color3.fromRGB(90, 90, 100)
 	end
@@ -512,6 +523,252 @@ local function golem(model: Model, palette: Palette)
 	})
 end
 
+-- Olhos verdes de morto-vivo invocado.
+local function deadEyes(head: BasePart, palette: Palette, size: number)
+	for _, side in { -1, 1 } do
+		attach(
+			head,
+			"Eye",
+			Vector3.one * head.Size.Y * size,
+			CFrame.new(side * head.Size.X * 0.19, head.Size.Y * 0.06, -head.Size.Z * 0.48),
+			palette.Halo:Lerp(WHITE, 0.25),
+			Enum.Material.Neon,
+			{ Shape = Enum.PartType.Ball }
+		)
+	end
+end
+
+-- Servo esqueleto: guerreiro de osso com elmo enferrujado, espada e escudo redondo.
+local function servant(model: Model, palette: Palette)
+	local head, upper = part(model, "Head"), part(model, "UpperTorso")
+	if not head or not upper then
+		return
+	end
+	for _, p in model:GetChildren() do
+		if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+			p.Color = BONE
+			p.Material = Enum.Material.Limestone
+		end
+	end
+	removeFace(head)
+	local hs, u = head.Size, upper.Size
+	local rust = Color3.fromRGB(96, 80, 66)
+	for _, side in { -1, 1 } do
+		attach(
+			head,
+			"EyeSocket",
+			Vector3.one * hs.Y * 0.28,
+			CFrame.new(side * hs.X * 0.19, hs.Y * 0.05, -hs.Z * 0.4),
+			SOCKET,
+			Enum.Material.SmoothPlastic,
+			{ Shape = Enum.PartType.Ball }
+		)
+	end
+	deadEyes(head, palette, 0.13)
+	attach(
+		head,
+		"Helmet",
+		Vector3.new(hs.X * 1.15, hs.Y * 0.45, hs.Z * 1.15),
+		CFrame.new(0, hs.Y * 0.38, 0),
+		rust,
+		Enum.Material.CorrodedMetal
+	)
+	attach(
+		head,
+		"HelmetCrest",
+		Vector3.new(0.15, hs.Y * 0.35, hs.Z * 1.1),
+		CFrame.new(0, hs.Y * 0.7, 0),
+		rust,
+		Enum.Material.CorrodedMetal
+	)
+	for i = 0, 2 do
+		attach(
+			upper,
+			"Rib",
+			Vector3.new(u.X * (0.6 - i * 0.08), u.Y * 0.08, 0.1),
+			CFrame.new(0, u.Y * (0.22 - i * 0.18), -u.Z * 0.52),
+			BONE:Lerp(SOCKET, 0.25),
+			Enum.Material.Limestone
+		)
+	end
+	attach(
+		upper,
+		"Belt",
+		Vector3.new(u.X * 1.05, u.Y * 0.15, u.Z * 1.1),
+		CFrame.new(0, -u.Y * 0.45, 0),
+		rust,
+		Enum.Material.Leather
+	)
+	-- Espada na mao direita (lamina segue o braco), escudo no antebraco esquerdo.
+	local hand = part(model, "RightHand")
+	if hand then
+		local steel = Color3.fromRGB(150, 156, 168)
+		attach(hand, "SwordGrip", Vector3.new(0.22, 0.6, 0.22), CFrame.new(0, -0.2, 0), rust, Enum.Material.Leather)
+		attach(
+			hand,
+			"SwordGuard",
+			Vector3.new(0.9, 0.15, 0.25),
+			CFrame.new(0, -0.5, 0),
+			rust,
+			Enum.Material.CorrodedMetal
+		)
+		attach(hand, "SwordBlade", Vector3.new(0.14, 3, 0.4), CFrame.new(0, -2.05, 0), steel, Enum.Material.Metal)
+		attach(
+			hand,
+			"SwordRune",
+			Vector3.new(0.16, 2.2, 0.08),
+			CFrame.new(0, -2.05, 0),
+			palette.Halo,
+			Enum.Material.Neon
+		)
+	end
+	local forearm = part(model, "LeftLowerArm")
+	if forearm then
+		attach(
+			forearm,
+			"Shield",
+			Vector3.new(0.25, 2.6, 2.6),
+			CFrame.new(-forearm.Size.X * 0.7, 0, 0),
+			Color3.fromRGB(88, 60, 40),
+			Enum.Material.WoodPlanks,
+			{ Shape = Enum.PartType.Cylinder }
+		)
+		attach(
+			forearm,
+			"ShieldRim",
+			Vector3.new(0.2, 2.75, 2.75),
+			CFrame.new(-forearm.Size.X * 0.66, 0, 0),
+			rust,
+			Enum.Material.CorrodedMetal,
+			{ Shape = Enum.PartType.Cylinder }
+		)
+		attach(
+			forearm,
+			"ShieldBoss",
+			Vector3.one * 0.6,
+			CFrame.new(-forearm.Size.X * 0.7 - 0.2, 0, 0),
+			palette.Halo,
+			Enum.Material.Neon,
+			{ Shape = Enum.PartType.Ball }
+		)
+	end
+	emitter(upper, {
+		Texture = "rbxasset://textures/particles/smoke_main.dds",
+		Color = ColorSequence.new(palette.Halo:Lerp(Color3.new(0, 0, 0), 0.5)),
+		LightEmission = 0.3,
+		Size = NumberSequence.new(0.6, 1.4),
+		Transparency = NumberSequence.new(0.7, 1),
+		Lifetime = NumberRange.new(0.8, 1.2),
+		Speed = NumberRange.new(0.2, 0.6),
+		Rate = 3,
+	})
+end
+
+-- Servo bruto: morto-vivo enorme com placas de armadura, correntes e olhos/boca verdes.
+local function brute(model: Model, palette: Palette)
+	local head, upper, lower = part(model, "Head"), part(model, "UpperTorso"), part(model, "LowerTorso")
+	if not head or not upper or not lower then
+		return
+	end
+	removeFace(head)
+	for _, p in model:GetChildren() do
+		if p:IsA("BasePart") and p.Name ~= "HumanoidRootPart" then
+			p.Material = Enum.Material.Slate
+		end
+	end
+	local hs, u, l = head.Size, upper.Size, lower.Size
+	local iron = Color3.fromRGB(58, 60, 66)
+	deadEyes(head, palette, 0.16)
+	attach(
+		head,
+		"Mouth",
+		Vector3.new(hs.X * 0.5, hs.Y * 0.1, 0.06),
+		CFrame.new(0, -hs.Y * 0.25, -hs.Z * 0.5),
+		palette.Halo,
+		Enum.Material.Neon
+	)
+	attach(
+		head,
+		"Brow",
+		Vector3.new(hs.X * 1.1, hs.Y * 0.2, hs.Z * 0.4),
+		CFrame.new(0, hs.Y * 0.3, -hs.Z * 0.35),
+		iron,
+		Enum.Material.DiamondPlate
+	)
+	attach(
+		upper,
+		"ChestPlate",
+		u * Vector3.new(1.12, 0.8, 1.18),
+		CFrame.new(0, u.Y * 0.1, 0),
+		iron,
+		Enum.Material.DiamondPlate
+	)
+	attach(
+		upper,
+		"Rune",
+		Vector3.new(u.X * 0.25, u.X * 0.25, 0.1),
+		CFrame.new(0, u.Y * 0.1, -u.Z * 0.62) * CFrame.Angles(0, 0, math.rad(45)),
+		palette.Halo,
+		Enum.Material.Neon
+	)
+	attach(lower, "Waist", l * Vector3.new(1.15, 1.4, 1.2), CFrame.new(), iron, Enum.Material.CorrodedMetal)
+	for _, side in { -1, 1 } do
+		attach(
+			upper,
+			"Pauldron",
+			Vector3.new(u.X * 0.5, u.Y * 0.35, u.Z * 1.2),
+			CFrame.new(side * u.X * 0.55, u.Y * 0.45, 0) * CFrame.Angles(0, 0, math.rad(-side * 15)),
+			iron,
+			Enum.Material.DiamondPlate
+		)
+		for k = 0, 1 do
+			attach(
+				upper,
+				"Spike",
+				Vector3.new(0.25, u.Y * 0.4, 0.25),
+				CFrame.new(side * u.X * (0.5 + k * 0.15), u.Y * 0.7, (k - 0.5) * u.Z * 0.4)
+					* CFrame.Angles(0, math.rad(45), math.rad(-side * 25)),
+				BONE,
+				Enum.Material.Limestone
+			)
+		end
+	end
+	for i = 0, 3 do
+		attach(
+			upper,
+			"Chain",
+			Vector3.new(0.35, 0.18, 0.5),
+			CFrame.new(-u.X * 0.35 + i * u.X * 0.22, u.Y * 0.4 - i * u.Y * 0.25, -u.Z * 0.62)
+				* CFrame.Angles(0, 0, math.rad(-40)),
+			iron,
+			Enum.Material.Metal
+		)
+	end
+	for _, side in { "Left", "Right" } do
+		local hand = part(model, side .. "Hand")
+		if hand then
+			attach(
+				hand,
+				"Fist",
+				Vector3.one * math.max(hand.Size.X, hand.Size.Z) * 1.9,
+				CFrame.new(0, -hand.Size.Y * 0.3, 0),
+				iron,
+				Enum.Material.DiamondPlate
+			)
+		end
+	end
+	emitter(upper, {
+		Texture = "rbxasset://textures/particles/smoke_main.dds",
+		Color = ColorSequence.new(palette.Halo:Lerp(Color3.new(0, 0, 0), 0.4)),
+		LightEmission = 0.4,
+		Size = NumberSequence.new(1, 2.4),
+		Transparency = NumberSequence.new(0.65, 1),
+		Lifetime = NumberRange.new(1, 1.5),
+		Speed = NumberRange.new(0.3, 0.8),
+		Rate = 4,
+	})
+end
+
 -- Veste um modelo R15 ja montado (e ja escalado) conforme o tipo da criatura.
 function CreatureBuilder.dress(model: Model, rowName: string, palette: Palette)
 	local kind = CreatureBuilder.kind(rowName)
@@ -520,6 +777,10 @@ function CreatureBuilder.dress(model: Model, rowName: string, palette: Palette)
 		skeleton(model, palette)
 	elseif kind == "Golem" then
 		golem(model, palette)
+	elseif kind == "Servant" then
+		servant(model, palette)
+	elseif kind == "Brute" then
+		brute(model, palette)
 	end
 end
 

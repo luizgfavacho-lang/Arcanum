@@ -52,10 +52,31 @@ function DamageService.applySpellDamage(
 	end
 	local charged = not periodic and StatusService.has(target, States.ArcaneCharge)
 
+	-- Armadura de Brasas: imune a fogo; quem bate de perto pega fogo (DamagePerSecond do estado,
+	-- duracao em Value).
+	if StatusService.has(target, States.EmberArmor) then
+		if school == "Fire" then
+			return 0
+		end
+		if source and not periodic and StatsService.isAlive(source) then
+			local sourceRoot = source:FindFirstChild("HumanoidRootPart") :: BasePart?
+			local targetRoot = target:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if sourceRoot and targetRoot and (sourceRoot.Position - targetRoot.Position).Magnitude < 9 then
+				StatusService.apply(source, States.Burning, StatusService.value(target, States.EmberArmor) or 3, {
+					DamagePerSecond = 1,
+					Source = target,
+					School = "Fire",
+				})
+			end
+		end
+	end
+	local empowered = if source then StatusService.value(source, States.Empowered) else nil
+
 	local damage = DamageMath.computeSpellDamage({
 		BaseDamage = baseDamage,
 		DamageMultiplier = (options and options.Multiplier or 1)
-			* (if source and StatusService.has(source, States.Weakened) then 0.8 else 1),
+			* (if source and StatusService.has(source, States.Weakened) then 0.8 else 1)
+			* (1 + (empowered or 0)),
 		SpellPower = if sourceStats then sourceStats.SpellPower else 0,
 		Affinity = if sourceStats and school then StatsService.getAffinity(sourceStats, school) else 0,
 		TargetArmor = targetStats.Armor,
@@ -72,6 +93,15 @@ function DamageService.applySpellDamage(
 		healthDamage, manaSpent =
 			DamageMath.resolveManaShield(damage, targetStats.Mana, Settings.ManaShieldManaPerDamage)
 		StatsService.setMana(targetStats, targetStats.Mana - manaSpent)
+	end
+
+	-- Corrente Carmesim: parte do dano recebido vai para a criatura ligada.
+	local linkFraction = StatusService.value(target, States.Linked)
+	local linked = StatusService.source(target, States.Linked)
+	if linkFraction and linked and linked ~= source and StatsService.isAlive(linked) and healthDamage > 0 then
+		local diverted = healthDamage * linkFraction
+		healthDamage -= diverted
+		task.spawn(DamageService.applySpellDamage, target, linked, diverted, "Blood", { Periodic = true })
 	end
 
 	local humanoid = targetStats.Humanoid

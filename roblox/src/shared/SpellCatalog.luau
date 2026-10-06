@@ -3,7 +3,23 @@
 -- Os NUMEROS ficam em Data/Spells.luau (gerado do CSV). Aqui so: tipo, estado aplicado e visual.
 -- Modulo puro (sem servicos do Roblox) para rodar nos testes.
 
-export type Kind = "Projectile" | "Hitscan" | "ChainLightning" | "Strike" | "Nova" | "Line"
+export type Kind =
+	"Projectile"
+	| "Hitscan"
+	| "ChainLightning"
+	| "Strike"
+	| "Nova"
+	| "Line"
+	| "Zone" -- area com duracao (Spells/Zone): Mode Static | Wall | Vortex | Singularity | Rain | Hourglass
+	| "Barrage" -- golpes do ceu (Spells/Barrage): Mode Storm | Stars | Meteor | Verdict | Crown
+	| "Buff" -- em si mesmo (Spells/Buff): Mode ManaShield | EmberArmor | Sacrifice | Pact
+	| "Blink" -- Passo Relampago (Spells/Movement)
+	| "Portal" -- Portal Arcano (Spells/Movement)
+	| "Control" -- alvo unico/area (Spells/Control): Mode Prison | Hook | Chain | DeathTouch | Curse | Hemorrhage
+	| "Beam" -- canalizada em linha (Spells/Beam)
+	| "Lance" -- laser carregado que atravessa (Spells/Beam)
+	| "Slash" -- golpe corpo a corpo em arco (Spells/Melee)
+	| "Summon" -- servos (Spells/Summon)
 
 export type Def = {
 	Kind: Kind,
@@ -13,6 +29,11 @@ export type Def = {
 	Visual: string?, -- "Bolt", "LifeStream", "Orb"...
 	DestroysProjectiles: boolean?, -- Nova que apaga projeteis hostis em volta
 	LavaPool: boolean?, -- projetil que abre poca de lava onde termina (Spells/Hazard)
+	Mode: string?, -- variante dentro do tipo (ver Kind)
+	ShockOrb: boolean?, -- projetil que atravessa e da choques em volta (Bola de Relampago)
+	Radial: boolean?, -- projeteis em todas as direcoes, na horizontal (Rosa dos Lamentos)
+	Summon: string?, -- linha de Enemies.csv do servo
+	Army: boolean?, -- Exercito dos Mortos: Count esqueletos + MaxTargets brutos
 }
 
 local Catalog: { [string]: Def } = {
@@ -34,6 +55,43 @@ local Catalog: { [string]: Def } = {
 	ArcanePulse = { Kind = "Nova", DestroysProjectiles = true }, -- empurra e apaga projeteis
 	WanderingSouls = { Kind = "Projectile", Homing = true, SpreadDegrees = 40, Visual = "Soul" }, -- cura
 	CrimsonSpikes = { Kind = "Line", ProcState = "Bleeding" }, -- fileira de espinhos, arremessa
+
+	-- Eletricidade
+	StaticField = { Kind = "Zone", Mode = "Static", ProcState = "Paralyzed" }, -- zona eletrica que segue
+	LightningStep = { Kind = "Blink" }, -- teleporte que eletrocuta o caminho
+	BallLightning = { Kind = "Projectile", ShockOrb = true, ProcState = "Paralyzed", Visual = "Orb" },
+	Tempest = { Kind = "Barrage", Mode = "Storm", ProcState = "Paralyzed" }, -- raios em sequencia
+	CrownOfThunder = { Kind = "Barrage", Mode = "Crown", ProcState = "Paralyzed" }, -- raio em todos em volta
+	-- Fogo
+	FlameWall = { Kind = "Zone", Mode = "Wall", ProcState = "Burning" }, -- parede que bloqueia criaturas
+	EmberArmor = { Kind = "Buff", Mode = "EmberArmor" },
+	InfernalVortex = { Kind = "Zone", Mode = "Vortex" }, -- redemoinho que puxa e queima
+	Meteor = { Kind = "Barrage", Mode = "Meteor", ProcState = "Burning" },
+	DawnVerdict = { Kind = "Barrage", Mode = "Verdict" }, -- coluna solar, dano dividido
+	-- Energia
+	ManaShield = { Kind = "Buff", Mode = "ManaShield" },
+	ArcaneBeam = { Kind = "Beam" },
+	EnergyPrison = { Kind = "Control", Mode = "Prison" },
+	ArcanePortal = { Kind = "Portal" },
+	Singularity = { Kind = "Zone", Mode = "Singularity" }, -- puxa e implode
+	StarShower = { Kind = "Barrage", Mode = "Stars" },
+	ShatteredHourglass = { Kind = "Zone", Mode = "Hourglass" }, -- congela inimigos e projeteis
+	FirmamentLance = { Kind = "Lance" },
+	-- Necromancia
+	RaiseSkeleton = { Kind = "Summon", Summon = "SkeletonServant" },
+	RaiseBrute = { Kind = "Summon", Summon = "BruteServant" },
+	DeathTouch = { Kind = "Control", Mode = "DeathTouch", ProcState = "Weakened" },
+	Curse = { Kind = "Control", Mode = "Curse", ProcState = "Poisoned" }, -- + Maldicao
+	ArmyOfTheDead = { Kind = "Summon", Army = true },
+	RoseOfLaments = { Kind = "Projectile", Radial = true, ProcState = "Weakened", Visual = "Soul" },
+	-- Sangue
+	BloodBlade = { Kind = "Slash", ProcState = "Bleeding" },
+	SacrificeRitual = { Kind = "Buff", Mode = "Sacrifice" },
+	CrimsonChain = { Kind = "Control", Mode = "Chain", ProcState = "Paralyzed" },
+	CrimsonRain = { Kind = "Zone", Mode = "Rain" }, -- fere inimigos e cura aliados
+	Hemorrhage = { Kind = "Control", Mode = "Hemorrhage", ProcState = "Bleeding" },
+	BloodPact = { Kind = "Buff", Mode = "Pact" },
+	CrimsonHook = { Kind = "Control", Mode = "Hook" },
 }
 
 -- Barra inicial do jogador (fatia vertical). Lamina de Sangue entra no M1 (T-06).
@@ -45,6 +103,6 @@ return table.freeze({
 	NumSlots = 5,
 	isChanneled = function(spellId: string): boolean
 		local def = Catalog[spellId]
-		return def ~= nil and def.Kind == "ChainLightning"
+		return def ~= nil and (def.Kind == "ChainLightning" or def.Kind == "Beam")
 	end,
 })

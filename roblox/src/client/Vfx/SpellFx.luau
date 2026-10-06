@@ -41,7 +41,7 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Conjuracao
 
-function SpellFx.flourish(spellId: string?, caster: Model, palette: Lib.Palette, gem: Vector3)
+function SpellFx.flourish(spellId: string?, caster: Model, palette: Lib.Palette, gem: Vector3, school: string?)
 	if spellId == "Spark" or spellId == "ChainLightning" then
 		for _ = 1, 3 do
 			Lightning.bolt(
@@ -79,6 +79,32 @@ function SpellFx.flourish(spellId: string?, caster: Model, palette: Lib.Palette,
 			Speed = NumberRange.new(1, 3),
 		})
 		Lib.burst(feet + UP * 0.3, "Star", palette, 8)
+	elseif school == "Electricity" then
+		for _ = 1, 2 do
+			Lightning.bolt(
+				gem,
+				gem + randomUnit() * 1.6,
+				palette,
+				{ Width = 0.07, Forks = 0, Flickers = 1, Duration = 0.08, Glow = false }
+			)
+		end
+		Lib.burst(gem, "Spark", palette, 8)
+	elseif school == "Fire" then
+		Lib.burst(gem, "Flame", palette, 5, { Speed = NumberRange.new(2, 5), Size = Lib.seq(1.2, 0.6, 0) })
+		Lib.burst(gem, "Ember", palette, 8)
+	elseif school == "Energy" then
+		Lib.burst(gem, "Star", palette, 10, { Speed = NumberRange.new(3, 7) })
+	elseif school == "Necromancy" then
+		Lib.burst(gem, "Wisp", palette, 10, { Speed = NumberRange.new(-4, -2), Lifetime = NumberRange.new(0.3, 0.5) })
+	elseif school == "Blood" then
+		Lib.burst(
+			gem,
+			"Smoke",
+			palette,
+			4,
+			{ Color = ColorSequence.new(palette.Halo, palette.Accent), Speed = NumberRange.new(1, 3) }
+		)
+		Lib.burst(gem, "Spark", palette, 8, { Acceleration = Vector3.new(0, -40, 0) })
 	end
 end
 

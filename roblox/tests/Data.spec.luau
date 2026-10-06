@@ -44,3 +44,36 @@ test("Dados.InimigosDoSandbox", function(expect)
 		expect.truthy(Enemies[rowName] and Enemies[rowName].MaxHealth > 0, rowName)
 	end
 end)
+
+-- Todo tipo do catalogo precisa de executor no servidor (SpellService: CASTERS / CHANNELS).
+local KNOWN_KINDS = {
+	Projectile = true,
+	Hitscan = true,
+	ChainLightning = true,
+	Strike = true,
+	Nova = true,
+	Line = true,
+	Zone = true,
+	Barrage = true,
+	Buff = true,
+	Blink = true,
+	Portal = true,
+	Control = true,
+	Beam = true,
+	Lance = true,
+	Slash = true,
+	Summon = true,
+}
+
+test("Dados.Grimorio42Jogaveis", function(expect)
+	local count = 0
+	for spellId, def in SpellCatalog.Defs do
+		count += 1
+		expect.truthy(KNOWN_KINDS[def.Kind], spellId .. ": tipo sem executor " .. tostring(def.Kind))
+		if def.Summon then
+			expect.truthy(Enemies[def.Summon], spellId .. ": servo sem linha em Enemies.csv")
+		end
+	end
+	expect.equal(count, 42, "as 42 magias do CSV estao no catalogo")
+	expect.truthy(Enemies.SkeletonServant and Enemies.BruteServant, "servos do Exercito dos Mortos")
+end)

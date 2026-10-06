@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local Lib = require(script.Parent.Lib)
 local Effects = require(script.Parent.Effects)
+local Lightning = require(script.Parent.Lightning)
 local SpellFx = require(script.Parent.SpellFx)
 
 local Projectiles = {}
@@ -25,6 +26,7 @@ type Visual = {
 	Seed: number,
 	Light: PointLight?,
 	Position: Vector3, -- posicao no trajeto (o desenho pode oscilar em volta dela)
+	FrozenUntil: number, -- Ampulheta Partida: parado no ar
 }
 
 local active: { [string]: Visual } = {}
@@ -125,6 +127,26 @@ local function buildSoul(position: Vector3, palette: Lib.Palette): (BasePart, { 
 	return core, { core, halo }, {}
 end
 
+local function buildBallLightning(position: Vector3, palette: Lib.Palette): (BasePart, { BasePart }, { BasePart })
+	local core = Lib.part(Vector3.one * 1.4, palette.Core, CFrame.new(position), { Shape = Enum.PartType.Ball })
+	local shell = Lib.part(Vector3.one * 3.4, palette.Halo, core.CFrame, {
+		Shape = Enum.PartType.Ball,
+		Material = Enum.Material.ForceField,
+	})
+	local glow =
+		Lib.part(Vector3.one * 2.4, palette.Halo, core.CFrame, { Shape = Enum.PartType.Ball, Transparency = 0.6 })
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = core
+	Lib.emitter(attachment, "Spark", palette, { Rate = 40, Speed = NumberRange.new(4, 10) })
+	Lib.emitter(attachment, "Star", palette, { Rate = 12, Speed = NumberRange.new(1, 3) })
+	local light = Instance.new("PointLight")
+	light.Color = palette.Halo
+	light.Range = 16
+	light.Brightness = 3
+	light.Parent = core
+	return core, { core, shell, glow }, {}
+end
+
 local function buildDefault(position: Vector3, palette: Lib.Palette): (BasePart, { BasePart }, { BasePart })
 	local core = Lib.part(Vector3.one * 0.7, palette.Core, CFrame.new(position), { Shape = Enum.PartType.Ball })
 	local halo =
@@ -138,6 +160,8 @@ local BUILDERS: { [string]: (Vector3, Lib.Palette) -> (BasePart, { BasePart }, {
 	ArcaneMissile = buildMissile,
 	MagmaLance = buildLance,
 	WanderingSouls = buildSoul,
+	RoseOfLaments = buildSoul,
+	BallLightning = buildBallLightning,
 }
 
 function Projectiles.spawn(payload: any)
@@ -158,7 +182,16 @@ function Projectiles.spawn(payload: any)
 		Seed = math.random() * math.pi * 2,
 		Light = root:FindFirstChildOfClass("PointLight"),
 		Position = start,
+		FrozenUntil = 0,
 	}
+end
+
+-- Ampulheta Partida: o desenho para no ar junto com o projetil do servidor.
+function Projectiles.freeze(id: string, duration: number)
+	local visual = active[id]
+	if visual then
+		visual.FrozenUntil = os.clock() + duration
+	end
 end
 
 local function destroy(visual: Visual)
@@ -245,6 +278,20 @@ local IMPACTS: { [string]: (Vector3, Lib.Palette, number) -> () } = {
 		Effects.flash(position, palette, 1, false)
 		Lib.burst(position, "Wisp", palette, 16, { Speed = NumberRange.new(3, 8) })
 	end,
+	RoseOfLaments = function(position, palette, _)
+		Lib.burst(position, "Wisp", palette, 10, { Speed = NumberRange.new(3, 8) })
+	end,
+	BallLightning = function(position, palette, radius)
+		Effects.flash(position, palette, 3.5, true)
+		Effects.shockwave(position - Vector3.new(0, 2, 0), palette, math.max(radius, 6))
+		for i = 1, 8 do
+			local angle = i / 8 * math.pi * 2
+			local to = position
+				+ Vector3.new(math.cos(angle), math.random() - 0.3, math.sin(angle)) * math.max(radius, 6)
+			Lightning.bolt(position, to, palette, { Width = 0.18, Forks = 1, Flickers = 2, Duration = 0.2 })
+		end
+		Lib.burst(position, "Spark", palette, 30)
+	end,
 }
 
 function Projectiles.finish(payload: any)
@@ -266,6 +313,9 @@ end
 local function step(dt: number)
 	local now = os.clock()
 	for id, visual in active do
+		if now < visual.FrozenUntil then
+			continue -- tempo parado: nem anda nem envelhece
+		end
 		local position = visual.Position
 		local target = visual.Homing
 		local targetPos = if target and target.Parent then Lib.rootPosition(target) else nil
@@ -284,7 +334,25 @@ local function step(dt: number)
 			local amplitude = 0.7 * math.clamp(age * 5, 0, 1)
 			local spin = age * 16 + visual.Seed
 			drawn = cf * CFrame.new(math.cos(spin) * amplitude, math.sin(spin) * amplitude, 0)
-		elseif visual.SpellId == "WanderingSouls" then
+		elseif visual.SpellId == "MagmaLance" and math.random() < dt * 14 then
+			-- Gotas de lava escorrendo da lanca.
+			Lib.burst(nextPos, "Ember", Lib.palette("Fire"), 2, {
+				Speed = NumberRange.new(0, 2),
+				Acceleration = Vector3.new(0, -60, 0),
+				Lifetime = NumberRange.new(0.5, 0.8),
+				Size = Lib.seq(0.5, 0.2),
+			})
+		elseif visual.SpellId == "BallLightning" then
+			drawn = cf * CFrame.Angles(age * 3, age * 5, 0)
+			if math.random() < dt * 18 then
+				Lightning.bolt(
+					nextPos,
+					nextPos + Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 6,
+					Lib.palette("Electricity"),
+					{ Width = 0.08, Forks = 0, Flickers = 1, Duration = 0.07, Glow = false }
+				)
+			end
+		elseif visual.SpellId == "WanderingSouls" or visual.SpellId == "RoseOfLaments" then
 			-- Fogo-fatuo: espiral larga e lenta, que ondula.
 			local amplitude = 1.1 * math.clamp(age * 3, 0, 1)
 			local spin = age * 7 + visual.Seed

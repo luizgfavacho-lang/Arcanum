@@ -23,6 +23,8 @@ local Audio = require(Vfx.Audio)
 local Creatures = require(Vfx.Creatures)
 local DodgeAnim = require(Vfx.DodgeAnim)
 local SpellFx = require(Vfx.SpellFx)
+local ZoneFx = require(Vfx.ZoneFx)
+local StrikeFx = require(Vfx.StrikeFx)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -156,7 +158,11 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Staff.cast(p.Caster, palette)
 		Effects.castSignature(p.Caster, palette, p.Tier or 1)
 		local muzzle = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or Vector3.zero)
-		SpellFx.flourish(p.SpellId, p.Caster, palette, muzzle)
+		SpellFx.flourish(p.SpellId, p.Caster, palette, muzzle, p.School)
+		if p.SpellId == "ManaShield" or p.SpellId == "EmberArmor" then
+			Audio.play(p.SpellId, muzzle) -- o resto do visual vem da aura do estado
+			Effects.flash(Lib.rootPosition(p.Caster) or muzzle, palette, 2.4, true)
+		end
 		if not p.Channeled then
 			-- Conjuracao alheia (inimigos, outros jogadores): clarao menor, para nao estourar a tela.
 			Effects.flash(muzzle, palette, if isMine(p.Caster) then 0.9 else 0.45, false)
@@ -299,6 +305,199 @@ local HANDLERS: { [string]: (any) -> () } = {
 		if p.Caster and p.Caster.Parent then
 			LifeStream.play(p.From, p.Caster, Lib.palette(p.School))
 		end
+	end,
+
+	-- Grimorio completo -------------------------------------------------------------------------
+	Zone = function(p)
+		ZoneFx.open(p)
+		local sounds = {
+			Static = "StaticField",
+			Wall = "FlameWall",
+			Vortex = "Vortex",
+			Singularity = "Singularity",
+			Rain = "BloodRain",
+			Hourglass = "Hourglass",
+		}
+		Audio.play(sounds[p.Mode] or "Blink", p.Position)
+		if p.Mode == "Wall" then
+			shakeNear(p.Position, 0.3, 50)
+		end
+	end,
+	ZoneEnd = function(p)
+		ZoneFx.close(p)
+		if p.Mode == "Singularity" then
+			Audio.play("Explosion", p.Position)
+			shakeNear(p.Position, 0.8, 100)
+		end
+	end,
+	BarrageStart = function(p)
+		StrikeFx.barrageStart(p)
+	end,
+	BarrageHit = function(p)
+		StrikeFx.barrageHit(p)
+		Audio.play(if p.Mode == "Storm" then "StormBolt" else "StarFall", p.Position)
+		shakeNear(p.Position, 0.35, 70)
+	end,
+	MeteorWarn = function(p)
+		StrikeFx.meteorWarn(p)
+		Audio.play("MeteorFall", p.Position + Vector3.new(0, 20, 0))
+	end,
+	MeteorImpact = function(p)
+		StrikeFx.meteorImpact(p, SpellFx.fireGround)
+		Audio.play("MeteorImpact", p.Position)
+		shakeNear(p.Position, 1.2, 160)
+	end,
+	VerdictWarn = function(p)
+		StrikeFx.verdictWarn(p)
+		Audio.play("VerdictWarn", p.Position)
+	end,
+	Verdict = function(p)
+		StrikeFx.verdict(p)
+		Audio.play("Verdict", p.Position)
+		shakeNear(p.Position, 1, 140)
+	end,
+	CrownStart = function(p)
+		if p.Caster and p.Caster.Parent then
+			ZoneFx.crown(p.Caster, p.Duration, Lib.palette(p.School))
+			Audio.play("Crown", Lib.rootPosition(p.Caster))
+		end
+	end,
+	CrownBolt = function(p)
+		local from = if p.Caster then ZoneFx.crownTop(p.Caster) else nil
+		if from then
+			StrikeFx.crownBolt(from, p.To, Lib.palette(p.School))
+			Audio.play("StormBolt", p.To, 0.6)
+		end
+	end,
+	Ritual = function(p)
+		if p.Caster then
+			StrikeFx.ritual(p.Caster, p.Position, p.Radius, Lib.palette(p.School))
+			Audio.play("Ritual", p.Position)
+			task.delay(0.35, shakeNear, p.Position, 0.6, 70)
+		end
+	end,
+	Pact = function(p)
+		if p.Caster then
+			StrikeFx.pact(p.Caster, p.Allies or {}, Lib.palette(p.School))
+			Audio.play("Pact", Lib.rootPosition(p.Caster))
+		end
+	end,
+	LightningStep = function(p)
+		StrikeFx.lightningStep(p.From, p.To, Lib.palette(p.School))
+		Audio.play("LightningStep", p.To)
+		if isMine(p.Caster) then
+			CameraController.kick(5)
+		end
+	end,
+	Portal = function(p)
+		ZoneFx.portal(p)
+		Audio.play("Portal", p.A)
+		Audio.play("Portal", p.B)
+	end,
+	PortalUse = function(p)
+		local palette = Lib.palette("Energy")
+		Effects.flash(p.From + Vector3.new(0, 3, 0), palette, 2, false)
+		Effects.flash(p.To, palette, 2, true)
+		Lib.burst(p.To, "Star", palette, 16)
+		Audio.play("Portal", p.To)
+		if isMine(p.Model) then
+			CameraController.kick(6)
+		end
+	end,
+	PortalClose = function(p)
+		ZoneFx.closePortal(p.Id)
+	end,
+	Prison = function(p)
+		StrikeFx.prison(p.Position, p.Size, p.Duration, Lib.palette(p.School))
+		Audio.play("Prison", p.Position)
+	end,
+	Hook = function(p)
+		if p.Caster then
+			StrikeFx.hook(p.Caster, p.Target, p.To, Lib.palette(p.School))
+			Audio.play("Hook", p.To)
+		end
+	end,
+	BloodChain = function(p)
+		if p.Caster and p.Target then
+			ZoneFx.chain(p.Caster, p.Target, p.Duration, Lib.palette(p.School))
+			Audio.play("Hook", Lib.rootPosition(p.Target))
+		end
+	end,
+	DeathTouch = function(p)
+		if p.Caster and p.Target then
+			StrikeFx.deathTouch(p.Caster, p.Target, Lib.palette(p.School))
+			Audio.play("DeathTouch", Lib.rootPosition(p.Target))
+		end
+	end,
+	Curse = function(p)
+		StrikeFx.curse(p)
+		Audio.play("Curse", p.Position)
+	end,
+	Hemorrhage = function(p)
+		local position = (p.Target and Lib.rootPosition(p.Target)) or p.Position
+		StrikeFx.hemorrhage(position, p.Radius, Lib.palette(p.School))
+		Audio.play("Hemorrhage", position)
+	end,
+	ControlMiss = function(p)
+		StrikeFx.miss(p.Position, Lib.palette(p.School))
+	end,
+	ArcaneBeam = function(p)
+		if p.Caster and p.Caster.Parent then
+			local palette = Lib.palette(p.School)
+			local from = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or p.To)
+			StrikeFx.arcaneBeam(from, p.To, palette, p.Hit)
+			if math.random() < 0.3 then
+				Audio.play("ArcaneBeam", from)
+			end
+			if isMine(p.Caster) then
+				CameraController.shake(0.03)
+			end
+		end
+	end,
+	LanceCharge = function(p)
+		if p.Caster then
+			local gem = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or Vector3.zero)
+			StrikeFx.lanceCharge(gem, p.Duration, Lib.palette(p.School))
+			Audio.play("LanceCharge", gem)
+		end
+	end,
+	FirmamentLance = function(p)
+		StrikeFx.firmamentLance(p.From, p.To, Lib.palette(p.School))
+		Audio.play("LanceFire", p.From)
+		shakeNear(p.From, 0.8, 120)
+		if isMine(p.Caster) then
+			CameraController.kick(6)
+		end
+	end,
+	BloodSlash = function(p)
+		if p.Caster then
+			StrikeFx.bloodSlash(p.Caster, p.Direction, p.Reach, Lib.palette(p.School))
+			Audio.play("BloodSlash", Lib.rootPosition(p.Caster))
+		end
+	end,
+	Summon = function(p)
+		StrikeFx.summon(p.Position, p.Big, Lib.palette(p.School))
+		Audio.play("Summon", p.Position)
+	end,
+	Army = function(p)
+		StrikeFx.army(p.Position, Lib.palette(p.School))
+		Audio.play("Army", p.Position)
+		shakeNear(p.Position, 0.5, 80)
+	end,
+	MinionHit = function(p)
+		Effects.flash(p.Position, Lib.palette(p.School), if p.Big then 1.4 else 0.8, false)
+		Audio.play("MinionHit", p.Position)
+	end,
+	OrbShock = function(p)
+		StrikeFx.orbShock(p.From, p.Points, Lib.palette(p.School))
+		Audio.play("OrbShock", p.From)
+	end,
+	ProjectileFreeze = function(p)
+		Projectiles.freeze(p.Id, p.Duration)
+	end,
+	Rose = function(p)
+		StrikeFx.rose(p.Position, Lib.palette(p.School))
+		Audio.play("Rose", p.Position)
 	end,
 
 	-- Criatura zombando (gargalhada do Ossomante).

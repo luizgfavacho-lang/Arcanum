@@ -25,6 +25,37 @@ local Hitscan = require(SpellsFolder.Hitscan)
 local Projectile = require(SpellsFolder.Projectile)
 local ChainLightning = require(SpellsFolder.ChainLightning)
 local Area = require(SpellsFolder.Area)
+local Zone = require(SpellsFolder.Zone)
+local Barrage = require(SpellsFolder.Barrage)
+local Buff = require(SpellsFolder.Buff)
+local Movement = require(SpellsFolder.Movement)
+local Control = require(SpellsFolder.Control)
+local Beam = require(SpellsFolder.Beam)
+local Melee = require(SpellsFolder.Melee)
+local Summon = require(SpellsFolder.Summon)
+local Hazard = require(SpellsFolder.Hazard)
+
+-- Tipo de magia (SpellCatalog.Kind) -> quem executa. Canalizadas ficam em CHANNELS.
+local CASTERS: { [string]: (Context.Context) -> () } = {
+	Projectile = Projectile.cast,
+	Hitscan = Hitscan.cast,
+	Strike = Area.strike,
+	Nova = Area.nova,
+	Line = Area.line,
+	Zone = Zone.cast,
+	Barrage = Barrage.cast,
+	Buff = Buff.cast,
+	Blink = Movement.blink,
+	Portal = Movement.portal,
+	Control = Control.cast,
+	Lance = Beam.lance,
+	Slash = Melee.slash,
+	Summon = Summon.cast,
+}
+local CHANNELS: { [string]: (Context.Context) -> () } = {
+	ChainLightning = ChainLightning.start,
+	Beam = Beam.start,
+}
 
 type PlayerSpellState = {
 	Cooldowns: { [string]: number }, -- SpellId -> instante (GetServerTimeNow) em que fica pronta
@@ -156,24 +187,22 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 		Stopped = false,
 	}
 	local kind = spell.Def.Kind
-	if kind == "Projectile" then
-		Projectile.cast(ctx)
-	elseif kind == "Hitscan" then
-		Hitscan.cast(ctx)
-	elseif kind == "Strike" then
-		Area.strike(ctx)
-	elseif kind == "Nova" then
-		Area.nova(ctx)
-	elseif kind == "Line" then
-		Area.line(ctx)
-	elseif kind == "ChainLightning" then
+	local channel = CHANNELS[kind]
+	if channel then
 		state.Channel = ctx
 		ctx.OnEnded = function()
 			if state.Channel == ctx then
 				state.Channel = nil
 			end
 		end
-		ChainLightning.start(ctx)
+		channel(ctx)
+		return
+	end
+	local caster = CASTERS[kind]
+	if caster then
+		caster(ctx)
+	else
+		warn("[Spell] tipo sem executor: " .. tostring(kind))
 	end
 end
 
@@ -231,7 +260,10 @@ end
 
 function SpellService.start()
 	Projectile.start()
-	require(SpellsFolder.Hazard).start()
+	Hazard.start()
+	Zone.start()
+	Movement.start()
+	Summon.start()
 end
 
 return SpellService

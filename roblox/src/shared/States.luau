@@ -11,7 +11,11 @@ return table.freeze({
 	Wet = "Wet", -- combo Conducao
 	ManaShield = "ManaShield", -- dano pago com mana
 	Weakened = "Weakened", -- -20% de dano causado
+	Poisoned = "Poisoned", -- DoT (Maldicao)
+	EmberArmor = "EmberArmor", -- imune a fogo; quem bate de perto queima (Armadura de Brasas)
+	Empowered = "Empowered", -- +Value de dano e velocidade (Ritual de Sacrificio, Pacto de Sangue)
+	Linked = "Linked", -- Value do dano recebido vai para Source (Corrente Carmesim)
 
 	-- Quais estados causam dano periodico
-	Dot = table.freeze({ Burning = true, Bleeding = true }),
+	Dot = table.freeze({ Burning = true, Bleeding = true, Poisoned = true }),
 })

@@ -17,9 +17,10 @@ type Active = {
 	Source: Model?,
 	School: string?,
 	NextTick: number,
+	Value: number, -- intensidade do estado (ex.: +30% de dano do Fortalecido)
 }
 
-export type ApplyOptions = { DamagePerSecond: number?, Source: Model?, School: string? }
+export type ApplyOptions = { DamagePerSecond: number?, Source: Model?, School: string?, Value: number? }
 
 -- Injetado pelo DamageService (evita dependencia circular).
 type DamageHandler = (source: Model?, target: Model, amount: number, school: string?, periodic: boolean) -> ()
@@ -39,13 +40,27 @@ local function refreshMovement(model: Model)
 		return
 	end
 	local paralyzed = StatusService.has(model, States.Paralyzed)
-	stats.Humanoid.WalkSpeed = if paralyzed then 0 else stats.BaseWalkSpeed
+	local boost = 1 + (StatusService.value(model, States.Empowered) or 0)
+	stats.Humanoid.WalkSpeed = if paralyzed then 0 else stats.BaseWalkSpeed * boost
 	stats.Humanoid.JumpHeight = if paralyzed then 0 else 7.2
 end
 
 function StatusService.has(model: Model, state: string): boolean
 	local states = active[model]
 	return states ~= nil and states[state] ~= nil
+end
+
+-- Valor e origem de um estado ativo (nil se nao estiver ativo).
+function StatusService.value(model: Model, state: string): number?
+	local states = active[model]
+	local info = states and states[state]
+	return if info then info.Value else nil
+end
+
+function StatusService.source(model: Model, state: string): Model?
+	local states = active[model]
+	local info = states and states[state]
+	return if info then info.Source else nil
 end
 
 function StatusService.apply(model: Model, state: string, duration: number, options: ApplyOptions?)
@@ -67,11 +82,12 @@ function StatusService.apply(model: Model, state: string, duration: number, opti
 		DamagePerSecond = options and options.DamagePerSecond or 0,
 		Source = options and options.Source,
 		School = options and options.School,
+		Value = options and options.Value or 0,
 		-- Renovar nao reinicia o relogio do DoT (evita "spam" de dano por reaplicacao).
 		NextTick = if existing then existing.NextTick else now + Settings.DotTickInterval,
 	}
 	model:SetAttribute("State_" .. state, true)
-	if state == States.Paralyzed then
+	if state == States.Paralyzed or state == States.Empowered then
 		refreshMovement(model)
 	end
 end
@@ -83,7 +99,7 @@ function StatusService.remove(model: Model, state: string)
 	end
 	states[state] = nil
 	model:SetAttribute("State_" .. state, nil)
-	if state == States.Paralyzed then
+	if state == States.Paralyzed or state == States.Empowered then
 		refreshMovement(model)
 	end
 end

@@ -24,6 +24,8 @@ local EnemyBrain = require(Combat.EnemyBrain)
 local EnemyCatalog = require(Combat.EnemyCatalog)
 local CreatureBuilder = require(Combat.CreatureBuilder)
 local Targeting = require(Combat.Targeting)
+local RigAnimator = require(Combat.RigAnimator)
+local CollisionGroups = require(Combat.CollisionGroups)
 
 -- Nomes exibidos (originais; ver Docs/01-GDD.md §5). TODO: mover para String Table.
 local DISPLAY_NAMES: { [string]: string } = {
@@ -38,16 +40,6 @@ local DISPLAY_NAMES: { [string]: string } = {
 	CrystalGolem = "Golem de Cristal",
 }
 
--- Animacoes padrao do R15 (catalogo do Roblox, liberadas para qualquer jogo).
-local ANIMATIONS: { [string]: string } = {
-	Idle = "rbxassetid://507766666",
-	Walk = "rbxassetid://507777826",
-	Run = "rbxassetid://507767714",
-	Point = "rbxassetid://507770453", -- avistou o alvo
-	Cheer = "rbxassetid://507770677", -- bracos para cima (preparo de pancada / rugido)
-	Laugh = "rbxassetid://507770818", -- zomba ao acertar ou vencer
-}
-local RUN_ABOVE = 11 -- studs/s: acima disso corre em vez de andar
 local AI_TICK = 0.1
 
 local EnemyService = {}
@@ -89,71 +81,6 @@ local function buildModel(rowName: string, row: any, elite: boolean): Model
 		highlight.Parent = m
 	end
 	return m
-end
-
-local function loadAnimation(animator: Animator, id: string): AnimationTrack?
-	local animation = Instance.new("Animation")
-	animation.AnimationId = id
-	local ok, track = pcall(function()
-		return animator:LoadAnimation(animation)
-	end)
-	return if ok then track else nil
-end
-
--- Idle sempre; andar/correr misturados pela velocidade (nao desliza parado no lugar).
--- Cada criatura toca num ritmo um pouco diferente (ninguem respira em sincronia).
-local function setupAnimations(humanoid: Humanoid, tempo: number): { [string]: AnimationTrack }
-	local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator")
-	animator.Parent = humanoid
-	local tracks: { [string]: AnimationTrack } = {}
-	for name, id in ANIMATIONS do
-		local track = loadAnimation(animator :: Animator, id)
-		if track then
-			tracks[name] = track
-		end
-	end
-	local idle, walk, run = tracks.Idle, tracks.Walk, tracks.Run
-	if idle then
-		idle.Looped = true
-		idle.Priority = Enum.AnimationPriority.Idle
-		idle:Play(0.2, 1, tempo * (0.85 + math.random() * 0.3))
-	end
-	for _, name in { "Point", "Cheer", "Laugh" } do
-		local track = tracks[name]
-		if track then
-			track.Looped = false
-			track.Priority = Enum.AnimationPriority.Action
-		end
-	end
-	if walk then
-		walk.Looped = true
-		walk.Priority = Enum.AnimationPriority.Movement
-	end
-	if run then
-		run.Looped = true
-		run.Priority = Enum.AnimationPriority.Movement
-	end
-	humanoid.Running:Connect(function(speed: number)
-		local running = speed > RUN_ABOVE and run ~= nil
-		local active = if running then run else walk
-		local other = if running then walk else run
-		if other and other.IsPlaying then
-			other:Stop(0.25)
-		end
-		if not active then
-			return
-		end
-		if speed > 0.5 then
-			if not active.IsPlaying then
-				active:Play(0.2)
-			end
-			local reference = if running then 20 else 12
-			active:AdjustSpeed(math.clamp(speed / reference, 0.5, 1.6) * tempo)
-		elseif active.IsPlaying then
-			active:Stop(0.25)
-		end
-	end)
-	return tracks
 end
 
 -- Bulbo morto antes de explodir: estoura de qualquer jeito e fere TODOS em volta (jogadores e
@@ -203,6 +130,7 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): 
 	local elite = row.bMagical and not row.bBoss and math.random() < Settings.EliteChance
 	local model = buildModel(rowName, row, elite)
 	model:PivotTo(cframe)
+	CollisionGroups.assign(model, CollisionGroups.MONSTERS) -- a Muralha de Chamas bloqueia criaturas
 	model.Parent = enemiesFolder
 
 	local root = model:FindFirstChild("HumanoidRootPart") :: BasePart?
@@ -225,7 +153,7 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): 
 	local humanoid = model:FindFirstChildOfClass("Humanoid") :: Humanoid
 	local tracks = if CreatureBuilder.isBlob(rowName)
 		then {}
-		else setupAnimations(humanoid, if row.bBoss then 0.75 else 1)
+		else RigAnimator.setup(humanoid, if row.bBoss then 0.75 else 1)
 
 	-- Orientacao suave (AlignOrientation); a IA define para onde olhar.
 	local align: AlignOrientation? = nil
@@ -262,7 +190,13 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?): 
 		vfx:FireAllClients("Death", { Model = model, School = row.School, Boss = row.bBoss })
 
 		local killer = DamageService.getLastAttacker(model)
-		local player = if killer then Players:GetPlayerFromCharacter(killer) else nil
+		-- Abate de servo conta para o dono (atributo OwnerUserId).
+		local ownerId = if killer then killer:GetAttribute("OwnerUserId") else nil
+		local player = if killer
+			then Players:GetPlayerFromCharacter(killer) or (if typeof(ownerId) == "number"
+				then Players:GetPlayerByUserId(ownerId)
+				else nil)
+			else nil
 		if player then
 			ProgressionService.addXP(player, row.XPReward * (if elite then 2 else 1))
 		end

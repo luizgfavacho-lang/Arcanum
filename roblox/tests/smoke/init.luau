@@ -238,7 +238,9 @@ root.Name = "HumanoidRootPart"
 root.CFrame = roblox.CFrame.new(0, 3, 0)
 root.Size = V.new(2, 2, 1)
 root.Parent = fakeCaster
-for _, spellId in { "Fireball", "ArcaneMissile", "MagmaLance", "WanderingSouls", "Outra" } do
+for _, spellId in
+	{ "Fireball", "ArcaneMissile", "MagmaLance", "WanderingSouls", "RoseOfLaments", "BallLightning", "Outra" }
+do
 	Projectiles.spawn({
 		Id = spellId,
 		SpellId = spellId,
@@ -269,6 +271,71 @@ SpellFx.flamePillars(V.new(0, 0, 0), 18, Lib.palette("Fire"))
 SpellFx.arcaneDome(V.new(0, 3, 0), V.new(0, 0, 0), 21, Lib.palette("Energy"), { V.new(5, 3, 0) })
 SpellFx.bloodSpikes(V.new(0, 0, 0), V.new(0, 0, -30), 10, Lib.palette("Blood"))
 print("Magias (detalhes): ok")
+
+-- Grimorio completo: zonas, efeitos instantaneos e auras dos estados novos.
+local ZoneFx = load("client/Vfx/ZoneFx.luau", vfxScript)
+local StrikeFx = load("client/Vfx/StrikeFx.luau", vfxScript)
+for _, mode in { "Static", "Wall", "Vortex", "Singularity", "Rain", "Hourglass" } do
+	local zone = {
+		Id = mode,
+		Mode = mode,
+		Position = V.new(0, 0, -20),
+		Radius = 14,
+		Duration = 2,
+		School = "Fire",
+		Caster = fakeCaster,
+		From = V.new(-10, 0, -20),
+		To = V.new(10, 0, -20),
+	}
+	ZoneFx.open(zone)
+	ZoneFx.close(zone)
+end
+ZoneFx.portal({
+	Id = "p",
+	A = V.new(0, 0, 0),
+	B = V.new(0, 0, -40),
+	Facing = V.new(0, 0, -1),
+	Duration = 5,
+	School = "Energy",
+})
+ZoneFx.closePortal("p")
+ZoneFx.chain(fakeCaster, fakeCaster, 2, Lib.palette("Blood"))
+ZoneFx.crown(fakeCaster, 1, Lib.palette("Electricity"))
+assert(ZoneFx.crownTop(fakeCaster), "coroa sem topo")
+local P = Lib.palette
+for _, mode in { "Storm", "Stars" } do
+	StrikeFx.barrageStart({ Mode = mode, Position = V.new(0, 0, -30), Radius = 28, Duration = 3, School = "Energy" })
+	StrikeFx.barrageHit({ Mode = mode, Position = V.new(3, 0, -30), Radius = 7, School = "Energy" })
+end
+StrikeFx.meteorWarn({ Position = V.new(0, 0, -30), Radius = 21, Duration = 1.2, School = "Fire" })
+StrikeFx.meteorImpact({ Position = V.new(0, 0, -30), Radius = 21, School = "Fire" }, SpellFx.fireGround)
+StrikeFx.verdictWarn({ Position = V.new(0, 0, -30), Radius = 10, Duration = 1.7, School = "Fire" })
+StrikeFx.verdict({ Position = V.new(0, 0, -30), Radius = 10, School = "Fire" })
+StrikeFx.arcaneBeam(V.new(0, 4, 0), V.new(0, 4, -30), P("Energy"), true)
+StrikeFx.lanceCharge(V.new(0, 4, 0), 1.2, P("Energy"))
+StrikeFx.firmamentLance(V.new(0, 4, 0), V.new(0, 4, -150), P("Energy"))
+StrikeFx.bloodSlash(fakeCaster, V.new(0, 0, -1), 15, P("Blood"))
+StrikeFx.summon(V.new(0, 0, 0), true, P("Necromancy"))
+StrikeFx.army(V.new(0, 0, 0), P("Necromancy"))
+StrikeFx.deathTouch(fakeCaster, fakeCaster, P("Necromancy"))
+StrikeFx.curse({ Position = V.new(0, 0, 0), Radius = 14, School = "Necromancy" })
+StrikeFx.rose(V.new(0, 0, 0), P("Necromancy"))
+StrikeFx.prison(V.new(0, 0, -10), 7, 5, P("Energy"))
+StrikeFx.hook(fakeCaster, fakeCaster, V.new(0, 3, -20), P("Blood"))
+StrikeFx.hemorrhage(V.new(0, 3, -10), 18, P("Blood"))
+StrikeFx.miss(V.new(0, 3, -10), P("Blood"))
+StrikeFx.ritual(fakeCaster, V.new(0, 3, 0), 21, P("Blood"))
+StrikeFx.pact(fakeCaster, { fakeCaster }, P("Blood"))
+StrikeFx.lightningStep(V.new(0, 3, 0), V.new(0, 3, -28), P("Electricity"))
+StrikeFx.orbShock(V.new(0, 3, 0), { V.new(5, 3, 0), V.new(-5, 3, 0) }, P("Electricity"))
+StrikeFx.crownBolt(V.new(0, 7, 0), V.new(10, 3, 0), P("Electricity"))
+Projectiles.freeze("Fireball", 2)
+local Auras = load("client/Vfx/Auras.luau", vfxScript)
+local auraRoot = roblox.Instance.new("Part")
+auraRoot.Name = "HumanoidRootPart"
+auraRoot.Parent = workspaceFolder
+assert(Auras.debugBuildAll(auraRoot) >= 10, "faltam auras de estado")
+print("Grimorio completo (visual): ok")
 local head = roblox.Instance.new("Part")
 head.Name = "Head"
 head.CFrame = roblox.CFrame.new(0, 5, 0)
@@ -456,7 +523,7 @@ local function fakeR15()
 	return model
 end
 
-for _, rowName in { "SkeletonMage", "CrystalGolem" } do
+for _, rowName in { "SkeletonMage", "CrystalGolem", "SkeletonServant", "BruteServant" } do
 	local description = roblox.Instance.new("HumanoidDescription")
 	CreatureBuilder.describe(rowName, description, Lib.palette("Fire"))
 	local rig = fakeR15()
@@ -536,9 +603,9 @@ assert(Grimoire.isOpen() and modules.CameraController.MouseFree, "Grimorio dever
 Grimoire.debugSelect("MagmaLance")
 Grimoire.equip(2)
 assert(#equipped == 1 and equipped[1][1] == "MagmaLance" and equipped[1][2] == 2, "Grimorio nao equipou")
-Grimoire.debugSelect("Meteor") -- ainda nao implementada: nao equipa
+Grimoire.debugSelect("Meteor") -- as 42 estao implementadas: todas equipam
 Grimoire.equip(3)
-assert(#equipped == 1, "magia nao implementada nao pode ser equipada")
+assert(#equipped == 2 and equipped[2][1] == "Meteor", "Meteoro deveria equipar")
 Grimoire.close()
 local book = playerGui:FindFirstChild("ArcanumGrimoire")
 assert(book and #book:GetDescendants() > 80, "Grimorio incompleto")

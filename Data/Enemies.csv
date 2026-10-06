@@ -20,3 +20,5 @@ StormArchmage,500,6,11,4.0,900,Electricity,False,False,True
 InfernalSmith,650,14,12,2.8,1100,Fire,False,False,True
 BloodMatriarch,600,6,12,4.5,1300,Blood,False,False,True
 ArcaneAvatar,1200,10,14,3.5,3000,Energy,False,False,True
+SkeletonServant,12,2,2,4.5,0,Necromancy,False,True,False
+BruteServant,40,6,5,3.5,0,Necromancy,False,True,False

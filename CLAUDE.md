@@ -18,11 +18,13 @@ src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Dam
              Config/, SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
              SoundCatalog (ids da biblioteca oficial do Roblox/ProSoundEffects), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
-             Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard),
-             Combat/ (Targeting, Modifiers, StaffBuilder)
+             Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard, Zone, Barrage,
+             Buff, Movement, Control, Beam, Melee, Summon),
+             Combat/ (Targeting, Modifiers, StaffBuilder, CreatureBuilder, EnemyCatalog, EnemyBrain,
+             MinionBrain, RigAnimator, CollisionGroups)
 src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx, Grimoire) e
              Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
-             Creatures, DodgeAnim, MotorOverlay, SpellFx)
+             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -57,9 +59,13 @@ tests/       Lune (*.spec.luau + TestKit)
   com antecipação/mola, câmera de ombro esquerdo com tremor e kick de FOV, mira dinâmica com marcador de
   acerto, HUD completo (barras com trilha, slots com custo/recarga/falha, XP, nível), barras de inimigo e
   de chefe. Sem assistência de mira. Sons em todos os eventos (`SoundCatalog`, cortados por `Max`).
-- **Grimório (G):** 42 magias por escola (as não implementadas como "Em breve"), detalhes do CSV e equipar
-  nos slots (botões ou 1–5). 11 magias jogáveis: as 5 iniciais + Raio Invocado, Lança de Magma, Nova
-  Flamejante, Pulso Arcano, Almas Errantes, Espinhos Carmesins (tipos Strike/Nova/Line em `Spells/Area`).
+- **Grimório (G): as 42 magias jogáveis**, seguindo as artes conceituais. Tipos (`SpellCatalog.Kind`) e quem
+  executa (`SpellService` CASTERS/CHANNELS): Projectile, Hitscan, ChainLightning, Beam (canalizadas),
+  Strike/Nova/Line (`Area`), Zone (Static/Wall/Vortex/Singularity/Rain/Hourglass), Barrage
+  (Storm/Stars/Meteor/Verdict/Crown), Buff (ManaShield/EmberArmor/Sacrifice/Pact), Blink/Portal
+  (`Movement`), Control (Prison/Hook/Chain/DeathTouch/Curse/Hemorrhage), Lance, Slash (`Melee`), Summon
+  (servos com IA própria em `MinionBrain`, stats em `Enemies.csv`). Estados novos: Poisoned, EmberArmor,
+  Empowered, Linked (com Value em `StatusService`). Muralha de Chamas bloqueia criaturas (`CollisionGroups`).
   Lança de Magma abre poça de lava irregular onde cai (`Spells/Hazard`, números no CSV). Cada magia tem detalhes
   próprios em `client/Vfx/SpellFx` (floreio na gema, resíduos, anéis, cúpula, nuvem, espinhos...).
 - **Combate** (RT-02+): criaturas com corpo proprio (`Combat/CreatureBuilder`: esqueleto de capuz, gosmas
@@ -69,5 +75,5 @@ tests/       Lune (*.spec.luau + TestKit)
   equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift (passo arcano animado: `Vfx/DodgeAnim`) com invulnerabilidade
   e esquiva perfeita (+mana). Regras em `Math/CombatMath` (testado).
 - **Modo de teste ligado:** `CombatSettings.DevInfiniteResources` (mana e vida infinitas) e `DevNoCooldowns` (magias sem recarga) = true. Desligar antes de publicar.
-- `lune run tests` = 172 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório e corpos das criaturas. Polimento ainda não visto no Studio.
+- `lune run tests` = 323 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório e corpos das criaturas. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.
