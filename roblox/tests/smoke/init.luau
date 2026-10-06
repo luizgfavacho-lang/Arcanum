@@ -174,7 +174,8 @@ services.ReplicatedStorage = { Shared = Shared }
 modules.Schools = load("shared/Schools.luau", {})
 modules.StaffPose = load("shared/StaffPose.luau", {})
 
-local vfxScript = { Parent = { Lib = "Lib", Effects = "Effects", Lightning = "Lightning" } }
+local vfxScript =
+	{ Parent = { Lib = "Lib", Effects = "Effects", Lightning = "Lightning", MotorOverlay = "MotorOverlay" } }
 modules.Lib = load("client/Vfx/Lib.luau", vfxScript)
 modules.Effects = load("client/Vfx/Effects.luau", vfxScript)
 modules.Lightning = load("client/Vfx/Lightning.luau", vfxScript)
@@ -321,6 +322,7 @@ print(string.format("HUD: ok (%d elementos)", guiCount))
 -- Criaturas: monta cada corpo (bolhas inteiras; humanoides sobre um R15 falso com as partes e
 -- tamanhos padrao), confere solda de todas as pecas e anima um quadro de cada (Vfx/Creatures).
 local CreatureBuilder = load("server/Combat/CreatureBuilder.luau", {})
+modules.MotorOverlay = load("client/Vfx/MotorOverlay.luau", {})
 local Creatures = load("client/Vfx/Creatures.luau", vfxScript)
 services.Players.GetPlayerByUserId = function()
 	return nil
@@ -416,6 +418,25 @@ for _, rowName in { "SkeletonMage", "CrystalGolem" } do
 	creatureCount += #rig:GetDescendants()
 end
 print(string.format("Criaturas: ok (%d pecas)", creatureCount))
+
+-- Esquiva: animacao procedural num R15 com quadril, joelho e ombro + linhas de velocidade.
+local DodgeAnim = load("client/Vfx/DodgeAnim.luau", vfxScript)
+local dodger = fakeR15()
+for motorName, partName in { LeftHip = "LeftUpperLeg", LeftKnee = "LeftLowerLeg", LeftShoulder = "LeftUpperArm" } do
+	local motor = roblox.Instance.new("Motor6D")
+	motor.Name = motorName
+	motor.Part1 = dodger[partName]
+	motor.Transform = roblox.CFrame.new()
+	motor.Parent = dodger[partName]
+end
+dodger.Parent = workspaceFolder
+DodgeAnim.play(dodger, V.new(1, 0, -1))
+DodgeAnim.debugStep()
+DodgeAnim.debugStep()
+assert(dodger.LowerTorso.Root.Transform.Position.Y < 0, "esquiva deveria abaixar o quadril")
+Effects.speedLines(V.new(0, 3, 0), V.new(1, 0, -1), roblox.Color3.new(0.6, 0.85, 1))
+Effects.afterimage(dodger, roblox.Color3.new(0.6, 0.85, 1), 0.5)
+print("Esquiva: ok")
 
 -- Fisica da esquiva e do empurrao: mesmas propriedades usadas no jogo.
 local push = roblox.Instance.new("LinearVelocity")

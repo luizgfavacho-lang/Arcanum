@@ -22,7 +22,7 @@ src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, S
              Combat/ (Targeting, Modifiers, StaffBuilder)
 src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx) e
              Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
-             Creatures)
+             Creatures, DodgeAnim, MotorOverlay)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -61,7 +61,7 @@ tests/       Lune (*.spec.luau + TestKit)
   gelatinosas, bulbo flutuante, golem de cristal) animadas no cliente (`Vfx/Creatures`). IA em
   `EnemyBrain`: estados Idle/Alert/Combat/Search/Return/Flee, personalidade por individuo, bando, flanco,
   desvio de magias; ataques telegrafados (bote, rajada, pancada, linha de cristais, explosao) que o
-  equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift com invulnerabilidade
+  equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift (passo arcano animado: `Vfx/DodgeAnim`) com invulnerabilidade
   e esquiva perfeita (+mana). Regras em `Math/CombatMath` (testado).
 - `lune run tests` = 151 ok; `tests/smoke` valida efeitos, cajado, mundo, HUD e corpos das criaturas. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-01, RT-03..RT-05 em `Docs/07-Roblox.md` §5.

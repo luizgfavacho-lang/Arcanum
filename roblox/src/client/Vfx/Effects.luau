@@ -320,7 +320,7 @@ function Effects.crystalSpikes(from: Vector3, to: Vector3, width: number, palett
 end
 
 -- Imagem residual (esquiva): copia translucida do corpo que fica para tras e some.
-function Effects.afterimage(model: Model, color: Color3)
+function Effects.afterimage(model: Model, color: Color3, startTransparency: number?)
 	for _, part in model:GetChildren() do
 		if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Transparency < 1 then
 			local ok, ghost = pcall(function()
@@ -335,12 +335,34 @@ function Effects.afterimage(model: Model, color: Color3)
 				ghost.CastShadow = false
 				ghost.Material = Enum.Material.ForceField
 				ghost.Color = color
-				ghost.Transparency = 0.15
+				ghost.Transparency = startTransparency or 0.15
 				ghost.CFrame = part.CFrame
 				ghost.Parent = Lib.folder()
 				Lib.fade(ghost, 0.4, { Transparency = 1 })
 			end
 		end
+	end
+end
+
+-- Linhas de velocidade atras de quem se move rapido (esquiva).
+function Effects.speedLines(position: Vector3, direction: Vector3, color: Color3)
+	local flat = Vector3.new(direction.X, 0, direction.Z)
+	if flat.Magnitude < 0.01 then
+		return
+	end
+	flat = flat.Unit
+	local side = flat:Cross(Vector3.yAxis)
+	for _ = 1, 7 do
+		local offset = side * (math.random() - 0.5) * 3 + Vector3.new(0, (math.random() - 0.4) * 3.5, 0)
+		local start = position + offset - flat * (1 + math.random() * 1.5)
+		local length = 2.5 + math.random() * 2.5
+		local line =
+			Lib.part(Vector3.new(0.07, 0.07, length), color, CFrame.lookAt(start, start + flat), { Transparency = 0.2 })
+		Lib.fade(line, 0.25 + math.random() * 0.1, {
+			CFrame = CFrame.lookAt(start - flat * 4, start - flat * 3),
+			Size = Vector3.new(0.02, 0.02, length * 0.4),
+			Transparency = 1,
+		})
 	end
 end
 

@@ -21,6 +21,7 @@ local Staff = require(Vfx.Staff)
 local Auras = require(Vfx.Auras)
 local Audio = require(Vfx.Audio)
 local Creatures = require(Vfx.Creatures)
+local DodgeAnim = require(Vfx.DodgeAnim)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -349,7 +350,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 
 	Dodge = function(p)
 		if p.Model and p.Model.Parent and not isMine(p.Model) then
-			Effects.afterimage(p.Model, DODGE)
+			dodgeEffect(p.Model, p.Direction)
 		end
 	end,
 
@@ -450,28 +451,40 @@ local function levelUpEffect()
 	CameraController.kick(4)
 end
 
+-- Passo arcano: corpo agacha e inclina (Vfx/DodgeAnim), tres imagens residuais em sequencia,
+-- linhas de velocidade, anel no chao e poeira.
+local function dodgeEffect(character: Model, direction: Vector3?)
+	local root = Lib.rootPosition(character)
+	local dir = direction
+	if not dir then
+		local rootPart = character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		dir = if rootPart then rootPart.AssemblyLinearVelocity else Vector3.zero
+	end
+	DodgeAnim.play(character, dir :: Vector3)
+	for i = 0, 2 do
+		task.delay(i * 0.05, Effects.afterimage, character, DODGE, 0.15 + i * 0.2)
+	end
+	if root then
+		local palette = { Core = Color3.new(1, 1, 1), Halo = DODGE, Accent = DODGE, Shape = "" }
+		local ground = Lib.groundBelow(root, character)
+		Effects.speedLines(root, dir :: Vector3, DODGE)
+		Effects.shockwave(ground + Vector3.new(0, 0.1, 0), palette, 3.5)
+		Lib.burst(ground, "Smoke", Lib.palette("Energy"), 6, { Speed = NumberRange.new(2, 6) })
+		Lib.burst(root, "Wisp", palette, 8)
+	end
+	Audio.play("Dodge", root)
+end
+
 -- Esquiva do proprio jogador: desenhada na hora (sem esperar o servidor).
 function VfxController.dodgeLocal(character: Model, direction: Vector3)
-	Effects.afterimage(character, DODGE)
-	local root = Lib.rootPosition(character)
-	if root then
-		Lib.burst(
-			root - Vector3.new(0, 2.6, 0),
-			"Smoke",
-			Lib.palette("Energy"),
-			5,
-			{ Speed = NumberRange.new(2, 5), EmissionDirection = Enum.NormalId.Top }
-		)
-		Lib.burst(root, "Wisp", { Core = Color3.new(1, 1, 1), Halo = DODGE, Accent = DODGE, Shape = "" }, 6)
-	end
-	CameraController.kick(2)
-	Audio.play("Dodge", root)
-	local _ = direction
+	dodgeEffect(character, direction)
+	CameraController.kick(3)
 end
 
 function VfxController.start()
 	Lib.folder()
 	Creatures.start()
+	DodgeAnim.start() -- antes do Staff: o IK do braco ja ve o corpo inclinado
 	Projectiles.start()
 	Numbers.start()
 	Staff.start()

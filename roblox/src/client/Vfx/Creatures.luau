@@ -11,6 +11,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local MotorOverlay = require(script.Parent.MotorOverlay)
+
 local Creatures = {}
 
 type Entry = {
@@ -35,21 +37,8 @@ type Entry = {
 	WindupStart: number,
 }
 
-type Overlay = { Written: CFrame, Base: CFrame }
-
 local entries: { [Model]: Entry } = {}
-local overlays: { [Motor6D]: Overlay } = setmetatable({}, { __mode = "k" }) :: any
-
--- Soma uma rotacao/deslocamento ao Transform animado sem acumular entre quadros: se o Animator
--- nao reescreveu o motor desde o ultimo quadro, parte da mesma base de antes.
-local function overlay(motor: Motor6D, extra: CFrame)
-	local previous = overlays[motor]
-	local current = motor.Transform
-	local base = if previous and current == previous.Written then previous.Base else current
-	local written = extra * base
-	motor.Transform = written
-	overlays[motor] = { Written = written, Base = base }
-end
+local overlay = MotorOverlay.apply
 
 local function find(model: Model, name: string): BasePart?
 	local p = model:FindFirstChild(name)
