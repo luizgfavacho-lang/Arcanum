@@ -96,7 +96,9 @@ function SpellFx.lavaTrail(points: { Vector3 }, delays: { number }, width: numbe
 		task.delay(delays[i] or 0, function()
 			local parts: { BasePart } = {}
 			local lava: { BasePart } = {}
-			local ground = point + UP * 0.05
+			-- Sem grama sob a lava: o terreno vira lava rachada enquanto ela dura.
+			Lib.swapGround(point, width * 0.75, Enum.Material.CrackedLava, duration + 0.6)
+			local ground = point + UP * 0.12
 			table.insert(parts, flatDisc(ground, width * 1.4, CRUST, { Material = Enum.Material.Basalt }))
 			local pool = flatDisc(ground + UP * 0.03, width, LAVA_HOT)
 			table.insert(parts, pool)

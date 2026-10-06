@@ -265,6 +265,40 @@ function Lib.muzzleOf(model: Instance?, fallback: Vector3): Vector3
 	return fallback
 end
 
+-- A grama alta do Terrain cobre qualquer efeito rente ao chao. Para efeitos de chao que precisam
+-- aparecer (lava), troca a grama por outro material SO NESTE CLIENTE enquanto o efeito dura e depois
+-- devolve. Conta por bloco de voxel: efeitos sobrepostos nao devolvem a grama antes da hora.
+local swapped: { [string]: number } = {}
+
+function Lib.swapGround(position: Vector3, radius: number, material: Enum.Material, duration: number)
+	local ok, region = pcall(function()
+		return Region3.new(position - Vector3.new(radius, 4, radius), position + Vector3.new(radius, 2, radius))
+			:ExpandToGrid(4)
+	end)
+	if not ok then
+		return
+	end
+	local key = tostring(region.CFrame.Position) .. "|" .. tostring(region.Size) .. "|" .. material.Name
+	local count = swapped[key] or 0
+	if count == 0 then
+		pcall(function()
+			Workspace.Terrain:ReplaceMaterial(region, 4, Enum.Material.Grass, material)
+		end)
+	end
+	swapped[key] = count + 1
+	task.delay(duration, function()
+		local left = (swapped[key] or 1) - 1
+		if left <= 0 then
+			swapped[key] = nil
+			pcall(function()
+				Workspace.Terrain:ReplaceMaterial(region, 4, material, Enum.Material.Grass)
+			end)
+		else
+			swapped[key] = left
+		end
+	end)
+end
+
 -- Chao logo abaixo de um ponto (ignora o proprio modelo e os efeitos). Sem chao: 2,8 studs abaixo.
 function Lib.groundBelow(position: Vector3, ignore: Instance?): Vector3
 	local params = RaycastParams.new()
