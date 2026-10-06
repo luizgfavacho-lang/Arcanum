@@ -281,7 +281,7 @@ local function endBeam(state: BeamState)
 	Debris:AddItem(state.Seal.Part, 0.2)
 	Debris:AddItem(state.A0, 0.2)
 	Debris:AddItem(state.EndAnchor, 1)
-	Lib.burst(state.To, "Star", state.Palette, 6, { Speed = NumberRange.new(3, 7) })
+	Lib.burst(state.To, "Spark", state.Palette, 6, { Color = ColorSequence.new(state.Palette.Halo), Brightness = 1.4 })
 end
 
 local function stepBeam(state: BeamState, dt: number)
@@ -307,11 +307,11 @@ local function stepBeam(state: BeamState, dt: number)
 	local to = state.To
 	local t = now - state.Started
 	local open = math.min(t / 0.08, 1) -- abre rapido no primeiro quadro
-	local flicker = 0.85 + 0.15 * math.sin(t * 47) + 0.08 * (math.random() - 0.5)
+	local flicker = 0.95 + 0.05 * math.sin(t * 47) -- laser: firme, so um zumbido leve
 
-	placeBeam(state.Core, from, to, 0.32 * flicker * open)
-	placeBeam(state.Outer, from, to, 0.95 * (0.9 + 0.1 * math.sin(t * 23)) * open)
-	placeBeam(state.Shell, from, to, 1.7 * (0.85 + 0.15 * math.sin(t * 9)) * open)
+	placeBeam(state.Core, from, to, 0.16 * flicker * open)
+	placeBeam(state.Outer, from, to, 0.42 * (0.95 + 0.05 * math.sin(t * 23)) * open)
+	placeBeam(state.Shell, from, to, 0.9 * (0.9 + 0.1 * math.sin(t * 9)) * open)
 	state.A0.WorldPosition = from
 	state.A1.WorldPosition = to
 	state.EndAnchor.WorldPosition = to
@@ -323,19 +323,19 @@ local function stepBeam(state: BeamState, dt: number)
 	for i, orb in state.Spiral do
 		local phase = (t * 1.6 + i / #state.Spiral) % 1
 		local angle = t * 14 + i * math.pi * 2 / #state.Spiral
-		local radius = 0.55 * (1 - phase * 0.4)
+		local radius = 0.3 * (1 - phase * 0.4)
 		orb.CFrame = frame * CFrame.new(math.cos(angle) * radius, math.sin(angle) * radius, -length * phase)
-		orb.Transparency = 0.1 + phase * 0.6
+		orb.Transparency = 0.3 + phase * 0.6
 	end
 
 	state.MuzzleGlow.CFrame = CFrame.new(from)
-	state.MuzzleGlow.Size = Vector3.one * (0.9 + 0.25 * math.sin(t * 31)) * open
-	local endSize = if state.Hit then 1.8 else 1.1
+	state.MuzzleGlow.Size = Vector3.one * (0.55 + 0.08 * math.sin(t * 31)) * open
+	local endSize = if state.Hit then 0.9 else 0.55
 	state.EndGlow.CFrame = CFrame.new(to)
 	state.EndGlow.Size = Vector3.one * endSize * (0.85 + 0.2 * math.sin(t * 27))
 	state.Sparks.Enabled = state.Hit
-	state.Stars.Rate = if state.Hit then 40 else 12
-	state.Light.Brightness = (if state.Hit then 4 else 2.5) * flicker
+	state.Stars.Rate = if state.Hit then 14 else 4
+	state.Light.Brightness = (if state.Hit then 2 else 1.2) * flicker
 
 	-- Selo de runas na gema, de frente para quem conjura, girando.
 	state.Seal.Part.CFrame = frame * CFrame.new(0, 0, -0.4) * CFrame.Angles(math.rad(90), t * 4, 0)
@@ -343,9 +343,13 @@ end
 
 local function newBeam(caster: Model, to: Vector3, palette: Lib.Palette): BeamState
 	local from = Lib.muzzleOf(caster, to)
-	local core = beamPart(from, to, 0.32, Color3.new(1, 1, 1), { Transparency = 0 })
-	local outer = beamPart(from, to, 0.95, palette.Halo, { Transparency = 0.45 })
-	local shell = beamPart(from, to, 1.7, palette.Accent, { Transparency = 0.82 })
+	-- Laser: nucleo lilas fino e firme, corpo roxo e brilho externo roxo escuro. Nada de branco
+	-- puro (o bloom transformaria o feixe numa mancha branca).
+	local coreColor = palette.Halo:Lerp(Color3.new(1, 1, 1), 0.45)
+	local glowColor = palette.Halo:Lerp(Color3.new(0, 0, 0), 0.35)
+	local core = beamPart(from, to, 0.16, coreColor, { Transparency = 0 })
+	local outer = beamPart(from, to, 0.42, palette.Halo, { Transparency = 0.35 })
+	local shell = beamPart(from, to, 0.9, glowColor, { Transparency = 0.78 })
 	-- Energia correndo por dentro (textura animada ao longo do feixe).
 	local a0 = Lib.anchor(from)
 	local a1 = Instance.new("Attachment")
@@ -354,35 +358,51 @@ local function newBeam(caster: Model, to: Vector3, palette: Lib.Palette): BeamSt
 	local flow = Lib.beam(a0, a1, {
 		Texture = Lib.Textures.Sparkle,
 		TextureMode = Enum.TextureMode.Wrap,
-		TextureLength = 2.5,
-		TextureSpeed = 4,
-		Width0 = 1.3,
-		Width1 = 1.1,
-		Brightness = 4,
-		Color = ColorSequence.new(palette.Core, palette.Halo),
-		Transparency = NumberSequence.new(0.2),
+		TextureLength = 3,
+		TextureSpeed = 6,
+		Width0 = 0.55,
+		Width1 = 0.45,
+		Brightness = 1.2,
+		Color = ColorSequence.new(palette.Halo),
+		Transparency = NumberSequence.new(0.55),
 	})
 	local spiral = {}
-	for _ = 1, 4 do
-		table.insert(
-			spiral,
-			Lib.part(Vector3.one * 0.28, palette.Accent, CFrame.new(from), { Shape = Enum.PartType.Ball })
-		)
+	for _ = 1, 2 do
+		table.insert(spiral, Lib.part(Vector3.one * 0.14, coreColor, CFrame.new(from), { Shape = Enum.PartType.Ball }))
 	end
 	local muzzleGlow =
-		Lib.part(Vector3.one, palette.Core, CFrame.new(from), { Shape = Enum.PartType.Ball, Transparency = 0.2 })
+		Lib.part(Vector3.one, palette.Halo, CFrame.new(from), { Shape = Enum.PartType.Ball, Transparency = 0.35 })
 	local endGlow =
-		Lib.part(Vector3.one, palette.Halo, CFrame.new(to), { Shape = Enum.PartType.Ball, Transparency = 0.3 })
+		Lib.part(Vector3.one, palette.Halo, CFrame.new(to), { Shape = Enum.PartType.Ball, Transparency = 0.45 })
 	local endAnchor = Lib.anchor(to)
-	local stars = Lib.emitter(endAnchor, "Star", palette, { Rate = 12, Speed = NumberRange.new(4, 10) })
-	local sparks = Lib.emitter(endAnchor, "Spark", palette, { Rate = 30, Enabled = false })
+	local purple = ColorSequence.new(coreColor, palette.Halo)
+	local stars = Lib.emitter(endAnchor, "Star", palette, {
+		Rate = 6,
+		Color = purple,
+		Brightness = 1.4,
+		Size = Lib.seq(0.35, 0),
+		Speed = NumberRange.new(3, 7),
+	})
+	local sparks = Lib.emitter(endAnchor, "Spark", palette, {
+		Rate = 25,
+		Enabled = false,
+		Color = purple,
+		Brightness = 1.6,
+		Size = Lib.seq(0.2, 0),
+	})
 	local light = Instance.new("PointLight")
 	light.Color = palette.Halo
-	light.Range = 12
-	light.Brightness = 3
+	light.Range = 10
+	light.Brightness = 1.5
 	light.Parent = endGlow
-	local seal = Lib.groundDecal(from, 2.2, Lib.circleTexture(palette), palette.Halo, { Brightness = 3, Lift = 0 })
-	Lib.burst(from, "Ring", palette, 1, { Size = Lib.seq(0.5, 4) })
+	local seal = Lib.groundDecal(
+		from,
+		1.6,
+		Lib.circleTexture(palette),
+		palette.Halo,
+		{ Brightness = 1.2, Transparency = 0.25, Lift = 0 }
+	)
+	Lib.burst(from, "Ring", palette, 1, { Size = Lib.seq(0.4, 2.5), Color = purple, Brightness = 1.4 })
 	return {
 		Caster = caster,
 		Palette = palette,
@@ -432,7 +452,7 @@ function StrikeFx.arcaneBeam(
 	end
 	local s = state :: BeamState
 	if hit and not s.Hit then
-		Lib.burst(to, "Star", palette, 8, { Speed = NumberRange.new(6, 12) }) -- encostou no alvo
+		Lib.burst(to, "Spark", palette, 8, { Color = ColorSequence.new(palette.Halo), Brightness = 1.6 }) -- encostou no alvo
 	end
 	s.Target = to
 	s.Hit = hit
