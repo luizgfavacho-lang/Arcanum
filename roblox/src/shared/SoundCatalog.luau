@@ -84,6 +84,14 @@ return table.freeze({
 	Army = s(9114574104, 0.5, 0.9, 1, 140, 3), -- Ghost Wind Slow Build And Decay 1
 	Rose = s(9116418680, 0.45, 0.9, 1, 120, 2.5), -- Magic Tone Long Swelling Magical Tones
 	OrbShock = s(9119594928, 0.3, 1, 1.2, 80, 0.6), -- Static Zap Impact Buzz Twice
+
+	-- Reacoes entre escolas (Math/ComboMath)
+	Reaction_Overload = s(9126082854, 0.45, 0.85, 0.95, 110, 1.6), -- Synth Thunder Cracks Individual Explosion
+	Reaction_Vaporize = s(9119165650, 0.4, 0.8, 0.9, 90, 1.2), -- Sizzle Short And Explosive Sear 4
+	Reaction_Conduct = s(9114237693, 0.35, 1.15, 1.3, 90, 0.8), -- Electric Arcing 5
+	Reaction_Rupture = s(9114614830, 0.4, 1.1, 1.25, 90, 1), -- Glass Smashes 3
+	Reaction_Harvest = s(9125807267, 0.35, 1.1, 1.2, 80, 1), -- Rising Whoosh Hissing Suck Burst
+	Reaction_Contagion = s(9119990528, 0.4, 0.75, 0.85, 80, 1), -- Tentacle Slime 2
 	MinionHit = s(9117969878, 0.3, 0.9, 1.1, 60, 0.6), -- Punch Kit Beefy Hit 4
 	-- Inimigos
 	EnemyCharge = s(9125981170, 0.22, 0.95, 1.1, 60, 0.9), -- Pre Blast Electric Charge Up Glass

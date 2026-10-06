@@ -57,6 +57,7 @@ local function buildFireball(position: Vector3, palette: Lib.Palette): (BasePart
 	local attachment = Instance.new("Attachment")
 	attachment.Parent = core
 	Lib.emitter(attachment, "Flame", palette, { Rate = 70 })
+	Lib.emitter(attachment, "Blaze", palette, { Rate = 14, Size = Lib.seq(1.6, 2.2), Speed = NumberRange.new(0, 1) })
 	Lib.emitter(attachment, "Ember", palette, { Rate = 25 })
 	Lib.emitter(attachment, "Smoke", palette, { Rate = 12, Size = Lib.seq(0.8, 2.4) })
 	trail(core, palette, 1.2, 0.18)
@@ -139,6 +140,8 @@ local function buildBallLightning(position: Vector3, palette: Lib.Palette): (Bas
 	attachment.Parent = core
 	Lib.emitter(attachment, "Spark", palette, { Rate = 40, Speed = NumberRange.new(4, 10) })
 	Lib.emitter(attachment, "Star", palette, { Rate = 12, Speed = NumberRange.new(1, 3) })
+	-- Arcos vivos estalando na superficie da esfera.
+	Lib.emitter(attachment, "Arc", palette, { Rate = 22, Size = Lib.seq(2.2, 3.2), Speed = NumberRange.new(0, 0.5) })
 	local light = Instance.new("PointLight")
 	light.Color = palette.Halo
 	light.Range = 16
@@ -260,18 +263,21 @@ local IMPACTS: { [string]: (Vector3, Lib.Palette, number) -> () } = {
 		Lib.burst(position, "Ember", palette, 26, { Speed = NumberRange.new(8, 18) })
 		Lib.burst(position, "Spark", palette, 16)
 		Lib.burst(position, "Smoke", palette, 8, { Speed = NumberRange.new(2, 6) })
+		Lib.burst(position, "Blaze", palette, 6, { Speed = NumberRange.new(4, 10), Size = Lib.seq(3, 4) })
 		scorch(position, palette, math.max(radius, 2.5))
 		SpellFx.fireGround(position, palette, 3, 1.5)
 	end,
 	ArcaneMissile = function(position, palette, _)
 		Effects.flash(position, palette, 1.2, false)
 		Lib.burst(position, "Star", palette, 18, { Speed = NumberRange.new(8, 16) })
+		Lib.burst(position, "Ring", palette, 1, { Size = Lib.seq(0.5, 4), Lifetime = NumberRange.new(0.25, 0.25) })
 		SpellFx.runeBurst(position, palette)
 	end,
 	MagmaLance = function(position, palette, _)
 		Effects.flash(position, palette, 1.8, true)
 		Lib.burst(position, "Ember", palette, 30, { Speed = NumberRange.new(10, 22) })
 		Lib.burst(position, "Spark", palette, 18)
+		Lib.burst(position, "Blaze", palette, 5, { Speed = NumberRange.new(3, 8), Size = Lib.seq(2.5, 3.5) })
 		scorch(position, palette, 1.8)
 	end,
 	WanderingSouls = function(position, palette, _)
@@ -291,6 +297,8 @@ local IMPACTS: { [string]: (Vector3, Lib.Palette, number) -> () } = {
 			Lightning.bolt(position, to, palette, { Width = 0.18, Forks = 1, Flickers = 2, Duration = 0.2 })
 		end
 		Lib.burst(position, "Spark", palette, 30)
+		Lib.burst(position, "Zap", palette, 2, { Size = Lib.seq(6, 14) })
+		Lib.burst(position, "Arc", palette, 12, { Speed = NumberRange.new(6, 14) })
 	end,
 }
 

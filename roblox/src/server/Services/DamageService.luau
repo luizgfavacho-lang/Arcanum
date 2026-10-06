@@ -6,17 +6,21 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Settings = require(Shared.Config.CombatSettings)
+local ComboMath = require(Shared.Math.ComboMath)
 local DamageMath = require(Shared.Math.DamageMath)
 local Net = require(Shared.Net)
 local Signal = require(Shared.Signal)
 local States = require(Shared.States)
+local Units = require(Shared.Units)
 local StatsService = require(script.Parent.StatsService)
 local StatusService = require(script.Parent.StatusService)
 local DodgeService = require(script.Parent.DodgeService)
+local Targeting = require(script.Parent.Parent.Combat.Targeting)
 
 export type DamageOptions = {
 	Multiplier: number?, -- runas/talentos/passivas
 	Periodic: boolean?, -- DoT: nao consome nem se beneficia da Carga Arcana
+	NoReaction: boolean?, -- respingo de reacao: nao dispara outra (evita cascata)
 }
 
 local DamageService = {}
@@ -26,6 +30,7 @@ local DamageService = {}
 DamageService.Damaged = Signal.new() :: Signal.Signal<Model?, Model, number, boolean, string?>
 
 local lastAttacker: { [Model]: Model } = setmetatable({}, { __mode = "k" }) :: any
+local lastReaction: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 local vfxFast = Net.get("VfxFast")
 
 function DamageService.getLastAttacker(model: Model): Model?
@@ -72,11 +77,26 @@ function DamageService.applySpellDamage(
 	end
 	local empowered = if source then StatusService.value(source, States.Empowered) else nil
 
+	-- Reacao entre escolas (Math/ComboMath): so golpe direto de alguem.
+	local reaction: ComboMath.Reaction? = nil
+	if source and not periodic and not (options and options.NoReaction) then
+		local now = os.clock()
+		reaction = ComboMath.find(school, function(state)
+			return StatusService.has(target, state)
+		end)
+		if reaction and ComboMath.ready(lastReaction[target], now) then
+			lastReaction[target] = now
+		else
+			reaction = nil
+		end
+	end
+
 	local damage = DamageMath.computeSpellDamage({
 		BaseDamage = baseDamage,
-		DamageMultiplier = (options and options.Multiplier or 1)
-			* (if source and StatusService.has(source, States.Weakened) then 0.8 else 1)
-			* (1 + (empowered or 0)),
+		DamageMultiplier = (options and options.Multiplier or 1) * (if source
+				and StatusService.has(source, States.Weakened)
+			then 0.8
+			else 1) * (1 + (empowered or 0)) * (if reaction then reaction.Multiplier else 1),
 		SpellPower = if sourceStats then sourceStats.SpellPower else 0,
 		Affinity = if sourceStats and school then StatsService.getAffinity(sourceStats, school) else 0,
 		TargetArmor = targetStats.Armor,
@@ -132,7 +152,60 @@ function DamageService.applySpellDamage(
 		})
 	end
 	DamageService.Damaged:Fire(source, target, healthDamage, periodic, school)
+	if reaction then
+		DamageService.react(reaction, source :: Model, target, damage, school)
+	end
 	return healthDamage
+end
+
+-- Efeitos da reacao depois do golpe: consome o estado, respingo, cura do conjurador, contagio.
+function DamageService.react(
+	reaction: ComboMath.Reaction,
+	source: Model,
+	target: Model,
+	hitDamage: number,
+	school: string?
+)
+	local center = Targeting.position(target)
+	if reaction.Consumes then
+		StatusService.remove(target, reaction.State)
+	end
+	local others: { Model } = {}
+	local radius = Units.meters(math.max(reaction.SplashRadiusMeters, reaction.SpreadRadiusMeters))
+	if radius > 0 then
+		for _, other in Targeting.hostilesInRadius(source, center, radius) do
+			if other ~= target and (not reaction.SplashOnlyState or StatusService.has(other, reaction.State)) then
+				table.insert(others, other)
+			end
+		end
+	end
+	local splash = ComboMath.splashDamage(reaction, hitDamage)
+	for _, other in others do
+		if splash > 0 then
+			task.spawn(DamageService.applySpellDamage, source, other, splash, school, { NoReaction = true })
+		end
+		if reaction.SpreadRadiusMeters > 0 then
+			StatusService.spread(target, other, States.Poisoned)
+			StatusService.spread(target, other, States.Bleeding)
+		end
+	end
+	local heal = ComboMath.healAmount(reaction, hitDamage)
+	if heal > 0 then
+		DamageService.heal(source, heal)
+	end
+	local targets: { Vector3 } = {}
+	for _, other in others do
+		table.insert(targets, Targeting.position(other))
+	end
+	vfxFast:FireAllClients("Reaction", {
+		Id = reaction.Id,
+		Label = reaction.Label,
+		Target = target,
+		Position = center,
+		Radius = radius,
+		Targets = targets,
+		Source = source,
+	})
 end
 
 function DamageService.heal(target: Model, amount: number)

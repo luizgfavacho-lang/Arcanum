@@ -1,6 +1,7 @@
 --!strict
 -- Efeitos compostos (Docs/03 §8): clarao, onda de choque, circulo runico e assinatura de conjuracao.
 
+local Debris = game:GetService("Debris")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
@@ -42,6 +43,13 @@ function Effects.flash(position: Vector3, palette: Lib.Palette, scale: number, w
 
 	Lib.burst(position, "Glow", palette, 1, { Size = Lib.seq(scale * 4, 0) })
 	Lib.burst(position, "Star", palette, math.floor(8 + scale * 5))
+	local school = Lib.schoolOf(palette)
+	if school == "Electricity" then
+		Lib.burst(position, "Zap", palette, 1, { Size = Lib.seq(scale * 2.5, scale * 5) })
+		Lib.burst(position, "Arc", palette, math.floor(2 + scale * 2), { Speed = NumberRange.new(2, 6) })
+	elseif school == "Fire" and scale >= 0.8 then
+		Lib.burst(position, "Blaze", palette, math.floor(1 + scale), { Size = Lib.seq(scale * 1.6, scale * 2.4) })
+	end
 
 	if withRays then
 		local center = CFrame.new(position) * CFrame.Angles(math.random() * math.pi, math.random() * math.pi, 0)
@@ -65,21 +73,26 @@ end
 -- Onda de choque: anel no chao que expande, parede de luz que sobe da borda e estrelas no anel.
 function Effects.shockwave(position: Vector3, palette: Lib.Palette, radius: number)
 	local ground = position
-	local segments = 24
+	-- Anel nitido + poeira suave, abrindo do centro (a imagem cresce dentro da Part).
+	for _, layer in
+		{
+			{ Texture = Lib.Catalog.Ring, Color = palette.Halo, Size = radius * 2.2, Time = 0.45, Alpha = 0 },
+			{ Texture = Lib.Catalog.SoftRing, Color = palette.Accent, Size = radius * 2.6, Time = 0.7, Alpha = 0.3 },
+		}
+	do
+		local decal = Lib.groundDecal(ground, layer.Size, layer.Texture, layer.Color, { Transparency = layer.Alpha })
+		decal.Image.Size = UDim2.fromScale(0.08, 0.08)
+		Lib.tween(decal.Image, layer.Time, { Size = UDim2.fromScale(1, 1) }, Enum.EasingStyle.Quint)
+		Lib.tween(decal.Image, layer.Time, { ImageTransparency = 1 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+		Debris:AddItem(decal.Part, layer.Time + 0.05)
+	end
+	local segments = 14
 	for i = 1, segments do
 		local angle = (i / segments) * math.pi * 2
 		local dir = Vector3.new(math.cos(angle), 0, math.sin(angle))
 		local startCf = CFrame.lookAt(ground + dir * 0.5, ground + dir * 0.5 + Vector3.new(-dir.Z, 0, dir.X))
 		local endCf = CFrame.lookAt(ground + dir * radius, ground + dir * radius + Vector3.new(-dir.Z, 0, dir.X))
 		local arc = 2 * math.pi * radius / segments
-
-		local ring = Lib.part(Vector3.new(0.4, 0.15, 0.6), palette.Halo, startCf, { Transparency = 0.1 })
-		Lib.fade(
-			ring,
-			0.4,
-			{ CFrame = endCf, Size = Vector3.new(0.2, 0.1, arc * 1.05), Transparency = 1 },
-			Enum.EasingStyle.Quint
-		)
 
 		local wall = Lib.part(Vector3.new(0.08, 0.2, 0.6), palette.Core, startCf, { Transparency = 0.4 })
 		Lib.fade(wall, 0.5, {
@@ -100,48 +113,24 @@ function Effects.shockwave(position: Vector3, palette: Lib.Palette, radius: numb
 	end
 end
 
--- Circulo runico no chao: duas camadas girando em sentidos opostos, marcas runicas, aro extra,
--- pilares de luz e nucleo pulsante. Dura `duration` e some.
+-- Circulo runico no chao: circulo magico da escola (textura) girando, um segundo desenho menor no
+-- sentido contrario, anel externo pulsando, pilares de luz e nucleo. Dura `duration` e some.
 function Effects.runeCircle(center: Vector3, palette: Lib.Palette, radius: number, duration: number)
-	type Piece = { Part: BasePart, Radius: number, Angle: number, Speed: number, Tilt: CFrame }
-	local pieces: { Piece } = {}
-
-	local function ring(r: number, count: number, speed: number, color: Color3, thickness: number)
-		for i = 1, count do
-			local arc = 2 * math.pi * r / count
-			local p =
-				Lib.part(Vector3.new(thickness, 0.05, arc * 0.7), color, CFrame.new(center), { Transparency = 0.15 })
-			table.insert(
-				pieces,
-				{ Part = p, Radius = r, Angle = (i / count) * math.pi * 2, Speed = speed, Tilt = CFrame.identity }
-			)
-		end
-	end
-	ring(radius, 28, 0.8, palette.Halo, 0.12)
-	ring(radius * 0.72, 20, -1.3, palette.Core, 0.08)
-	ring(radius * 1.12, 36, 0.4, palette.Accent, 0.05)
-
-	-- Marcas runicas (losangos) entre os aneis.
-	for i = 1, 8 do
-		local p = Lib.part(Vector3.new(0.35, 0.05, 0.35), palette.Core, CFrame.new(center), { Transparency = 0.1 })
-		table.insert(pieces, {
-			Part = p,
-			Radius = radius * 0.86,
-			Angle = (i / 8) * math.pi * 2,
-			Speed = -0.5,
-			Tilt = CFrame.Angles(0, math.rad(45), 0),
-		})
-	end
-
-	local core = Lib.part(
-		Vector3.new(0.05, radius * 0.5, radius * 0.5),
-		palette.Halo,
-		CFrame.new(center) * CFrame.Angles(0, 0, math.rad(90)),
-		{
-			Shape = Enum.PartType.Cylinder,
-			Transparency = 0.6,
-		}
+	local outer = Lib.groundDecal(center, radius * 2.3, Lib.circleTexture(palette), palette.Halo, { Brightness = 3 })
+	local inner = Lib.groundDecal(
+		center,
+		radius * 1.3,
+		Lib.Catalog.CircleStar,
+		palette.Core:Lerp(palette.Halo, 0.4),
+		{ Brightness = 3.5, Lift = 0.38 }
 	)
+	local rim =
+		Lib.groundDecal(center, radius * 2.6, Lib.Catalog.SoftRing, palette.Accent, { Transparency = 0.4, Lift = 0.33 })
+	local layers = {
+		{ Decal = outer, Speed = 0.9, Base = 0 },
+		{ Decal = inner, Speed = -1.6, Base = 0 },
+		{ Decal = rim, Speed = 0.2, Base = 0.4 },
+	}
 
 	-- Pilares de luz
 	for i = 1, 4 do
@@ -154,6 +143,7 @@ function Effects.runeCircle(center: Vector3, palette: Lib.Palette, radius: numbe
 			Transparency = 1,
 		})
 	end
+	Lib.burst(center + Vector3.new(0, 0.4, 0), "Ring", palette, 1, { Size = Lib.seq(radius * 0.5, radius * 3) })
 
 	local started = os.clock()
 	local connection: RBXScriptConnection
@@ -162,23 +152,19 @@ function Effects.runeCircle(center: Vector3, palette: Lib.Palette, radius: numbe
 		local alpha = t / duration
 		if alpha >= 1 then
 			connection:Disconnect()
-			for _, piece in pieces do
-				piece.Part:Destroy()
+			for _, layer in layers do
+				layer.Decal.Part:Destroy()
 			end
-			core:Destroy()
 			return
 		end
-		local grow = math.min(t / 0.12, 1) -- abre rapido
+		local grow = 1 - (1 - math.min(t / 0.15, 1)) ^ 3 -- abre rapido e assenta
 		local fadeOut = if alpha > 0.6 then (alpha - 0.6) / 0.4 else 0
-		for _, piece in pieces do
-			local angle = piece.Angle + piece.Speed * t
-			local r = piece.Radius * grow
-			piece.Part.CFrame = CFrame.new(center) * CFrame.Angles(0, angle, 0) * CFrame.new(r, 0, 0) * piece.Tilt
-			piece.Part.Transparency = 0.15 + 0.85 * fadeOut
+		for _, layer in layers do
+			local part = layer.Decal.Part
+			part.CFrame = CFrame.new(part.Position) * CFrame.Angles(0, layer.Speed * t, 0)
+			layer.Decal.Image.Size = UDim2.fromScale(grow, grow)
+			layer.Decal.Image.ImageTransparency = layer.Base + (1 - layer.Base) * fadeOut
 		end
-		local pulse = 0.5 + 0.5 * math.sin(t * 18)
-		core.Size = Vector3.new(0.05, radius * (0.4 + 0.15 * pulse) * grow, radius * (0.4 + 0.15 * pulse) * grow)
-		core.Transparency = 0.5 + 0.5 * fadeOut
 	end)
 end
 
@@ -216,6 +202,16 @@ function Effects.dangerZone(center: Vector3, radius: number, duration: number, c
 		Lib.part(Vector3.new(0.07, 0.2, 0.2), color, flat, { Shape = Enum.PartType.Cylinder, Transparency = 0.55 })
 	table.insert(parts, fill)
 	Lib.tween(fill, duration, { Size = Vector3.new(0.07, radius * 2, radius * 2) }, Enum.EasingStyle.Linear)
+	-- Selo com espinhos que acende e gira devagar enquanto o golpe carrega.
+	local seal =
+		Lib.groundDecal(center, radius * 2, Lib.Catalog.CircleThorns, color, { Transparency = 0.8, Brightness = 1.6 })
+	Lib.tween(seal.Image, duration, { ImageTransparency = 0.15 }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
+	Lib.tween(
+		seal.Part,
+		duration,
+		{ CFrame = seal.Part.CFrame * CFrame.Angles(0, math.rad(70), 0) },
+		Enum.EasingStyle.Linear
+	)
 
 	local done = false
 	local function finish(fast: boolean)
@@ -226,6 +222,8 @@ function Effects.dangerZone(center: Vector3, radius: number, duration: number, c
 		for _, p in parts do
 			Lib.fade(p, if fast then 0.12 else 0.2, { Transparency = 1 })
 		end
+		Lib.tween(seal.Image, if fast then 0.12 else 0.25, { ImageTransparency = 1 })
+		Debris:AddItem(seal.Part, 0.3)
 	end
 	task.delay(duration, finish, false)
 	return function()

@@ -7,6 +7,7 @@ require("@self/ProgressionMath.spec")
 require("@self/Data.spec")
 require("@self/ArmIK.spec")
 require("@self/CombatMath.spec")
+require("@self/ComboMath.spec")
 
 if not TestKit.report() then
 	process.exit(1)

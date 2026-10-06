@@ -160,6 +160,14 @@ function StrikeFx.meteorImpact(p: any, fireGround: (Vector3, Lib.Palette, number
 	task.delay(0.1, Effects.shockwave, p.Position + UP * 0.5, palette, p.Radius * 2)
 	Lib.burst(p.Position + UP, "Flame", palette, 40, { Speed = NumberRange.new(14, 30), Size = Lib.seq(4, 2, 0) })
 	Lib.burst(p.Position + UP, "Smoke", palette, 24, { Speed = NumberRange.new(6, 14), Size = Lib.seq(4, 10) })
+	Lib.burst(p.Position + UP, "Blaze", palette, 10, { Speed = NumberRange.new(8, 18), Size = Lib.seq(5, 7) })
+	Lib.burst(
+		p.Position + UP * 0.3,
+		"Ring",
+		palette,
+		1,
+		{ Size = Lib.seq(2, (p.Radius or 6) * 2.6), Lifetime = NumberRange.new(0.5, 0.5) }
+	)
 	for _ = 1, 10 do
 		local chunk =
 			Lib.part(Vector3.one * (0.6 + math.random()), Color3.fromRGB(46, 30, 26), CFrame.new(p.Position + UP * 2), {

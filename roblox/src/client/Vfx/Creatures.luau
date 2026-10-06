@@ -37,6 +37,8 @@ type Entry = {
 	Windup: any,
 	WindupStart: number,
 	Awareness: any,
+	FrozenUntil: number, -- hit-stop: a pose congela ate este instante
+	Paused: { [AnimationTrack]: number }?, -- animacoes pausadas pelo hit-stop (velocidade original)
 }
 
 local entries: { [Model]: Entry } = {}
@@ -77,6 +79,8 @@ local function track(model: Model)
 		Windup = nil,
 		WindupStart = 0,
 		Awareness = model:GetAttribute("Awareness"),
+		FrozenUntil = 0,
+		Paused = nil,
 	}
 	entries[model] = entry
 end
@@ -93,6 +97,46 @@ function Creatures.flinch(model: Model, from: Vector3?, strength: number?)
 	entry.FlinchDirection = if direction.Magnitude > 0.01 then direction.Unit else Vector3.zAxis
 	entry.Flinch = math.min(entry.Flinch + (strength or 1), 1.6)
 	entry.SquashVelocity -= 3 * (strength or 1)
+end
+
+-- Hit-stop: congela a pose e as animacoes por um instante (golpe "pesa" na mao).
+function Creatures.hitStop(model: Model, duration: number)
+	local entry = entries[model]
+	if not entry then
+		return
+	end
+	local untilTime = os.clock() + duration
+	if untilTime <= entry.FrozenUntil then
+		return
+	end
+	entry.FrozenUntil = untilTime
+	if entry.Paused then
+		return
+	end
+	local paused: { [AnimationTrack]: number } = {}
+	local animator = model:FindFirstChildWhichIsA("Animator", true)
+	if animator then
+		pcall(function()
+			for _, track in (animator :: Animator):GetPlayingAnimationTracks() do
+				paused[track] = track.Speed
+				track:AdjustSpeed(0)
+			end
+		end)
+	end
+	entry.Paused = paused
+end
+
+local function resume(entry: Entry)
+	local paused = entry.Paused
+	if not paused then
+		return
+	end
+	entry.Paused = nil
+	for track, speed in paused do
+		pcall(function()
+			track:AdjustSpeed(speed)
+		end)
+	end
 end
 
 local function targetHead(model: Model): Vector3?
@@ -225,6 +269,10 @@ local function step(dt: number)
 			entries[model] = nil
 			continue
 		end
+		if now < entry.FrozenUntil then
+			continue
+		end
+		resume(entry)
 		local windup = model:GetAttribute("Windup")
 		if windup ~= entry.Windup then
 			entry.Windup = windup

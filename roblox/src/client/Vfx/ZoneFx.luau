@@ -8,6 +8,7 @@
 --   Rain         Chuva Rubra: chuva de sangue estilizado sobre o circulo, respingos
 --   Hourglass    Ampulheta Partida: esfera de tempo parado, marcadores de relogio girando
 
+local Debris = game:GetService("Debris")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
@@ -389,7 +390,31 @@ function ZoneFx.open(p: any)
 	if not builder then
 		return
 	end
-	local stop = builder(p, Lib.palette(p.School))
+	local palette = Lib.palette(p.School)
+	local stop = builder(p, palette)
+	if p.Mode ~= "Wall" and p.Mode ~= "Static" and p.Radius then
+		-- Selo magico da escola no chao, girando enquanto a zona dura (a grama sai de baixo).
+		local ground = Lib.groundBelow(p.Position + UP * 2)
+		Lib.swapGround(ground, p.Radius, Enum.Material.Ground, p.Duration + 0.5)
+		local seal = Lib.groundDecal(ground, p.Radius * 2.15, Lib.circleTexture(palette), palette.Halo, {
+			Brightness = 2,
+			Transparency = 1,
+			Lift = 0.15,
+		})
+		Lib.tween(seal.Image, 0.35, { ImageTransparency = 0.25 })
+		local base = seal.Part.CFrame
+		local started = os.clock()
+		local spin = RunService.RenderStepped:Connect(function()
+			seal.Part.CFrame = base * CFrame.Angles(0, (os.clock() - started) * 0.35, 0)
+		end)
+		local inner = stop
+		stop = function(fast: boolean)
+			spin:Disconnect()
+			Lib.tween(seal.Image, 0.4, { ImageTransparency = 1 })
+			Debris:AddItem(seal.Part, 0.45)
+			inner(fast)
+		end
+	end
 	register(p.Id, p.Duration, stop)
 end
 

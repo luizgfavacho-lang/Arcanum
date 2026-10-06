@@ -102,7 +102,7 @@ e cole como número no evento correspondente.
 |---|---|---|
 | **R0 — Base** *(feito)* | Rojo, dados gerados, matemática testada, Stats/Status/Damage/Spell, 5 magias (Faísca, Bola de Fogo, Míssil Arcano, Corrente em Cadeia, Drenar Vida), inimigos parados, HUD, VFX por código | `lune run tests` verde; no Studio as 5 magias funcionam contra os inimigos do Sandbox |
 | **R1 — Combate da fatia** | Lâmina de Sangue (corpo a corpo), IA dos inimigos (perseguir, atacar, Ossomante teleporta), morte estilizada, passiva Condutor, save com ProfileStore, Grimório (UI para equipar) | 2 jogadores no Studio (Test → 2 Players) sem dessincronia; progresso persiste |
-| **R2 — Visual** | Paleta e iluminação finais, texturas pintadas (SurfaceAppearance), flipbooks 2D a 12 fps nos ParticleEmitters, hit-stop curto, telegraphs de área | 60 fps em PC médio e 30 fps em celular intermediário com 20 inimigos |
+| **R2 — Visual** | Paleta e iluminação finais, texturas pintadas (SurfaceAppearance), ~~flipbooks 2D nos ParticleEmitters, hit-stop curto, telegraphs de área~~ *(feitos)* | 60 fps em PC médio e 30 fps em celular intermediário com 20 inimigos |
 | **R3 — Torre e Caverna** | Região inicial modelada, Torre do Mago, Aprendiz Corrompido, Caverna de Cristal, Golem de Cristal, portas de selo | Fatia vertical de `Docs/04` adaptada |
 | **R4 — Progressão completa** | Níveis 1–50, afinidade, talentos, runas, 16 passivas, Pedra do Esquecimento | Testes por talento numérico |
 | **R5 — Arsenal e mundo** | 42 magias, combos, outros 4 covis, eventos de mundo, Mago Errante, criação | Campanha até o Altar |
@@ -127,6 +127,28 @@ validada no servidor (`DodgeService`); recarga 0,9 s. Desviar de um golpe de ver
 **Equilíbrio (poise).** Cada golpe direto soma dano ao equilíbrio da criatura; passou do limite
 (`EnemyCatalog.Poise`), ela fica **atordoada** e o golpe que estava preparando é **interrompido**
 ("INTERROMPIDO!"), com 2,5 s de imunidade depois. Golpes grandes empurram criaturas leves (`Weight`).
+
+**Reações entre escolas** (`Math/ComboMath`, testado; aplicado em `DamageService`). Golpe *direto* (não DoT)
+de uma escola num alvo com o estado certo dispara uma reação, no máximo 1 a cada 0,6 s por alvo:
+
+| Reação | Escola × estado do alvo | Efeito |
+|---|---|---|
+| Sobrecarga | Fogo × Paralisado, Eletricidade × Queimando | ×1,25 e explosão: 60% do dano em quem está a 3,5 m (o raio apaga o fogo) |
+| Vaporizar | Fogo × Encharcado | ×1,5 e consome a água |
+| Condução | Eletricidade × Encharcado | (×1,5 já do DamageMath) + 40% em todos os encharcados a 7 m |
+| Ruptura | Energia × Paralisado | ×1,4 e quebra a paralisia |
+| Colheita | Necromancia × Sangrando | conjurador cura 30% do dano |
+| Contágio | Sangue × Envenenado | ×1,15 e veneno + sangramento passam para quem está a 4,5 m |
+
+A **Chuva Rubra** deixa os inimigos *Encharcados* (gotas caindo). Respingos de reação não disparam outra.
+No cliente (`Vfx/Impact`): texto grande, visual e som próprios, *hit-stop* (a criatura congela 40–140 ms nos
+seus golpes) e clarão de tela curto nos golpes grandes.
+
+**Visual das magias.** `Shared/TextureCatalog` lista imagens públicas da Caixa de ferramentas (circulos
+magicos, aneis, flipbooks de fogo e fumaça, raios), convertidas de decalque para ID de imagem. `Lib.groundDecal`
+desenha no chão com SurfaceGui (brilha no bloom; 0,35 stud acima da grama); zonas tiram a grama de baixo.
+O cajado faz um gesto por tipo: erguer (barragens, invocações, auras, portal), cravar (nova, linha, zonas,
+raio invocado), varrer (cortes) e estocada (o resto).
 
 **Corpos.** `Combat/CreatureBuilder` monta tudo por código: Ossomante (esqueleto de capuz e manto, olhos
 em brasa), Gosmas (gelatina com núcleo e olhos), Bulbo (membrana elétrica flutuante com tentáculos) e

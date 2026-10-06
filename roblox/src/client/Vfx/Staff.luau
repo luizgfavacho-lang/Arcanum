@@ -12,6 +12,7 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = game:GetService("ReplicatedStorage").Shared
 local StaffPose = require(Shared.StaffPose)
+local SpellCatalog = require(Shared.SpellCatalog)
 local Lib = require(script.Parent.Lib)
 local HandIK = require(script.Parent.HandIK)
 
@@ -46,7 +47,62 @@ type Entry = {
 	ThrustVelocity: number,
 	ThrustTarget: number,
 	GemLight: PointLight?,
+	Gesture: string, -- "Thrust" (padrao), "Raise", "Slam", "Sweep"
+	GestureStart: number,
 }
+
+-- Gesto de cada tipo de magia (somado a pose Cast, espaco do HumanoidRootPart):
+--   Raise  ergue o cajado ao ceu (chuvas, barragens, invocacoes, auras)
+--   Slam   sobe e crava no chao (novas, linhas, zonas de chao, raio invocado)
+--   Sweep  varre em arco da direita para a esquerda (cortes)
+--   Thrust estocada a frente (projeteis, raios, controle) - so a mola da estocada
+local GESTURE_BY_KIND: { [string]: string } = {
+	Barrage = "Raise",
+	Summon = "Raise",
+	Buff = "Raise",
+	Portal = "Raise",
+	Nova = "Slam",
+	Line = "Slam",
+	Strike = "Slam",
+	Zone = "Slam",
+	Slash = "Sweep",
+}
+local GESTURE_HOLD: { [string]: number } = { Raise = 0.55, Slam = 0.5, Sweep = 0.35 }
+
+local RAISED = CFrame.new(0.15, 1.5, 0.35) * CFrame.Angles(math.rad(18), 0, math.rad(-8))
+local SLAM_UP = CFrame.new(0, 1.2, 0.2) * CFrame.Angles(math.rad(22), 0, 0)
+local SLAM_DOWN = CFrame.new(0, -0.9, -0.5) * CFrame.Angles(math.rad(-38), 0, 0)
+
+local function ease(x: number): number
+	local t = math.clamp(x, 0, 1)
+	return 1 - (1 - t) ^ 3
+end
+
+-- Deslocamento do gesto no instante t (s) desde a conjuracao.
+local function gestureOffset(gesture: string, t: number): CFrame
+	local hold = GESTURE_HOLD[gesture]
+	if not hold then
+		return CFrame.identity
+	end
+	local out = 1 - ease((t - hold) / 0.2) -- solta no fim
+	if gesture == "Raise" then
+		return CFrame.identity:Lerp(RAISED, ease(t / 0.14) * out)
+	elseif gesture == "Slam" then
+		local pose = if t < 0.12
+			then CFrame.identity:Lerp(SLAM_UP, ease(t / 0.12))
+			else SLAM_UP:Lerp(SLAM_DOWN, ease((t - 0.12) / 0.07))
+		return CFrame.identity:Lerp(pose, out)
+	elseif gesture == "Sweep" then
+		local angle = math.rad(75) - math.rad(150) * ease((t - 0.04) / 0.16)
+		return CFrame.identity:Lerp(CFrame.Angles(0, angle, math.rad(-20)) * CFrame.new(0, 0.2, 0), out)
+	end
+	return CFrame.identity
+end
+
+function Staff.gestureFor(spellId: string?): string
+	local def = spellId and SpellCatalog.Defs[spellId]
+	return if def then GESTURE_BY_KIND[def.Kind] or "Thrust" else "Thrust"
+end
 
 local entries: { [Model]: Entry } = {}
 
@@ -84,6 +140,8 @@ local function track(staff: Instance)
 		ThrustVelocity = 0,
 		ThrustTarget = 0,
 		GemLight = (staff:FindFirstChild("Gem") and (staff :: any).Gem:FindFirstChild("GemLight")) :: PointLight?,
+		Gesture = "Thrust",
+		GestureStart = 0,
 	}
 end
 
@@ -130,14 +188,20 @@ local function pulseGem(staff: Model, palette: Lib.Palette)
 	end
 end
 
--- Chamado no evento Cast: sobe para a pose Cast e pulsa a gema.
-function Staff.cast(character: Model, palette: Lib.Palette)
+-- Chamado no evento Cast: sobe para a pose Cast, faz o gesto do tipo da magia e pulsa a gema.
+function Staff.cast(character: Model, palette: Lib.Palette, spellId: string?)
 	local entry = entries[character]
 	if not entry then
 		return
 	end
-	entry.CastUntil = os.clock() + CAST_HOLD
+	local gesture = Staff.gestureFor(spellId)
+	entry.Gesture = gesture
+	entry.GestureStart = os.clock()
+	entry.CastUntil = os.clock() + math.max(CAST_HOLD, (GESTURE_HOLD[gesture] or 0) + 0.15)
 	pulseGem(entry.Model, palette)
+	if gesture ~= "Thrust" then
+		return -- os outros gestos ja tem movimento proprio (sem estocada)
+	end
 	-- Antecipacao curta e depois o golpe.
 	entry.ThrustTarget = ANTICIPATION
 	task.delay(0.06, function()
@@ -191,7 +255,11 @@ local function step(dt: number)
 		local accel = THRUST_STIFFNESS * (entry.ThrustTarget - entry.Thrust) - THRUST_DAMPING * entry.ThrustVelocity
 		entry.ThrustVelocity += accel * math.min(dt, 1 / 30)
 		entry.Thrust += entry.ThrustVelocity * math.min(dt, 1 / 30)
-		local posed = CFrame.new(0, 0, entry.Thrust) * entry.Current * CFrame.Angles(entry.Thrust * 0.35, 0, 0)
+		local gesture = gestureOffset(entry.Gesture, now - entry.GestureStart)
+		local posed = gesture
+			* CFrame.new(0, 0, entry.Thrust)
+			* entry.Current
+			* CFrame.Angles(entry.Thrust * 0.35, 0, 0)
 		entry.Grip.C0 = posed * StaffPose.AXIS
 
 		-- Gema pulsando enquanto canaliza.

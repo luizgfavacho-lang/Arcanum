@@ -92,6 +92,21 @@ function StatusService.apply(model: Model, state: string, duration: number, opti
 	end
 end
 
+-- Copia um estado ativo (tempo restante, dano por segundo, origem) de um modelo para outro.
+function StatusService.spread(from: Model, to: Model, state: string)
+	local states = active[from]
+	local info = states and states[state]
+	if not info then
+		return
+	end
+	StatusService.apply(to, state, info.ExpiresAt - os.clock(), {
+		DamagePerSecond = info.DamagePerSecond,
+		Source = info.Source,
+		School = info.School,
+		Value = info.Value,
+	})
+end
+
 function StatusService.remove(model: Model, state: string)
 	local states = active[model]
 	if not states or not states[state] then

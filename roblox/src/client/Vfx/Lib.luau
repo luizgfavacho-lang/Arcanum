@@ -1,6 +1,7 @@
 --!strict
 -- Blocos basicos dos efeitos (so cliente): Parts Neon, anexos no mundo, beams, emissores com
--- presets e animacao de fade. Texturas: so as embutidas no Roblox (rbxasset://), sem uploads.
+-- presets e animacao de fade. Texturas: as embutidas no Roblox (rbxasset://) e as publicas de
+-- Shared/TextureCatalog (flipbooks de fogo e fumaca, circulos magicos, aneis, raios).
 
 local Debris = game:GetService("Debris")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,6 +10,7 @@ local Workspace = game:GetService("Workspace")
 
 local Schools = require(ReplicatedStorage.Shared.Schools)
 local StaffPose = require(ReplicatedStorage.Shared.StaffPose)
+local TextureCatalog = require(ReplicatedStorage.Shared.TextureCatalog)
 
 export type Palette = Schools.Palette
 
@@ -21,6 +23,16 @@ Lib.Textures = table.freeze({
 	Smoke = "rbxasset://textures/particles/smoke_main.dds",
 	Glow = "rbxasset://textures/particles/forcefield_glow_main.dds",
 	Vortex = "rbxasset://textures/particles/forcefield_vortex_main.dds",
+})
+Lib.Catalog = TextureCatalog
+
+-- Circulo magico de cada escola (desenho no chao).
+local CIRCLES = table.freeze({
+	Energy = TextureCatalog.CircleStar,
+	Fire = TextureCatalog.CircleOrnate,
+	Electricity = TextureCatalog.CircleRunes,
+	Necromancy = TextureCatalog.CircleThorns,
+	Blood = TextureCatalog.CircleThorns,
 })
 
 local folder: Folder? = nil
@@ -37,6 +49,20 @@ end
 
 function Lib.palette(school: any): Palette
 	return (if typeof(school) == "string" then Schools[school] else nil) or Schools.Energy
+end
+
+-- Nome da escola de uma paleta (as paletas sao as tabelas congeladas de Shared/Schools).
+function Lib.schoolOf(palette: Palette): string
+	for name, value in Schools :: any do
+		if value == palette then
+			return name
+		end
+	end
+	return "Energy"
+end
+
+function Lib.circleTexture(palette: Palette): string
+	return (CIRCLES :: any)[Lib.schoolOf(palette)] or TextureCatalog.CircleStar
 end
 
 -- Part decorativa (Neon por padrao), sem colisao nem consulta.
@@ -109,6 +135,44 @@ function Lib.beam(a0: Attachment, a1: Attachment, props: { [string]: any }): Bea
 	return beam
 end
 
+-- Desenho deitado no chao (circulo magico, anel, aviso): ImageLabel numa SurfaceGui que nao recebe
+-- luz e brilha acima do limite do bloom. Fica 0,35 stud acima do chao para nao sumir na grama.
+-- Gire/mova pela Part; anime cor/transparencia pela Image.
+export type GroundDecal = { Part: Part, Image: ImageLabel }
+
+function Lib.groundDecal(
+	center: Vector3,
+	size: number,
+	texture: string,
+	color: Color3,
+	options: { Brightness: number?, Transparency: number?, Lift: number? }?
+): GroundDecal
+	local o = options or {}
+	local part = Lib.part(
+		Vector3.new(size, 0.05, size),
+		color,
+		CFrame.new(center + Vector3.new(0, o.Lift or 0.35, 0)),
+		{ Transparency = 1 }
+	)
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Top
+	gui.LightInfluence = 0
+	gui.Brightness = o.Brightness or 2.5
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = math.clamp(512 / math.max(size, 1), 8, 64)
+	gui.Parent = part
+	local image = Instance.new("ImageLabel")
+	image.AnchorPoint = Vector2.new(0.5, 0.5)
+	image.Position = UDim2.fromScale(0.5, 0.5)
+	image.Size = UDim2.fromScale(1, 1)
+	image.BackgroundTransparency = 1
+	image.Image = texture
+	image.ImageColor3 = color
+	image.ImageTransparency = o.Transparency or 0
+	image.Parent = gui
+	return { Part = part, Image = image }
+end
+
 local function seq(...: number): NumberSequence
 	local values = { ... }
 	if #values == 2 then
@@ -168,27 +232,84 @@ local PRESETS: { [string]: (Palette) -> { [string]: any } } = {
 			Drag = 2,
 		}
 	end,
-	-- Lingua de fogo (branca -> cor -> escura).
+	-- Lingua de fogo animada (flipbook 8x8 branco, tingido: branca -> cor -> escura).
 	Flame = function(p)
 		return {
-			Texture = Lib.Textures.Fire,
+			Texture = TextureCatalog.FireWhite8,
+			FlipbookLayout = Enum.ParticleFlipbookLayout.Grid8x8,
+			FlipbookMode = Enum.ParticleFlipbookMode.OneShot,
 			Color = ColorSequence.new({
 				ColorSequenceKeypoint.new(0, p.Core),
 				ColorSequenceKeypoint.new(0.35, p.Halo),
 				ColorSequenceKeypoint.new(1, Color3.fromRGB(70, 15, 10)),
 			}),
-			Size = seq(1.6, 1.1, 0.2),
-			Transparency = seq(0.1, 0.3, 1),
-			Lifetime = NumberRange.new(0.2, 0.4),
+			Size = seq(1.8, 2.1, 1.4),
+			Transparency = seq(0.05, 0.2, 1),
+			Lifetime = NumberRange.new(0.35, 0.6),
 			Speed = NumberRange.new(0.5, 2),
-			RotSpeed = NumberRange.new(-90, 90),
+			Rotation = NumberRange.new(-15, 15),
+		}
+	end,
+	-- Labareda pintada (flipbook 4x4 colorido): fogo "de verdade", sem tingir.
+	Blaze = function(_)
+		return {
+			Texture = TextureCatalog.FireColor4,
+			FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4,
+			FlipbookMode = Enum.ParticleFlipbookMode.OneShot,
+			Color = ColorSequence.new(Color3.new(1, 1, 1)),
+			Brightness = 2.2,
+			Size = seq(2.2, 2.6),
+			Transparency = seq(0, 0.1, 0.6),
+			Lifetime = NumberRange.new(0.45, 0.7),
+			Speed = NumberRange.new(0.5, 2.5),
+			Acceleration = Vector3.new(0, 6, 0),
+			Rotation = NumberRange.new(-10, 10),
+		}
+	end,
+	-- Arco eletrico curto (pisca e some).
+	Arc = function(p)
+		return {
+			Texture = TextureCatalog.ElectricArc,
+			Color = ColorSequence.new(p.Core, p.Halo),
+			Size = seq(1.6, 2.2),
+			Transparency = seq(0, 0.3, 1),
+			Lifetime = NumberRange.new(0.08, 0.16),
+			Speed = NumberRange.new(0, 1),
 			Rotation = NumberRange.new(0, 360),
 		}
 	end,
-	-- Fumaca (translucida, NAO aditiva).
+	-- Explosao radial de raios (um quadro grande).
+	Zap = function(p)
+		return {
+			Texture = TextureCatalog.ElectricBurst,
+			Color = ColorSequence.new(p.Core, p.Halo),
+			Size = seq(3, 6),
+			Transparency = seq(0, 1),
+			Lifetime = NumberRange.new(0.15, 0.2),
+			Speed = NumberRange.new(0, 0),
+			Rotation = NumberRange.new(0, 360),
+		}
+	end,
+	-- Anel deitado que cresce (onda de choque); deitado porque a velocidade e vertical.
+	Ring = function(p)
+		return {
+			Texture = TextureCatalog.Ring,
+			Orientation = Enum.ParticleOrientation.VelocityPerpendicular,
+			EmissionDirection = Enum.NormalId.Top,
+			SpreadAngle = Vector2.zero,
+			Color = ColorSequence.new(p.Core, p.Halo),
+			Size = seq(0.5, 8),
+			Transparency = seq(0, 1),
+			Lifetime = NumberRange.new(0.35, 0.35),
+			Speed = NumberRange.new(0.01, 0.01),
+		}
+	end,
+	-- Fumaca animada (flipbook 4x4; translucida, NAO aditiva).
 	Smoke = function(_)
 		return {
-			Texture = Lib.Textures.Smoke,
+			Texture = TextureCatalog.Smoke4,
+			FlipbookLayout = Enum.ParticleFlipbookLayout.Grid4x4,
+			FlipbookMode = Enum.ParticleFlipbookMode.OneShot,
 			Color = ColorSequence.new(Color3.fromRGB(60, 52, 58), Color3.fromRGB(30, 28, 32)),
 			LightEmission = 0,
 			Brightness = 1,

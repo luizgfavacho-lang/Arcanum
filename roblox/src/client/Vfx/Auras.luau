@@ -138,6 +138,22 @@ local FACTORIES: { [string]: Factory } = {
 			)
 		end)
 	end,
+	-- Encharcado: gotas pingando e brilho umido (prepara Conducao e Vaporizar).
+	Wet = function(root)
+		return attachmentWith(root, function(a)
+			a.Position = Vector3.new(0, 1.2, 0)
+			local water = Schools.Electricity
+			Lib.emitter(a, "Spark", water, {
+				Color = ColorSequence.new(Color3.fromRGB(190, 225, 255), Color3.fromRGB(90, 150, 230)),
+				Rate = 14,
+				Brightness = 1.2,
+				Size = Lib.seq(0.18, 0.1),
+				Speed = NumberRange.new(0, 0.5),
+				Acceleration = Vector3.new(0, -40, 0),
+				Lifetime = NumberRange.new(0.35, 0.6),
+			})
+		end)
+	end,
 	-- Fraqueza: fiapos escuros caindo.
 	Weakened = function(root)
 		return attachmentWith(root, function(a)

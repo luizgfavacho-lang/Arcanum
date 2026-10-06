@@ -14,9 +14,10 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 
 ## Mapa (`roblox/`)
 ```
-src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK, CombatMath),
-             Config/, SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
-             SoundCatalog (ids da biblioteca oficial do Roblox/ProSoundEffects), Units, Signal
+src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK, CombatMath,
+             ComboMath), Config/, SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
+             SoundCatalog (ids da biblioteca oficial do Roblox/ProSoundEffects), TextureCatalog (imagens publicas
+             da Caixa de ferramentas: circulos magicos, aneis, flipbooks de fogo/fumaca, raios), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
              Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard, Zone, Barrage,
              Buff, Movement, Control, Beam, Melee, Summon),
@@ -24,7 +25,7 @@ src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, S
              MinionBrain, RigAnimator, CollisionGroups)
 src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx, Grimoire) e
              Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
-             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx)
+             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx, Impact)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -75,5 +76,13 @@ tests/       Lune (*.spec.luau + TestKit)
   equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift (passo arcano animado: `Vfx/DodgeAnim`) com invulnerabilidade
   e esquiva perfeita (+mana). Regras em `Math/CombatMath` (testado).
 - **Modo de teste ligado:** `CombatSettings.DevInfiniteResources` (mana e vida infinitas) e `DevNoCooldowns` (magias sem recarga) = true. Desligar antes de publicar.
-- `lune run tests` = 323 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório e corpos das criaturas. Polimento ainda não visto no Studio.
+- **Reações entre escolas** (`Math/ComboMath`, aplicadas no `DamageService`): golpe direto de uma escola num alvo
+  com certo estado → Sobrecarga (Fogo×Paralisado / Raio×Queimando: explode), Vaporizar (Fogo×Encharcado ×1,5),
+  Condução (Raio×Encharcado: arcos para outros encharcados), Ruptura (Energia×Paralisado ×1,4, quebra a paralisia),
+  Colheita (Necro×Sangrando: cura), Contágio (Sangue×Envenenado: espalha). Recarga de 0,6 s por alvo; Chuva Rubra
+  encharca. Visual/texto/som em `client/Vfx/Impact` (+ hit-stop nas criaturas e clarão de tela nos golpes grandes).
+- **Visual:** texturas de `TextureCatalog` (fogo e fumaça em flipbook, círculo mágico por escola via `Lib.groundDecal`
+  em SurfaceGui com brilho, anéis de choque, arcos elétricos); gesto do cajado por tipo de magia (`Vfx/Staff`:
+  Raise/Slam/Sweep/Thrust).
+- `lune run tests` = 351 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas e reações. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.

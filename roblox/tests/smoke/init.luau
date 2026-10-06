@@ -181,12 +181,18 @@ local function load(path: string, scriptRef)
 end
 
 -- Arvore virtual: script.Parent.X -> chaves
-local Shared = { Schools = "Schools", StaffPose = "StaffPose", SoundCatalog = "SoundCatalog" }
+local Shared = {
+	Schools = "Schools",
+	StaffPose = "StaffPose",
+	SoundCatalog = "SoundCatalog",
+	TextureCatalog = "TextureCatalog",
+}
 services.ReplicatedStorage = { Shared = Shared }
 services.SoundService = dataModel:GetService("SoundService")
 modules.Schools = load("shared/Schools.luau", {})
 modules.StaffPose = load("shared/StaffPose.luau", {})
 modules.SoundCatalog = load("shared/SoundCatalog.luau", {})
+modules.TextureCatalog = load("shared/TextureCatalog.luau", {})
 
 local vfxScript = {
 	Parent = {
@@ -538,6 +544,39 @@ for _, rowName in { "SkeletonMage", "CrystalGolem", "SkeletonServant", "BruteSer
 	creatureCount += #rig:GetDescendants()
 end
 print(string.format("Criaturas: ok (%d pecas)", creatureCount))
+
+-- Impacto: hit-stop (congela e solta), clarao de tela e o visual de cada reacao entre escolas.
+modules.Creatures = Creatures
+modules.Numbers = Numbers
+local impactScript = {
+	Parent = {
+		Lib = "Lib",
+		Effects = "Effects",
+		Lightning = "Lightning",
+		Creatures = "Creatures",
+		Numbers = "Numbers",
+		Audio = "Audio",
+	},
+}
+local Impact = load("client/Vfx/Impact.luau", impactScript)
+local frozen = enemiesFolder:GetChildren()[1]
+Impact.hit(frozen, 9, true, false)
+Creatures.debugStep(frozen, 1 / 60) -- congelado: nao anima
+Impact.screenFlash(Lib.palette("Fire").Halo, 0.7)
+assert(lighting:FindFirstChild("ArcanumImpactFlash"), "sem efeito de clarao")
+local ComboMath = load("shared/Math/ComboMath.luau", {})
+for _, r in ComboMath.Reactions do
+	Impact.reaction({
+		Id = r.Id,
+		Label = r.Label,
+		Target = frozen,
+		Position = V.new(0, 3, 0),
+		Radius = 5,
+		Targets = { V.new(4, 3, 0), V.new(-4, 3, 2) },
+		Source = fakeCaster,
+	}, true)
+end
+print(string.format("Impacto: ok (%d reacoes)", #ComboMath.Reactions))
 
 -- Esquiva: animacao procedural num R15 com quadril, joelho e ombro + linhas de velocidade.
 local DodgeAnim = load("client/Vfx/DodgeAnim.luau", vfxScript)

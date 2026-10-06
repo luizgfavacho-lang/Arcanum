@@ -163,6 +163,10 @@ local function tick(zone: Zone, now: number)
 		return -- dano so na implosao
 	else
 		for _, target in hostilesIn(zone) do
+			if mode == "Rain" then
+				-- Encharcado: prepara Conducao (eletricidade x1,5) e Vaporizar (fogo).
+				StatusService.apply(target, States.Wet, 4, { Source = ctx.Caster })
+			end
 			Context.damage(ctx, target, row.Damage * (if mode == "Rain" then zone.Tick else 1))
 			Context.tryProc(ctx, target)
 		end

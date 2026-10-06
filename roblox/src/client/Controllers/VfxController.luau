@@ -25,6 +25,7 @@ local DodgeAnim = require(Vfx.DodgeAnim)
 local SpellFx = require(Vfx.SpellFx)
 local ZoneFx = require(Vfx.ZoneFx)
 local StrikeFx = require(Vfx.StrikeFx)
+local Impact = require(Vfx.Impact)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -155,7 +156,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 			return
 		end
 		local palette = Lib.palette(p.School)
-		Staff.cast(p.Caster, palette)
+		Staff.cast(p.Caster, palette, p.SpellId)
 		Effects.castSignature(p.Caster, palette, p.Tier or 1)
 		local muzzle = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or Vector3.zero)
 		SpellFx.flourish(p.SpellId, p.Caster, palette, muzzle, p.School)
@@ -522,6 +523,10 @@ local HANDLERS: { [string]: (any) -> () } = {
 		end
 		if isMine(p.Source) and not p.Periodic then
 			HudController.hitmarker(p.Killed == true)
+			Impact.hit(target, p.Amount, true, p.Killed == true)
+			if p.Amount >= 8 or p.Killed then
+				Impact.screenFlash(Lib.palette(p.School).Halo, if p.Killed then 0.45 else 0.3)
+			end
 		end
 		if isMine(target) then
 			CameraController.shake(math.clamp(p.Amount / 8, 0.15, 0.6))
@@ -529,6 +534,14 @@ local HANDLERS: { [string]: (any) -> () } = {
 			if not p.Periodic then
 				Audio.play("Hurt", nil)
 			end
+		end
+	end,
+
+	-- Reacao entre escolas (Math/ComboMath): visual, texto e som proprios.
+	Reaction = function(p)
+		Impact.reaction(p, isMine(p.Source))
+		if isMine(p.Source) then
+			CameraController.shake(0.35)
 		end
 	end,
 
