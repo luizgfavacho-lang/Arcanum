@@ -233,7 +233,7 @@ function Lib.emitter(parent: Instance, preset: string, palette: Palette, overrid
 	local e = Instance.new("ParticleEmitter")
 	e.LightEmission = 1
 	e.LightInfluence = 0
-	e.Brightness = 2
+	e.Brightness = 3.5 -- acima do limite do bloom: a magia brilha, o cenario nao
 	e.SpreadAngle = Vector2.new(180, 180)
 	e.Rate = 0
 	for key, value in PRESETS[preset](palette) do

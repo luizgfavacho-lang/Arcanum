@@ -53,6 +53,10 @@ local function attach(
 	material: Enum.Material,
 	props: { [string]: any }?
 ): Part
+	-- Corpo de criatura nao brilha (o bloom forte e para as magias): so os olhos ficam em Neon.
+	if material == Enum.Material.Neon and not name:match("^Eye") then
+		material = Enum.Material.SmoothPlastic
+	end
 	local p = Instance.new("Part")
 	p.Name = name
 	p.Size = size

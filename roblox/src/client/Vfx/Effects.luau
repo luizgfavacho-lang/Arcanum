@@ -37,7 +37,7 @@ function Effects.flash(position: Vector3, palette: Lib.Palette, scale: number, w
 	local light = Instance.new("PointLight")
 	light.Color = palette.Halo
 	light.Range = scale * 10
-	light.Brightness = math.clamp(scale * 2, 1, 4) -- claroes pequenos iluminam pouco
+	light.Brightness = math.clamp(scale * 3.5, 1.5, 6) -- claroes pequenos iluminam pouco
 	light.Parent = halo
 
 	Lib.burst(position, "Glow", palette, 1, { Size = Lib.seq(scale * 4, 0) })

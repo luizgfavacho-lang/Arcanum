@@ -280,8 +280,9 @@ local function ensure(className: string, name: string): Instance
 end
 
 local function setupLighting()
-	-- Fim de tarde: luz quente, sombras frias (Docs/03). Bloom so no que e brilhante de verdade
-	-- (Neon, efeitos): limite alto para superficies claras ao sol nao "estourarem".
+	-- Fim de tarde: luz quente, sombras frias (Docs/03). Bloom FORTE, mas so no que emite luz de
+	-- verdade (Neon e particulas das magias, que passam de 1,6). Superficies iluminadas pelo sol,
+	-- como corpos e roupas, ficam abaixo do limite e aparecem normais.
 	Lighting.ClockTime = 16.8
 	Lighting.GeographicLatitude = 35
 	Lighting.Brightness = 2.6
@@ -301,9 +302,9 @@ local function setupLighting()
 	atmosphere.Decay = Color3.fromRGB(120, 96, 156)
 
 	local bloom = ensure("BloomEffect", "ArcanumBloom") :: BloomEffect
-	bloom.Intensity = 0.8
-	bloom.Size = 24
-	bloom.Threshold = 1.2
+	bloom.Intensity = 1.4
+	bloom.Size = 32
+	bloom.Threshold = 1.6
 
 	local grading = ensure("ColorCorrectionEffect", "ArcanumGrading") :: ColorCorrectionEffect
 	grading.Saturation = -0.12
