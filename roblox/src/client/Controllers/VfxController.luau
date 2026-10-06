@@ -216,6 +216,65 @@ local HANDLERS: { [string]: (any) -> () } = {
 		if isMine(p.Caster) then
 			CameraController.shake(0.04)
 		end
+		if math.random() < 0.35 then
+			Audio.play("Chain", points[#points])
+		end
+	end,
+
+	-- Raio Invocado: raio do ceu no ponto mirado.
+	Strike = function(p)
+		local palette = Lib.palette(p.School)
+		local sky = p.Position + Vector3.new(math.random(-8, 8), 70, math.random(-8, 8))
+		Lightning.bolt(sky, p.Position, palette, { Width = 0.6, Forks = 5, Flickers = 4, Duration = 0.35 })
+		Lightning.braid(sky, p.Position, palette, 5, 0.2)
+		Effects.flash(p.Position + Vector3.new(0, 1, 0), palette, 3.5, true)
+		Effects.shockwave(Lib.groundBelow(p.Position + Vector3.new(0, 2, 0), nil), palette, p.Radius)
+		Lib.burst(p.Position, "Spark", palette, 30)
+		Audio.play("Strike", p.Position)
+		shakeNear(p.Position, 0.7, 90)
+	end,
+
+	-- Nova Flamejante / Pulso Arcano: explosao em volta do conjurador.
+	Nova = function(p)
+		local palette = Lib.palette(p.School)
+		local ground = Lib.groundBelow(p.Position, p.Caster)
+		Effects.flash(p.Position, palette, 3, true)
+		Effects.shockwave(ground + Vector3.new(0, 0.1, 0), palette, p.Radius)
+		task.delay(0.08, Effects.shockwave, ground + Vector3.new(0, 0.6, 0), palette, p.Radius * 0.7)
+		if p.School == "Fire" then
+			Lib.burst(
+				p.Position,
+				"Flame",
+				palette,
+				24,
+				{ Speed = NumberRange.new(10, 22), Size = Lib.seq(2.6, 1.4, 0) }
+			)
+			Lib.burst(p.Position, "Ember", palette, 30, { Speed = NumberRange.new(10, 24) })
+		else
+			Lib.burst(p.Position, "Star", palette, 30, { Speed = NumberRange.new(12, 26) })
+			Lib.burst(p.Position, "Wisp", palette, 20, { Speed = NumberRange.new(6, 12) })
+		end
+		Audio.play(if p.School == "Fire" then "Nova" else "Impact_Energy", p.Position)
+		shakeNear(p.Position, 0.5, 60)
+		if isMine(p.Caster) then
+			CameraController.kick(4)
+		end
+	end,
+
+	-- Espinhos Carmesins: fileira de espinhos rompendo o chao.
+	SpellLine = function(p)
+		local palette = Lib.palette(p.School)
+		Effects.crystalSpikes(p.From, p.To, p.Width, palette)
+		Audio.play("SpellLine", p.From)
+		shakeNear((p.From + p.To) / 2, 0.35, 50)
+	end,
+
+	-- Criatura zombando (gargalhada do Ossomante).
+	Taunt = function(p)
+		local root = p.Model and Lib.rootPosition(p.Model)
+		if root then
+			Audio.play("Taunt", root)
+		end
 	end,
 
 	ChannelEnd = function(_) end,
@@ -236,6 +295,9 @@ local HANDLERS: { [string]: (any) -> () } = {
 		if isMine(target) then
 			CameraController.shake(math.clamp(p.Amount / 8, 0.15, 0.6))
 			HudController.hurt(p.Amount)
+			if not p.Periodic then
+				Audio.play("Hurt", nil)
+			end
 		end
 	end,
 
@@ -254,6 +316,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		local palette = Lib.palette(p.School)
 		if p.Kind == "Slam" then
 			trackTelegraph(p.Model, Effects.dangerZone(p.Position, p.Radius, p.Duration, DANGER), p.Duration)
+			Audio.play("SlamWindup", p.Position)
 		elseif p.Kind == "Explode" then
 			if p.Model and p.Model.Parent then
 				pulseWarning(p.Model, p.Duration, palette.Halo)
@@ -261,8 +324,10 @@ local HANDLERS: { [string]: (any) -> () } = {
 			local root = (p.Model and Lib.rootPosition(p.Model)) or p.Position
 			local ground = Lib.groundBelow(root, p.Model)
 			trackTelegraph(p.Model, Effects.dangerZone(ground, p.Radius, p.Duration, DANGER), p.Duration)
+			Audio.play("Fuse", root)
 		elseif p.Kind == "Line" then
 			trackTelegraph(p.Model, Effects.dangerLine(p.From, p.To, p.Width, p.Duration, DANGER), p.Duration)
+			Audio.play("SlamWindup", p.From)
 		elseif p.Kind == "Pounce" then
 			-- O agachamento vem do atributo Windup (Vfx/Creatures); aqui so poeira e brilho.
 			local root = p.Model and Lib.rootPosition(p.Model)
@@ -280,6 +345,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 				8,
 				{ Speed = NumberRange.new(-6, -3), Lifetime = NumberRange.new(0.2, 0.3) }
 			)
+			Audio.play("EnemyCharge", gem)
 		end
 	end,
 
@@ -311,19 +377,21 @@ local HANDLERS: { [string]: (any) -> () } = {
 			Lib.burst(root, "Star", palette, 10)
 			shakeNear(root, 0.25, 40)
 		end
+		Audio.play("Stagger", root)
 	end,
 
 	Pounce = function(p)
 		local palette = Lib.palette(p.School)
 		Lib.burst(p.Position, "Smoke", palette, 6, { Speed = NumberRange.new(3, 7) })
 		Lib.burst(p.Position + Vector3.new(0, 0.5, 0), "Star", palette, 6)
+		Audio.play("Pounce", p.Position)
 	end,
 
 	Spikes = function(p)
 		local palette = Lib.palette(p.School)
 		Effects.crystalSpikes(p.From, p.To, p.Width, palette)
 		shakeNear((p.From + p.To) / 2, 0.5, 60)
-		Audio.play("Impact_" .. tostring(p.School), p.From)
+		Audio.play("Spikes", p.From)
 	end,
 
 	-- Chefe enfurecido: rugido com duas ondas e tremor forte.
@@ -340,6 +408,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		task.delay(0.35, Effects.shockwave, ground, palette, 26)
 		Lib.burst(root, "Wisp", palette, 40, { Speed = NumberRange.new(6, 14) })
 		shakeNear(root, 1, 120)
+		Audio.play("Roar", root)
 		local highlight = Instance.new("Highlight")
 		highlight.FillColor = palette.Halo
 		highlight.FillTransparency = 0.8
@@ -366,6 +435,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		if isMine(model) then
 			HudController.notice("ESQUIVA PERFEITA!  +mana", DODGE)
 			CameraController.kick(-3)
+			Audio.play("PerfectDodge", nil)
 		end
 	end,
 
@@ -376,6 +446,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Lib.burst(p.Position, "Smoke", palette, 14, { Speed = NumberRange.new(6, 14) })
 		Lib.burst(p.Position + Vector3.new(0, 1, 0), "Star", palette, 20, { Speed = NumberRange.new(10, 22) })
 		shakeNear(p.Position, 0.7, 70)
+		Audio.play("Slam", p.Position)
 	end,
 
 	Explosion = function(p)
@@ -389,7 +460,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 			Lightning.bolt(p.Position, to, palette, { Width = 0.2, Forks = 1, Flickers = 2, Duration = 0.18 })
 		end
 		Lib.burst(p.Position, "Spark", palette, 30)
-		Audio.play("Impact_" .. tostring(p.School), p.Position)
+		Audio.play("Explosion", p.Position)
 		shakeNear(p.Position, 0.8, 70)
 	end,
 
@@ -399,10 +470,12 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Effects.flash(p.To, palette, 1.8, true)
 		Lib.burst(p.From, "Wisp", palette, 16, { Speed = NumberRange.new(3, 8) })
 		Lib.burst(p.To, "Star", palette, 14)
+		Audio.play("Blink", p.From)
 	end,
 
 	Impact = function(p)
 		Effects.flash(p.Position, Lib.palette(p.School), p.Scale or 1, false)
+		Audio.play("Impact_" .. tostring(p.School), p.Position, 0.7)
 	end,
 
 	Death = function(p)
@@ -411,6 +484,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		end
 		if p.Model and p.Model.Parent then
 			dissolve(p.Model, Lib.palette(p.School), p.Boss == true)
+			Audio.play("Death_" .. tostring(p.Model:GetAttribute("Creature")), Lib.rootPosition(p.Model))
 		end
 	end,
 }
@@ -501,6 +575,18 @@ function VfxController.start()
 		tintSelected()
 		Audio.play("Select", nil)
 	end)
+	local function watchDeath(character: Model)
+		local humanoid = character:WaitForChild("Humanoid", 10) :: Humanoid?
+		if humanoid then
+			humanoid.Died:Connect(function()
+				Audio.play("PlayerDeath", nil)
+			end)
+		end
+	end
+	if player.Character then
+		task.spawn(watchDeath, player.Character)
+	end
+	player.CharacterAdded:Connect(watchDeath)
 	player.CharacterAdded:Connect(function(character)
 		character:WaitForChild("ArcanumStaff", 10)
 		task.wait(0.2)

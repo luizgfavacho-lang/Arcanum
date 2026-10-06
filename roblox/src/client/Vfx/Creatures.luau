@@ -11,6 +11,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
+local Audio = require(script.Parent.Audio)
 local MotorOverlay = require(script.Parent.MotorOverlay)
 
 local Creatures = {}
@@ -35,6 +36,7 @@ type Entry = {
 	Look: Vector2, -- (yaw, pitch) atual da cabeca
 	Windup: any,
 	WindupStart: number,
+	Awareness: any,
 }
 
 local entries: { [Model]: Entry } = {}
@@ -74,6 +76,7 @@ local function track(model: Model)
 		Look = Vector2.zero,
 		Windup = nil,
 		WindupStart = 0,
+		Awareness = model:GetAttribute("Awareness"),
 	}
 	entries[model] = entry
 end
@@ -226,6 +229,14 @@ local function step(dt: number)
 		if windup ~= entry.Windup then
 			entry.Windup = windup
 			entry.WindupStart = now
+		end
+		-- Avistou alguem ("!"): som proprio de cada criatura.
+		local awareness = model:GetAttribute("Awareness")
+		if awareness ~= entry.Awareness then
+			entry.Awareness = awareness
+			if awareness == "Alert" and entry.Root then
+				Audio.play("Alert_" .. entry.Kind, entry.Root.Position)
+			end
 		end
 		if entry.Kind == "Slime" then
 			animateSlime(entry, now, dt)

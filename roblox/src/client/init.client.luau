@@ -4,7 +4,17 @@
 
 local Controllers = script.Controllers
 
-for _, name in { "ClientState", "CameraController", "HudController", "EnemyBars", "VfxController", "InputController" } do
+for _, name in
+	{
+		"ClientState",
+		"CameraController",
+		"HudController",
+		"EnemyBars",
+		"VfxController",
+		"GrimoireController",
+		"InputController",
+	}
+do
 	local ok, err = pcall(function()
 		local controller = require(Controllers:FindFirstChild(name) :: ModuleScript) :: any
 		if controller.start then

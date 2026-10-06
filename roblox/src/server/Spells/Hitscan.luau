@@ -6,7 +6,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Net = require(Shared.Net)
 local Units = require(Shared.Units)
-local DamageService = require(script.Parent.Parent.Services.DamageService)
 local Targeting = require(script.Parent.Parent.Combat.Targeting)
 local Context = require(script.Parent.Context)
 
@@ -30,11 +29,8 @@ function Hitscan.cast(ctx: Context.Context)
 	if not target then
 		return
 	end
-	local dealt = Context.damage(ctx, target, row.Damage)
+	Context.damage(ctx, target, row.Damage) -- cura do Drenar Vida: Context.damage
 	Context.tryProc(ctx, target)
-	if row.HealFraction > 0 and dealt > 0 then
-		DamageService.heal(ctx.Caster, dealt * row.HealFraction)
-	end
 end
 
 return Hitscan

@@ -3,7 +3,7 @@
 -- Os NUMEROS ficam em Data/Spells.luau (gerado do CSV). Aqui so: tipo, estado aplicado e visual.
 -- Modulo puro (sem servicos do Roblox) para rodar nos testes.
 
-export type Kind = "Projectile" | "Hitscan" | "ChainLightning"
+export type Kind = "Projectile" | "Hitscan" | "ChainLightning" | "Strike" | "Nova" | "Line"
 
 export type Def = {
 	Kind: Kind,
@@ -11,6 +11,7 @@ export type Def = {
 	Homing: boolean?, -- projeteis teleguiados
 	SpreadDegrees: number?, -- leque quando Count > 1
 	Visual: string?, -- "Bolt", "LifeStream", "Orb"...
+	DestroysProjectiles: boolean?, -- Nova que apaga projeteis hostis em volta
 }
 
 local Catalog: { [string]: Def } = {
@@ -25,6 +26,13 @@ local Catalog: { [string]: Def } = {
 	},
 	ChainLightning = { Kind = "ChainLightning", ProcState = "Paralyzed" },
 	LifeDrain = { Kind = "Hitscan", Visual = "LifeStream" },
+	-- Circulo II (Grimorio)
+	SummonedBolt = { Kind = "Strike", ProcState = "Paralyzed" }, -- raio do ceu no ponto mirado
+	MagmaLance = { Kind = "Projectile", Visual = "Lance" }, -- veloz, perfura MaxTargets
+	FlameNova = { Kind = "Nova", ProcState = "Burning" }, -- explosao em volta, empurra
+	ArcanePulse = { Kind = "Nova", DestroysProjectiles = true }, -- empurra e apaga projeteis
+	WanderingSouls = { Kind = "Projectile", Homing = true, SpreadDegrees = 40, Visual = "Soul" }, -- cura
+	CrimsonSpikes = { Kind = "Line", ProcState = "Bleeding" }, -- fileira de espinhos, arremessa
 }
 
 -- Barra inicial do jogador (fatia vertical). Lamina de Sangue entra no M1 (T-06).

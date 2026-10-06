@@ -16,11 +16,11 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 ```
 src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK, CombatMath),
              Config/, SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
-             SoundCatalog (ids de som; vazios = silencio), Units, Signal
+             SoundCatalog (ids da biblioteca oficial do Roblox/ProSoundEffects), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
-             Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning),
+             Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area),
              Combat/ (Targeting, Modifiers, StaffBuilder)
-src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx) e
+src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx, Grimoire) e
              Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
              Creatures, DodgeAnim, MotorOverlay)
 tests/       Lune (*.spec.luau + TestKit)
@@ -56,12 +56,15 @@ tests/       Lune (*.spec.luau + TestKit)
   num Sandbox com Terrain, árvores, ruína e cristais. Cajados estilizados com IK nas duas mãos, estocada
   com antecipação/mola, câmera de ombro esquerdo com tremor e kick de FOV, mira dinâmica com marcador de
   acerto, HUD completo (barras com trilha, slots com custo/recarga/falha, XP, nível), barras de inimigo e
-  de chefe. Sem assistência de mira. Sons: ganchos prontos, ids vazios em `SoundCatalog`.
+  de chefe. Sem assistência de mira. Sons em todos os eventos (`SoundCatalog`, cortados por `Max`).
+- **Grimório (G):** 42 magias por escola (as não implementadas como "Em breve"), detalhes do CSV e equipar
+  nos slots (botões ou 1–5). 11 magias jogáveis: as 5 iniciais + Raio Invocado, Lança de Magma, Nova
+  Flamejante, Pulso Arcano, Almas Errantes, Espinhos Carmesins (tipos Strike/Nova/Line em `Spells/Area`).
 - **Combate** (RT-02+): criaturas com corpo proprio (`Combat/CreatureBuilder`: esqueleto de capuz, gosmas
   gelatinosas, bulbo flutuante, golem de cristal) animadas no cliente (`Vfx/Creatures`). IA em
   `EnemyBrain`: estados Idle/Alert/Combat/Search/Return/Flee, personalidade por individuo, bando, flanco,
   desvio de magias; ataques telegrafados (bote, rajada, pancada, linha de cristais, explosao) que o
   equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift (passo arcano animado: `Vfx/DodgeAnim`) com invulnerabilidade
   e esquiva perfeita (+mana). Regras em `Math/CombatMath` (testado).
-- `lune run tests` = 151 ok; `tests/smoke` valida efeitos, cajado, mundo, HUD e corpos das criaturas. Polimento ainda não visto no Studio.
-- Próximo: R1 — tarefas RT-01, RT-03..RT-05 em `Docs/07-Roblox.md` §5.
+- `lune run tests` = 172 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório e corpos das criaturas. Polimento ainda não visto no Studio.
+- Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.

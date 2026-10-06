@@ -2,6 +2,7 @@
 -- Teclas 1-5 conjuram o slot; clique esquerdo conjura o slot selecionado; roda do mouse troca.
 -- Canalizadas: segurar envia a mira a cada 0,1 s; soltar encerra.
 -- Controle: RT conjura o selecionado, LB/RB trocam.
+-- G: abre/fecha o Grimorio (com ele aberto, 1-5 equipam a magia selecionada).
 -- Q / Shift esquerdo / B: esquiva na direcao do movimento (parado: para tras). O impulso e aplicado
 -- aqui mesmo (o cliente e dono da fisica do personagem); o servidor so abre a invulnerabilidade.
 
@@ -18,6 +19,7 @@ local Settings = require(Shared.Config.CombatSettings)
 local SpellCatalog = require(Shared.SpellCatalog)
 local CameraController = require(script.Parent.CameraController)
 local ClientState = require(script.Parent.ClientState)
+local GrimoireController = require(script.Parent.GrimoireController)
 local HudController = require(script.Parent.HudController)
 local VfxController = require(script.Parent.VfxController)
 
@@ -116,6 +118,10 @@ local function release(slot: number)
 end
 
 local function handle(slot: number, state: Enum.UserInputState)
+	if ClientState.GrimoireOpen then
+		release(slot)
+		return
+	end
 	if state == Enum.UserInputState.Begin then
 		press(slot)
 	elseif state == Enum.UserInputState.End or state == Enum.UserInputState.Cancel then
@@ -126,6 +132,10 @@ end
 function InputController.start()
 	for slot, key in SLOT_KEYS do
 		ContextActionService:BindAction("ArcanumSlot" .. slot, function(_, state)
+			if ClientState.GrimoireOpen and state == Enum.UserInputState.Begin then
+				ClientState.SlotKey:Fire(slot)
+				return Enum.ContextActionResult.Sink
+			end
 			handle(slot, state)
 			return Enum.ContextActionResult.Sink
 		end, false, key)
@@ -147,6 +157,14 @@ function InputController.start()
 		end
 		return Enum.ContextActionResult.Sink
 	end, false, Enum.KeyCode.ButtonL1, Enum.KeyCode.ButtonR1)
+
+	ContextActionService:BindAction("ArcanumGrimoire", function(_, state)
+		if state == Enum.UserInputState.Begin then
+			release(heldSlot or 0) -- solta canalizacao em andamento
+			GrimoireController.toggle()
+		end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.KeyCode.G, Enum.KeyCode.ButtonSelect)
 
 	ContextActionService:BindAction("ArcanumDodge", function(_, state)
 		if state == Enum.UserInputState.Begin then

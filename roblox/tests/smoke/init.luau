@@ -161,6 +161,18 @@ local function load(path: string, scriptRef)
 	if path:find("Creatures") then
 		source = source:gsub("([%w_]+)%.AssemblyLinearVelocity", "VELOCITY(%1)")
 	end
+	-- Som nao toca no Lune: valida so as propriedades do Sound.
+	if path:find("Vfx/Audio") then
+		source = source:gsub("sound:Play%(%)", "")
+		source = source:gsub("sound%.Ended", "SIGNAL")
+	end
+	-- Eventos de botao nao existem nas instancias do Lune.
+	if path:find("GrimoireController") then
+		for _, event in { "Activated", "MouseEnter", "MouseLeave" } do
+			source = source:gsub("[%w_%.]+%." .. event .. ":Connect", "SIGNAL:Connect")
+		end
+		source = source:gsub("camera%.ViewportSize", "Vector2.new(1920, 1080)") -- tela nao simulada
+	end
 	if path:find("HudController") then
 		source = source:gsub("player%.CharacterAdded", "SIGNAL")
 		source = source:gsub("player%.Character%f[^%w_]", "nil")
@@ -169,16 +181,29 @@ local function load(path: string, scriptRef)
 end
 
 -- Arvore virtual: script.Parent.X -> chaves
-local Shared = { Schools = "Schools", StaffPose = "StaffPose" }
+local Shared = { Schools = "Schools", StaffPose = "StaffPose", SoundCatalog = "SoundCatalog" }
 services.ReplicatedStorage = { Shared = Shared }
+services.SoundService = dataModel:GetService("SoundService")
 modules.Schools = load("shared/Schools.luau", {})
 modules.StaffPose = load("shared/StaffPose.luau", {})
+modules.SoundCatalog = load("shared/SoundCatalog.luau", {})
 
-local vfxScript =
-	{ Parent = { Lib = "Lib", Effects = "Effects", Lightning = "Lightning", MotorOverlay = "MotorOverlay" } }
+local vfxScript = {
+	Parent = {
+		Lib = "Lib",
+		Effects = "Effects",
+		Lightning = "Lightning",
+		MotorOverlay = "MotorOverlay",
+		Audio = "Audio",
+	},
+}
 modules.Lib = load("client/Vfx/Lib.luau", vfxScript)
 modules.Effects = load("client/Vfx/Effects.luau", vfxScript)
 modules.Lightning = load("client/Vfx/Lightning.luau", vfxScript)
+modules.Audio = load("client/Vfx/Audio.luau", vfxScript)
+for name in modules.SoundCatalog do
+	modules.Audio.play(name, if #name % 2 == 0 then roblox.Vector3.new(0, 2, 0) else nil)
+end
 local Projectiles = load("client/Vfx/Projectiles.luau", vfxScript)
 local LifeStream = load("client/Vfx/LifeStream.luau", vfxScript)
 local Numbers = load("client/Vfx/Numbers.luau", vfxScript)
@@ -211,7 +236,7 @@ root.Name = "HumanoidRootPart"
 root.CFrame = roblox.CFrame.new(0, 3, 0)
 root.Size = V.new(2, 2, 1)
 root.Parent = fakeCaster
-for _, spellId in { "Fireball", "ArcaneMissile", "Outra" } do
+for _, spellId in { "Fireball", "ArcaneMissile", "MagmaLance", "WanderingSouls", "Outra" } do
 	Projectiles.spawn({
 		Id = spellId,
 		SpellId = spellId,
@@ -294,7 +319,15 @@ services.Players = {
 		return {}
 	end,
 }
-local SharedFull = { Schools = "Schools", StaffPose = "StaffPose", SpellCatalog = "SpellCatalog", Spells = "Spells" }
+local SharedFull = {
+	Schools = "Schools",
+	StaffPose = "StaffPose",
+	SpellCatalog = "SpellCatalog",
+	Spells = "Spells",
+	SoundCatalog = "SoundCatalog",
+	Net = "Net",
+	Data = { Spells = "SpellData", SpellText = "SpellText" },
+}
 services.ReplicatedStorage = { Shared = SharedFull }
 modules.SpellCatalog = load("shared/SpellCatalog.luau", {})
 modules.Spells = {
@@ -450,6 +483,46 @@ dash.PrimaryTangentAxis = V.new(1, 0, 0)
 dash.SecondaryTangentAxis = V.new(0, 0, 1)
 dash.PlaneVelocity = roblox.Vector2.new(1, 0)
 print("Fisica: ok")
+
+-- Grimorio: monta o livro com as magias reais, abre, seleciona, equipa e fecha.
+modules.SpellData = load("shared/Data/Spells.luau", {})
+modules.SpellText = load("shared/Data/SpellText.luau", {})
+modules.Spells = load("shared/Spells.luau", { Parent = SharedFull })
+local equipped = {}
+modules.Net = {
+	get = function()
+		return {
+			FireServer = function(_, id, slot)
+				table.insert(equipped, { id, slot })
+			end,
+			OnClientEvent = signal,
+		}
+	end,
+}
+for i, id in modules.SpellCatalog.StartingSlots do
+	localPlayer:SetAttribute("Slot" .. i, id)
+end
+modules.ClientState.SlotKey = signal
+local Grimoire = load("client/Controllers/GrimoireController.luau", {
+	Parent = {
+		CameraController = "CameraController",
+		ClientState = "ClientState",
+		Parent = { Vfx = { Audio = "Audio" } },
+	},
+})
+Grimoire.start()
+Grimoire.open()
+assert(Grimoire.isOpen() and modules.CameraController.MouseFree, "Grimorio deveria abrir e soltar o mouse")
+Grimoire.debugSelect("MagmaLance")
+Grimoire.equip(2)
+assert(#equipped == 1 and equipped[1][1] == "MagmaLance" and equipped[1][2] == 2, "Grimorio nao equipou")
+Grimoire.debugSelect("Meteor") -- ainda nao implementada: nao equipa
+Grimoire.equip(3)
+assert(#equipped == 1, "magia nao implementada nao pode ser equipada")
+Grimoire.close()
+local book = playerGui:FindFirstChild("ArcanumGrimoire")
+assert(book and #book:GetDescendants() > 80, "Grimorio incompleto")
+print(string.format("Grimorio: ok (%d elementos)", #book:GetDescendants()))
 
 local count = 0
 for _ in workspaceFolder:GetDescendants() do

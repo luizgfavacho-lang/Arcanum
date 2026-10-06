@@ -192,6 +192,18 @@ function Projectile.cast(ctx: Context.Context)
 	end
 end
 
+-- Pulso Arcano: apaga projeteis de inimigos do conjurador dentro do raio. Retorna quantos.
+function Projectile.destroyHostileNear(caster: Model, center: Vector3, radius: number): number
+	local count = 0
+	for _, p in active do
+		if Targeting.isHostile(caster, p.Ctx.Caster) and (p.Position - center).Magnitude <= radius then
+			finish(p, p.Position)
+			count += 1
+		end
+	end
+	return count
+end
+
 function Projectile.start()
 	RunService.Heartbeat:Connect(function(dt)
 		for _, p in active do

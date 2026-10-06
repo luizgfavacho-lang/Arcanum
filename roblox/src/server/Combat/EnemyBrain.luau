@@ -209,6 +209,14 @@ local function play(brain: Brain, name: string, fade: number?, speed: number?)
 	end
 end
 
+-- Gargalhada (animacao + som nos clientes).
+local function taunt(brain: Brain)
+	if brain.Anims.Laugh then
+		play(brain, "Laugh", 0.2, 1.2)
+		vfx:FireAllClients("Taunt", { Model = brain.Model })
+	end
+end
+
 local function stopAnim(brain: Brain, name: string)
 	local track = brain.Anims[name]
 	if track and track.IsPlaying then
@@ -600,13 +608,6 @@ local function slamAttack(brain: Brain, attack: EnemyCatalog.Attack, damage: num
 	slamAt(0)
 end
 
-local function distanceToSegment(point: Vector3, a: Vector3, b: Vector3): number
-	local ab = flat(b - a)
-	local ap = flat(point - a)
-	local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
-	return (ap - ab * t).Magnitude
-end
-
 -- Linha de cristais do chefe ate o alvo (desvie para o lado).
 local function spikeAttack(brain: Brain, attack: EnemyCatalog.Attack, target: Model, damage: number)
 	local school = brain.Row.School
@@ -638,7 +639,7 @@ local function spikeAttack(brain: Brain, attack: EnemyCatalog.Attack, target: Mo
 		vfx:FireAllClients("Spikes", { From = from, To = to, Width = width, School = school })
 		task.wait(0.12)
 		for _, victim in Targeting.hostilesInRadius(brain.Model, (from + to) / 2, length / 2 + width) do
-			if distanceToSegment(Targeting.position(victim), from, to) <= width / 2 + 1.2 then
+			if Targeting.distanceToSegment(Targeting.position(victim), from, to) <= width / 2 + 1.2 then
 				DamageService.applySpellDamage(brain.Model, victim, damage, school)
 			end
 		end
@@ -915,7 +916,7 @@ Projectile.Launched:Connect(onProjectile)
 -- Acertou o jogador: os mais agressivos zombam (gargalhada).
 function EnemyBrain.landed(brain: Brain)
 	if brain.Anims.Laugh and not brain.Winding and math.random() < 0.3 * brain.Personality.Aggression then
-		task.delay(0.3, play, brain, "Laugh", 0.2, 1.2)
+		task.delay(0.3, taunt, brain)
 	end
 end
 
@@ -1093,7 +1094,7 @@ local function combat(brain: Brain, now: number)
 			target = other
 		else
 			stop(brain)
-			play(brain, "Laugh", 0.2, 1) -- venceu
+			taunt(brain) -- venceu
 			setState(brain, "Return")
 			return
 		end

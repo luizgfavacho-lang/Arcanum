@@ -75,7 +75,7 @@ dono → `Vfx Cast` para todos → `Projectile`/`Hitscan`/`ChainLightning` → `
 4. No Studio: **Novo → Baseplate** (ou um lugar vazio). Na aba **Plugins → Rojo → Connect**.
 5. Aperte **Play** (F5). O mapa de teste é gerado por código (`WorldService`).
 6. Controles: **1–5** magias (4 é canalizada: segure), **clique** = magia selecionada, **roda** troca,
-   **Q/Shift** esquiva, **V** troca o ombro, **Alt** solta o mouse.
+   **Q/Shift** esquiva, **G** abre o Grimório, **V** troca o ombro, **Alt** solta o mouse.
 7. Ao terminar, salve o lugar (`.rbxl`) fora do Git; o código fica no repositório.
 
 **Testes e dados:**
@@ -88,11 +88,13 @@ selene src                           # lint (gera roblox.yml na 1ª vez)
 ```
 
 ### Sons
-Os eventos sonoros já estão ligados no código (`src/shared/SoundCatalog.luau`): conjuração e impacto por
-escola, raio, drenar vida, morte, subida de nível, falha e troca de magia. Os ids vêm vazios (silêncio).
-Para preencher: Studio → **Caixa de ferramentas → Áudio** → busque o som (ex.: "fire whoosh"), prefira
-áudios publicados pelo próprio Roblox (livres para qualquer jogo), botão direito → **Copiar ID do ativo**
-e cole como `"rbxassetid://ID"` no evento correspondente.
+Todos os eventos têm som (`src/shared/SoundCatalog.luau`), escolhidos na biblioteca oficial de efeitos
+(contas **Roblox** e **ProSoundEffects**, nomes terminados em "(SFX)"; liberados para qualquer jogo):
+conjuração e impacto por escola, magias específicas, inimigos (aviso, carga, bote, pavio do Bulbo,
+pancada, cristais, rugido, gargalhada, morte por criatura), jogador (esquiva, esquiva perfeita, dano,
+queda), nível e interface do Grimório. `Max` corta arquivos longos com fade.
+Trocar um som: Studio → **Caixa de ferramentas → Áudio** → busque, botão direito → **Copiar ID do ativo**
+e cole como número no evento correspondente.
 
 ## 4. Roadmap Roblox
 
@@ -108,7 +110,7 @@ e cole como `"rbxassetid://ID"` no evento correspondente.
 | **R7 — Lançamento** | Monetização ética, tutorial, celular/console, conquistas (Badges) | Publicado |
 
 ## 5. Próximas tarefas (sessões locais com Sonnet)
-- **RT-01 Grimório:** UI para equipar magias nos 5 slots (`EquipSpell` já existe no servidor).
+- ~~**RT-01 Grimório**~~ *(feito)*: tecla G; 6 magias novas de Círculo II para ter o que equipar.
 - ~~**RT-02 IA**~~ *(feito)*: ver §6.
 - **RT-03 Lâmina de Sangue:** tipo `Melee` no catálogo; custo em vida (já suportado); sangramento.
 - **RT-04 Save:** ProfileStore com nível, XP, afinidades e slots.

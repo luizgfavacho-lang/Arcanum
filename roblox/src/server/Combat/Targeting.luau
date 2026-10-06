@@ -105,6 +105,15 @@ function Targeting.hostilesInRadius(caster: Model, position: Vector3, radius: nu
 	return result
 end
 
+-- Distancia no plano (XZ) de um ponto ate o segmento a-b (golpes em linha).
+function Targeting.distanceToSegment(point: Vector3, a: Vector3, b: Vector3): number
+	local flat = Vector3.new(1, 0, 1)
+	local ab = (b - a) * flat
+	local ap = (point - a) * flat
+	local t = math.clamp(ap:Dot(ab) / math.max(ab:Dot(ab), 1e-6), 0, 1)
+	return (ap - ab * t).Magnitude
+end
+
 -- Cadeia: cada salto vai ao hostil mais proximo do anterior, sem repetir.
 function Targeting.chain(caster: Model, first: Model, maxTargets: number, jumpRadius: number): { Model }
 	local targets = { first }

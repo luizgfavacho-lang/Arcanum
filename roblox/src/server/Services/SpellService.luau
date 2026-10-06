@@ -24,6 +24,7 @@ local Context = require(SpellsFolder.Context)
 local Hitscan = require(SpellsFolder.Hitscan)
 local Projectile = require(SpellsFolder.Projectile)
 local ChainLightning = require(SpellsFolder.ChainLightning)
+local Area = require(SpellsFolder.Area)
 
 type PlayerSpellState = {
 	Cooldowns: { [string]: number }, -- SpellId -> instante (GetServerTimeNow) em que fica pronta
@@ -157,6 +158,12 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 		Projectile.cast(ctx)
 	elseif kind == "Hitscan" then
 		Hitscan.cast(ctx)
+	elseif kind == "Strike" then
+		Area.strike(ctx)
+	elseif kind == "Nova" then
+		Area.nova(ctx)
+	elseif kind == "Line" then
+		Area.line(ctx)
 	elseif kind == "ChainLightning" then
 		state.Channel = ctx
 		ctx.OnEnded = function()

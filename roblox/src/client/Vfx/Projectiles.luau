@@ -1,7 +1,8 @@
 --!strict
 -- Visual dos projeteis. O servidor simula; aqui seguimos o mesmo trajeto (inclusive teleguiado)
--- com um estilo por magia: Bola de Fogo (chamas, brasas, fumaca) e Missil Arcano (estrelas,
--- aureola girando). Impactos: explosao de fogo ou estouro de estrelas.
+-- com um estilo por magia: Bola de Fogo (chamas, brasas, fumaca), Missil Arcano (estrelas,
+-- aureola girando), Lanca de Magma (ponta incandescente alongada) e Almas Errantes (fogos-fatuos
+-- verdes em espiral). Impactos: explosao de fogo, estouro de estrelas, respingo de magma, almas.
 
 local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
@@ -90,6 +91,39 @@ local function buildMissile(position: Vector3, palette: Lib.Palette): (BasePart,
 	return core, { core, halo }, orbit
 end
 
+local function buildLance(position: Vector3, palette: Lib.Palette): (BasePart, { BasePart }, { BasePart })
+	local core = Lib.part(Vector3.new(0.3, 0.3, 3.2), palette.Core, CFrame.new(position))
+	local shell = Lib.part(Vector3.new(0.6, 0.6, 3.8), palette.Halo, core.CFrame, { Transparency = 0.4 })
+	local tip = Lib.part(Vector3.new(0.5, 0.5, 0.9), palette.Accent, core.CFrame, { Shape = Enum.PartType.Ball })
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = core
+	Lib.emitter(attachment, "Ember", palette, { Rate = 60, Speed = NumberRange.new(1, 4) })
+	Lib.emitter(attachment, "Flame", palette, { Rate = 40, Size = Lib.seq(1, 0.5, 0) })
+	trail(core, palette, 0.7, 0.22)
+	local light = Instance.new("PointLight")
+	light.Color = palette.Halo
+	light.Range = 12
+	light.Brightness = 3
+	light.Parent = core
+	return core, { core, shell, tip }, {}
+end
+
+local function buildSoul(position: Vector3, palette: Lib.Palette): (BasePart, { BasePart }, { BasePart })
+	local core = Lib.part(Vector3.one * 0.45, palette.Core, CFrame.new(position), { Shape = Enum.PartType.Ball })
+	local halo =
+		Lib.part(Vector3.one * 1.2, palette.Halo, core.CFrame, { Shape = Enum.PartType.Ball, Transparency = 0.5 })
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = core
+	Lib.emitter(attachment, "Wisp", palette, { Rate = 40, Speed = NumberRange.new(0.2, 1) })
+	trail(core, palette, 0.9, 0.45)
+	local light = Instance.new("PointLight")
+	light.Color = palette.Halo
+	light.Range = 8
+	light.Brightness = 2
+	light.Parent = core
+	return core, { core, halo }, {}
+end
+
 local function buildDefault(position: Vector3, palette: Lib.Palette): (BasePart, { BasePart }, { BasePart })
 	local core = Lib.part(Vector3.one * 0.7, palette.Core, CFrame.new(position), { Shape = Enum.PartType.Ball })
 	local halo =
@@ -101,6 +135,8 @@ end
 local BUILDERS: { [string]: (Vector3, Lib.Palette) -> (BasePart, { BasePart }, { BasePart }) } = {
 	Fireball = buildFireball,
 	ArcaneMissile = buildMissile,
+	MagmaLance = buildLance,
+	WanderingSouls = buildSoul,
 }
 
 function Projectiles.spawn(payload: any)
@@ -196,6 +232,16 @@ local IMPACTS: { [string]: (Vector3, Lib.Palette, number) -> () } = {
 		Effects.flash(position, palette, 1.2, false)
 		Lib.burst(position, "Star", palette, 18, { Speed = NumberRange.new(8, 16) })
 	end,
+	MagmaLance = function(position, palette, _)
+		Effects.flash(position, palette, 1.8, true)
+		Lib.burst(position, "Ember", palette, 30, { Speed = NumberRange.new(10, 22) })
+		Lib.burst(position, "Spark", palette, 18)
+		scorch(position, palette, 1.8)
+	end,
+	WanderingSouls = function(position, palette, _)
+		Effects.flash(position, palette, 1, false)
+		Lib.burst(position, "Wisp", palette, 16, { Speed = NumberRange.new(3, 8) })
+	end,
 }
 
 function Projectiles.finish(payload: any)
@@ -235,6 +281,11 @@ local function step(dt: number)
 			local amplitude = 0.7 * math.clamp(age * 5, 0, 1)
 			local spin = age * 16 + visual.Seed
 			drawn = cf * CFrame.new(math.cos(spin) * amplitude, math.sin(spin) * amplitude, 0)
+		elseif visual.SpellId == "WanderingSouls" then
+			-- Fogo-fatuo: espiral larga e lenta, que ondula.
+			local amplitude = 1.1 * math.clamp(age * 3, 0, 1)
+			local spin = age * 7 + visual.Seed
+			drawn = cf * CFrame.new(math.cos(spin) * amplitude, math.sin(spin * 1.3) * amplitude * 0.7, 0)
 		elseif visual.SpellId == "Fireball" then
 			drawn = cf * CFrame.Angles(0, 0, age * 9) -- nucleo girando
 			if visual.Light then

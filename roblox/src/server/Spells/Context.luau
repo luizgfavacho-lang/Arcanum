@@ -24,10 +24,17 @@ export type Context = {
 
 local Context = {}
 
+-- Aplica o dano da magia; magias com HealFraction (Drenar Vida, Almas Errantes) curam o
+-- conjurador com essa fracao do dano causado.
 function Context.damage(ctx: Context, target: Model, baseDamage: number): number
-	return DamageService.applySpellDamage(ctx.Caster, target, baseDamage, ctx.Spell.Row.School, {
+	local row = ctx.Spell.Row
+	local dealt = DamageService.applySpellDamage(ctx.Caster, target, baseDamage, row.School, {
 		Multiplier = ctx.Mods.DamageMultiplier,
 	})
+	if row.HealFraction > 0 and dealt > 0 then
+		DamageService.heal(ctx.Caster, dealt * row.HealFraction)
+	end
+	return dealt
 end
 
 -- Rola ProcChance e aplica o estado do catalogo. exposureSeconds > 0 = chance por segundo.

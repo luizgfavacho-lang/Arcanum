@@ -14,6 +14,8 @@ ClientState.SelectedSlot = 1
 ClientState.SelectedChanged = Signal.new()
 ClientState.Cooldowns = {} :: { [string]: number } -- SpellId -> readyAt (GetServerTimeNow)
 ClientState.GcdUntil = 0
+ClientState.GrimoireOpen = false -- com o Grimorio aberto, as teclas 1-5 equipam em vez de conjurar
+ClientState.SlotKey = Signal.new() -- (slot) tecla 1-5 apertada com o Grimorio aberto
 
 function ClientState.select(slot: number)
 	ClientState.SelectedSlot = (slot - 1) % SpellCatalog.NumSlots + 1
