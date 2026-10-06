@@ -20,12 +20,12 @@ src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Dam
              da Caixa de ferramentas: circulos magicos, aneis, flipbooks de fogo/fumaca, raios), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
              Spell, Enemy, Staff), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard, Zone, Barrage,
-             Buff, Movement, Control, Beam, Melee, Summon),
+             Buff, Movement, Control, Beam, Flamethrower, Melee, Summon),
              Combat/ (Targeting, Modifiers, StaffBuilder, CreatureBuilder, EnemyCatalog, EnemyBrain,
              MinionBrain, RigAnimator, CollisionGroups)
 src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx, Grimoire) e
              Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
-             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx, Impact)
+             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx, Impact, FlameFx)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -61,7 +61,7 @@ tests/       Lune (*.spec.luau + TestKit)
   acerto, HUD completo (barras com trilha, slots com custo/recarga/falha, XP, nível), barras de inimigo e
   de chefe. Sem assistência de mira. Sons em todos os eventos (`SoundCatalog`, cortados por `Max`).
 - **Grimório (G): as 42 magias jogáveis**, seguindo as artes conceituais. Tipos (`SpellCatalog.Kind`) e quem
-  executa (`SpellService` CASTERS/CHANNELS): Projectile, Hitscan, ChainLightning, Beam (canalizadas),
+  executa (`SpellService` CASTERS/CHANNELS): Projectile, Hitscan, ChainLightning, Beam, Flamethrower (canalizadas),
   Strike/Nova/Line (`Area`), Zone (Static/Wall/Vortex/Singularity/Rain/Hourglass), Barrage
   (Storm/Stars/Meteor/Verdict/Crown), Buff (ManaShield/EmberArmor/Sacrifice/Pact), Blink/Portal
   (`Movement`), Control (Prison/Hook/Chain/DeathTouch/Curse/Hemorrhage), Lance, Slash (`Melee`), Summon
@@ -85,5 +85,8 @@ tests/       Lune (*.spec.luau + TestKit)
   em SurfaceGui com brilho, anéis de choque, arcos elétricos); gesto do cajado por tipo de magia (`Vfx/Staff`:
   Raise/Slam/Sweep/Thrust). Raio Arcano = feixe contínuo no cliente (`StrikeFx.arcaneBeam`, por quadro, segue a
   mira local) e drena ManaPerSecond (`StatsService.drainMana`; no modo de teste a mana é infinita).
-- `lune run tests` = 351 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas e reações. Polimento ainda não visto no Studio.
+  **Piromania** (id `InfernalVortex`, mantido por causa das tags da Unreal; substituiu o Vórtice Infernal) =
+  lança-chamas canalizado em cone (`Spells/Flamethrower`: 6 m, 4 dano/s em cada alvo, queima, 18 mana/s) com jato
+  contínuo em `Vfx/FlameFx`.
+- `lune run tests` = 352 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas e reações. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.

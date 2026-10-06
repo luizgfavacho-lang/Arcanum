@@ -31,6 +31,7 @@ local Buff = require(SpellsFolder.Buff)
 local Movement = require(SpellsFolder.Movement)
 local Control = require(SpellsFolder.Control)
 local Beam = require(SpellsFolder.Beam)
+local Flamethrower = require(SpellsFolder.Flamethrower)
 local Melee = require(SpellsFolder.Melee)
 local Summon = require(SpellsFolder.Summon)
 local Hazard = require(SpellsFolder.Hazard)
@@ -55,6 +56,7 @@ local CASTERS: { [string]: (Context.Context) -> () } = {
 local CHANNELS: { [string]: (Context.Context) -> () } = {
 	ChainLightning = ChainLightning.start,
 	Beam = Beam.start,
+	Flamethrower = Flamethrower.start,
 }
 
 type PlayerSpellState = {

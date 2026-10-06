@@ -53,6 +53,7 @@ return table.freeze({
 	SpellLine = s(9118617342, 0.4, 0.85, 1, 90, 1.2), -- Rock Impact Large Hit Scrape
 	-- Grimorio completo
 	StaticField = s(9114236191, 0.3, 0.95, 1.1, 80, 1.5), -- Electric Arcing 2
+	Flamethrower = s(9112780561, 0.3, 1.05, 1.15, 90, 0), -- Fire Whoosh 1 (em laco, Piromania)
 	FlameWall = s(9114446852, 0.45, 0.85, 1, 100, 1.5), -- Fire Whoosh 15
 	Vortex = s(9112780561, 0.4, 0.9, 1, 110, 3), -- Fire Whoosh 1 (longo)
 	Singularity = s(9113436640, 0.5, 0.9, 1, 120, 3), -- Big Suck Deep Groaning Build Up

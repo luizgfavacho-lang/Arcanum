@@ -325,6 +325,16 @@ StrikeFx.arcaneBeam(fakeCaster, V.new(2, 4, -20), P("Energy"), true, 70, functio
 end)
 StrikeFx.debugStepBeams(1 / 60)
 StrikeFx.arcaneBeamEnd(fakeCaster)
+local FlameFx = load("client/Vfx/FlameFx.luau", vfxScript)
+local flame = { Caster = fakeCaster, Direction = V.new(0, 0, -1), Range = 21.4, School = "Fire", Hits = {} }
+FlameFx.update(flame, nil)
+FlameFx.debugStep(1 / 60)
+flame.Hits = { V.new(0, 3, -10) }
+FlameFx.update(flame, function()
+	return V.new(5, 3, -30)
+end)
+FlameFx.debugStep(1 / 60)
+FlameFx.stop(fakeCaster)
 StrikeFx.lanceCharge(V.new(0, 4, 0), 1.2, P("Energy"))
 StrikeFx.firmamentLance(V.new(0, 4, 0), V.new(0, 4, -150), P("Energy"))
 StrikeFx.bloodSlash(fakeCaster, V.new(0, 0, -1), 15, P("Blood"))

@@ -60,6 +60,7 @@ local KNOWN_KINDS = {
 	Portal = true,
 	Control = true,
 	Beam = true,
+	Flamethrower = true,
 	Lance = true,
 	Slash = true,
 	Summon = true,

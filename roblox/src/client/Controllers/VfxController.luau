@@ -26,6 +26,7 @@ local SpellFx = require(Vfx.SpellFx)
 local ZoneFx = require(Vfx.ZoneFx)
 local StrikeFx = require(Vfx.StrikeFx)
 local Impact = require(Vfx.Impact)
+local FlameFx = require(Vfx.FlameFx)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -467,6 +468,14 @@ local HANDLERS: { [string]: (any) -> () } = {
 			end
 		end
 	end,
+	-- Piromania: lanca-chamas continuo (o proprio jogador segue a mira local).
+	Flamethrower = function(p)
+		local mine = isMine(p.Caster)
+		FlameFx.update(p, if mine then localAim else nil)
+		if mine then
+			CameraController.shake(if p.Hits and #p.Hits > 0 then 0.06 else 0.035)
+		end
+	end,
 	LanceCharge = function(p)
 		if p.Caster then
 			local gem = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or Vector3.zero)
@@ -524,6 +533,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 	ChannelEnd = function(p)
 		if p.Caster then
 			StrikeFx.arcaneBeamEnd(p.Caster)
+			FlameFx.stop(p.Caster)
 		end
 	end,
 

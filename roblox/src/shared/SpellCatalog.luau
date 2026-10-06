@@ -17,6 +17,7 @@ export type Kind =
 	| "Portal" -- Portal Arcano (Spells/Movement)
 	| "Control" -- alvo unico/area (Spells/Control): Mode Prison | Hook | Chain | DeathTouch | Curse | Hemorrhage
 	| "Beam" -- canalizada em linha (Spells/Beam)
+	| "Flamethrower" -- canalizada em cone (Spells/Flamethrower): Piromania
 	| "Lance" -- laser carregado que atravessa (Spells/Beam)
 	| "Slash" -- golpe corpo a corpo em arco (Spells/Melee)
 	| "Summon" -- servos (Spells/Summon)
@@ -65,7 +66,7 @@ local Catalog: { [string]: Def } = {
 	-- Fogo
 	FlameWall = { Kind = "Zone", Mode = "Wall", ProcState = "Burning" }, -- parede que bloqueia criaturas
 	EmberArmor = { Kind = "Buff", Mode = "EmberArmor" },
-	InfernalVortex = { Kind = "Zone", Mode = "Vortex" }, -- redemoinho que puxa e queima
+	InfernalVortex = { Kind = "Flamethrower", ProcState = "Burning" }, -- Piromania: lanca-chamas canalizado
 	Meteor = { Kind = "Barrage", Mode = "Meteor", ProcState = "Burning" },
 	DawnVerdict = { Kind = "Barrage", Mode = "Verdict" }, -- coluna solar, dano dividido
 	-- Energia
@@ -103,6 +104,6 @@ return table.freeze({
 	NumSlots = 5,
 	isChanneled = function(spellId: string): boolean
 		local def = Catalog[spellId]
-		return def ~= nil and (def.Kind == "ChainLightning" or def.Kind == "Beam")
+		return def ~= nil and (def.Kind == "ChainLightning" or def.Kind == "Beam" or def.Kind == "Flamethrower")
 	end,
 })

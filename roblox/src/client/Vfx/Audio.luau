@@ -95,4 +95,35 @@ function Audio.play(name: string, position: Vector3?, volumeScale: number?)
 	end
 end
 
+-- Som em laco preso a uma instancia (canalizadas). Quem chama para com Audio.stopLoop.
+function Audio.loop(name: string, parent: Instance): Sound?
+	local entry = (SoundCatalog :: any)[name]
+	if not entry or entry.Id == "" then
+		return nil
+	end
+	local sound = Instance.new("Sound")
+	sound.SoundId = entry.Id
+	sound.Looped = true
+	sound.Volume = 0
+	sound.PlaybackSpeed = entry.PitchMin + math.random() * (entry.PitchMax - entry.PitchMin)
+	sound.SoundGroup = mixer()
+	sound.RollOffMinDistance = 8
+	sound.RollOffMaxDistance = entry.Range
+	sound.RollOffMode = Enum.RollOffMode.InverseTapered
+	sound.Parent = parent
+	sound:Play()
+	TweenService:Create(sound, TweenInfo.new(0.1), { Volume = entry.Volume }):Play()
+	return sound
+end
+
+function Audio.stopLoop(sound: Sound?)
+	if not sound then
+		return
+	end
+	TweenService:Create(sound, TweenInfo.new(FADE), { Volume = 0 }):Play()
+	task.delay(FADE + 0.05, function()
+		sound:Destroy()
+	end)
+end
+
 return Audio

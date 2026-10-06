@@ -14,7 +14,7 @@ return table.freeze({
 	FlameNova = table.freeze({ Name = "Nova Flamejante", Desc = "Explosão de fogo em volta de você que empurra os inimigos." }),
 	EmberArmor = table.freeze({ Name = "Armadura de Brasas", Desc = "Por 20 s, você fica coberto de brasas: imune a fogo, e quem encostar ou atacar de perto pega fogo." }),
 	MagmaLance = table.freeze({ Name = "Lança de Magma", Desc = "Lança veloz que perfura até 3 alvos e abre uma poça de lava onde cai, queimando quem pisar (2 de dano/s por 4 s)." }),
-	InfernalVortex = table.freeze({ Name = "Vórtice Infernal", Desc = "Tornado de fogo que puxa e queima inimigos por 5 s." }),
+	InfernalVortex = table.freeze({ Name = "Piromania", Desc = "Canalizada. Lança-chamas de curto alcance: queima todos no cone enquanto segurar." }),
 	Meteor = table.freeze({ Name = "Meteoro", Desc = "Um meteoro devasta uma grande área." }),
 	ArcaneMissile = table.freeze({ Name = "Míssil Arcano", Desc = "Três orbes teleguiados que marcam o alvo com Carga Arcana." }),
 	ManaShield = table.freeze({ Name = "Escudo de Mana", Desc = "Por 15 s, o dano recebido é pago com mana." }),

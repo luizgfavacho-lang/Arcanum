@@ -23,8 +23,8 @@ EmberArmor.Name,Armadura de Brasas
 EmberArmor.Desc,"Por 20 s, você fica coberto de brasas: imune a fogo, e quem encostar ou atacar de perto pega fogo."
 MagmaLance.Name,Lança de Magma
 MagmaLance.Desc,"Lança veloz que perfura até 3 alvos e abre uma poça de lava onde cai, queimando quem pisar (2 de dano/s por 4 s)."
-InfernalVortex.Name,Vórtice Infernal
-InfernalVortex.Desc,Tornado de fogo que puxa e queima inimigos por 5 s.
+InfernalVortex.Name,Piromania
+InfernalVortex.Desc,Canalizada. Lança-chamas de curto alcance: queima todos no cone enquanto segurar.
 Meteor.Name,Meteoro
 Meteor.Desc,Um meteoro devasta uma grande área.
 ArcaneMissile.Name,Míssil Arcano
