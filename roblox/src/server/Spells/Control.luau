@@ -1,12 +1,15 @@
 --!strict
 -- Controle (Kind "Control"), alvo pela mira:
 --   Prison      Prisao de Energia: jaula prende o alvo (e quem estiver no RadiusMeters) por Duration.
---   Hook        Anzol Carmesim: gancho fere (Damage) e puxa o alvo ate o mago (EffectValue m/s).
+--   Hook        Anzol Carmesim (Meat Hook, Pudge): tiro de habilidade SEM mira automatica; o gancho
+--               voa pela mira e fisga o 1o inimigo no caminho; fere (Damage) e puxa ate o mago.
 --   Chain       Corrente Carmesim: liga o alvo por Duration; prende no inicio (Proc) e EffectValue do
 --               dano que o mago recebe vai para ele.
---   DeathTouch  Toque Mortal: curto alcance; tira EffectValue da vida maxima (teto SecondaryDamage em
---               chefes) e enfraquece (Proc).
---   Curse       Maldicao: area no ponto mirado; Maldicao (+20% de dano recebido) e veneno (Proc).
+--   DeathTouch  Toque Mortal (Reaper's Scythe, Necrophos): curto alcance; atordoa um instante, tira
+--               EffectValue da vida maxima (teto SecondaryDamage em chefes), enfraquece (Proc) e
+--               EXECUTA quem ficar abaixo de SpellMath.ExecuteThreshold.
+--   Curse       Maldicao (Maledict, Witch Doctor): area no ponto mirado; Maldicao (+20% de dano
+--               recebido) e veneno (Proc); quem morre amaldicoado passa a praga para os vizinhos.
 --   Hemorrhage  Hemorragia: marca o alvo; sangramento forte nele e em quem estiver no RadiusMeters.
 
 local Players = game:GetService("Players")
@@ -14,6 +17,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Net = require(Shared.Net)
+local SpellMath = require(Shared.Math.SpellMath)
 local States = require(Shared.States)
 local Units = require(Shared.Units)
 local Services = script.Parent.Parent.Services
@@ -28,8 +32,18 @@ local vfx = Net.get("Vfx")
 
 local FLAT = Vector3.new(1, 0, 1)
 local SNAP_STUDS = 7 -- sem alvo exato na mira: pega o inimigo mais perto do ponto mirado
+local HOOK_SPEED = 110 -- studs/s do gancho
+local HOOK_WIDTH = 2.2 -- raio do gancho (tiro de habilidade)
+local DEATH_WINDUP = 0.35 -- a foice "segura" o alvo antes do golpe
+local CURSE_SPREAD = Units.meters(4.5)
+
+local cursedWatch: { [Model]: boolean } = setmetatable({}, { __mode = "k" }) :: any
+-- Ate quando cada alvo esta amaldicoado (a morte limpa os estados antes do Died disparar).
+local cursedUntil: { [Model]: number } = setmetatable({}, { __mode = "k" }) :: any
 
 local Control = {}
+
+local watchCurse: (Context.Context, Model) -> ()
 
 local function aimedTarget(ctx: Context.Context, rangeMeters: number): (Model?, Vector3)
 	local range = Units.meters(rangeMeters)
@@ -70,12 +84,20 @@ end
 
 local function hook(ctx: Context.Context)
 	local row = ctx.Spell.Row
-	local target, point = aimedTarget(ctx, row.RangeMeters)
-	vfx:FireAllClients("Hook", { Caster = ctx.Caster, Target = target, To = point, School = row.School })
+	local range = Units.meters(row.RangeMeters)
+	-- Sem mira automatica: so fisga o que estiver no caminho do gancho.
+	local target, point = Targeting.aimTrace(ctx.Caster, ctx.Origin, Context.direction(ctx), range, HOOK_WIDTH)
+	local from = Targeting.muzzle(ctx.Caster)
+	local reach = if target then Targeting.position(target) else point
+	local travel = math.clamp((reach - from).Magnitude / HOOK_SPEED, 0.08, 0.5)
+	vfx:FireAllClients(
+		"Hook",
+		{ Caster = ctx.Caster, Target = target, To = reach, Travel = travel, School = row.School }
+	)
 	if not target then
 		return
 	end
-	task.delay(0.15, function()
+	task.delay(travel, function()
 		if not Targeting.isHostile(ctx.Caster, target) then
 			return
 		end
@@ -136,8 +158,58 @@ local function deathTouch(ctx: Context.Context)
 		amount = math.min(amount, row.SecondaryDamage)
 	end
 	vfx:FireAllClients("DeathTouch", { Caster = ctx.Caster, Target = target, School = row.School })
-	DamageService.applySpellDamage(ctx.Caster, target, amount, row.School, { Multiplier = ctx.Mods.DamageMultiplier })
-	Context.tryProc(ctx, target)
+	if not isBoss(target) then
+		StatusService.apply(target, States.Paralyzed, DEATH_WINDUP + 0.1)
+	end
+	task.delay(DEATH_WINDUP, function()
+		if not Targeting.isHostile(ctx.Caster, target) then
+			return
+		end
+		DamageService.applySpellDamage(
+			ctx.Caster,
+			target,
+			amount,
+			row.School,
+			{ Multiplier = ctx.Mods.DamageMultiplier }
+		)
+		Context.tryProc(ctx, target)
+		local humanoid = stats.Humanoid
+		if SpellMath.shouldExecute(humanoid.Health, humanoid.MaxHealth, isBoss(target)) then
+			vfx:FireAllClients("Execute", { Caster = ctx.Caster, Target = target, School = row.School })
+			DamageService.applySpellDamage(ctx.Caster, target, humanoid.Health, row.School, { Execute = true })
+		end
+	end)
+end
+
+-- Praga: quem morre amaldicoado passa Maldicao e veneno para os vizinhos (que tambem passam adiante).
+watchCurse = function(ctx: Context.Context, target: Model)
+	cursedUntil[target] = os.clock() + ctx.Spell.Row.DurationSeconds
+	if cursedWatch[target] then
+		return
+	end
+	local humanoid = target:FindFirstChildOfClass("Humanoid")
+	if not humanoid then
+		return
+	end
+	cursedWatch[target] = true
+	humanoid.Died:Connect(function()
+		if os.clock() > (cursedUntil[target] or 0) then
+			return
+		end
+		local center = Targeting.position(target)
+		local row = ctx.Spell.Row
+		local victims = Targeting.hostilesInRadius(ctx.Caster, center, CURSE_SPREAD)
+		local points: { Vector3 } = {}
+		for _, other in victims do
+			if other ~= target then
+				StatusService.apply(other, States.Cursed, row.DurationSeconds, { Source = ctx.Caster })
+				Context.tryProc(ctx, other)
+				watchCurse(ctx, other)
+				table.insert(points, Targeting.position(other))
+			end
+		end
+		vfx:FireAllClients("CurseSpread", { From = center, Points = points, School = row.School })
+	end)
 end
 
 local function curse(ctx: Context.Context)
@@ -150,6 +222,7 @@ local function curse(ctx: Context.Context)
 	for _, target in Targeting.hostilesInRadius(ctx.Caster, center + Vector3.new(0, 2.5, 0), radius + 1.5) do
 		StatusService.apply(target, States.Cursed, row.DurationSeconds, { Source = ctx.Caster })
 		Context.tryProc(ctx, target) -- veneno
+		watchCurse(ctx, target)
 	end
 end
 

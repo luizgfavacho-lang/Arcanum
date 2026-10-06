@@ -8,6 +8,7 @@ local Shared = ReplicatedStorage.Shared
 local Settings = require(Shared.Config.CombatSettings)
 local ComboMath = require(Shared.Math.ComboMath)
 local DamageMath = require(Shared.Math.DamageMath)
+local SpellMath = require(Shared.Math.SpellMath)
 local Net = require(Shared.Net)
 local Signal = require(Shared.Signal)
 local States = require(Shared.States)
@@ -21,6 +22,7 @@ export type DamageOptions = {
 	Multiplier: number?, -- runas/talentos/passivas
 	Periodic: boolean?, -- DoT: nao consome nem se beneficia da Carga Arcana
 	NoReaction: boolean?, -- respingo de reacao: nao dispara outra (evita cascata)
+	Execute: boolean?, -- execucao (Toque Mortal): tira toda a vida que resta, ignora escudo e armadura
 }
 
 local DamageService = {}
@@ -91,12 +93,15 @@ function DamageService.applySpellDamage(
 		end
 	end
 
+	local multiplier = (options and options.Multiplier or 1)
+		* (if source and StatusService.has(source, States.Weakened) then 0.8 else 1)
+		* (1 + (empowered or 0))
+		* (if reaction then reaction.Multiplier else 1)
+		-- Armadura de Brasas (Molten Shield, Annie): menos dano recebido.
+		* (if StatusService.has(target, States.EmberArmor) then 1 - SpellMath.EmberArmorReduction else 1)
 	local damage = DamageMath.computeSpellDamage({
 		BaseDamage = baseDamage,
-		DamageMultiplier = (options and options.Multiplier or 1) * (if source
-				and StatusService.has(source, States.Weakened)
-			then 0.8
-			else 1) * (1 + (empowered or 0)) * (if reaction then reaction.Multiplier else 1),
+		DamageMultiplier = multiplier,
 		SpellPower = if sourceStats then sourceStats.SpellPower else 0,
 		Affinity = if sourceStats and school then StatsService.getAffinity(sourceStats, school) else 0,
 		TargetArmor = targetStats.Armor,
@@ -108,17 +113,32 @@ function DamageService.applySpellDamage(
 
 	local healthDamage = damage
 	local infinite = StatsService.isInfinite(targetStats)
-	if StatusService.has(target, States.ManaShield) and not infinite then
-		local manaSpent
-		healthDamage, manaSpent =
-			DamageMath.resolveManaShield(damage, targetStats.Mana, Settings.ManaShieldManaPerDamage)
-		StatsService.setMana(targetStats, targetStats.Mana - manaSpent)
+	local execute = options ~= nil and options.Execute == true
+	if execute then
+		healthDamage = targetStats.Humanoid.Health
+	elseif StatusService.has(target, States.ManaShield) then
+		if not infinite then
+			local manaSpent
+			healthDamage, manaSpent =
+				DamageMath.resolveManaShield(damage, targetStats.Mana, Settings.ManaShieldManaPerDamage)
+			StatsService.setMana(targetStats, targetStats.Mana - manaSpent)
+		end
+		if damage > 0 then
+			vfxFast:FireAllClients("ShieldHit", { Target = target, Amount = damage })
+		end
 	end
 
 	-- Corrente Carmesim: parte do dano recebido vai para a criatura ligada.
 	local linkFraction = StatusService.value(target, States.Linked)
 	local linked = StatusService.source(target, States.Linked)
-	if linkFraction and linked and linked ~= source and StatsService.isAlive(linked) and healthDamage > 0 then
+	if
+		not execute
+		and linkFraction
+		and linked
+		and linked ~= source
+		and StatsService.isAlive(linked)
+		and healthDamage > 0
+	then
 		local diverted = healthDamage * linkFraction
 		healthDamage -= diverted
 		task.spawn(DamageService.applySpellDamage, target, linked, diverted, "Blood", { Periodic = true })

@@ -20,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage.Shared
 local Settings = require(Shared.Config.CombatSettings)
 local CombatMath = require(Shared.Math.CombatMath)
+local SpellMath = require(Shared.Math.SpellMath)
 local Net = require(Shared.Net)
 local SpellsModule = require(Shared.Spells)
 local States = require(Shared.States)
@@ -232,7 +233,10 @@ local function setSpeed(brain: Brain, multiplier: number)
 	if not stats then
 		return
 	end
-	local speed = stats.BaseWalkSpeed * multiplier * brain.Personality.Speed * brain.SpeedScale
+	local speed = SpellMath.slowedSpeed(
+		stats.BaseWalkSpeed * multiplier * brain.Personality.Speed * brain.SpeedScale,
+		StatusService.value(brain.Model, States.Slowed) or 0
+	)
 	if math.abs(brain.Humanoid.WalkSpeed - speed) > 0.05 then
 		brain.Humanoid.WalkSpeed = speed
 	end

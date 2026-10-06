@@ -8,6 +8,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Settings = require(Shared.Config.CombatSettings)
+local SpellMath = require(Shared.Math.SpellMath)
 local States = require(Shared.States)
 local StatsService = require(script.Parent.StatsService)
 
@@ -34,6 +35,9 @@ function StatusService.setDamageHandler(handler: DamageHandler)
 	damageHandler = handler
 end
 
+-- Estados que mudam a velocidade de andar.
+local MOVEMENT = { [States.Paralyzed] = true, [States.Empowered] = true, [States.Slowed] = true }
+
 local function refreshMovement(model: Model)
 	local stats = StatsService.get(model)
 	if not stats then
@@ -41,7 +45,8 @@ local function refreshMovement(model: Model)
 	end
 	local paralyzed = StatusService.has(model, States.Paralyzed)
 	local boost = 1 + (StatusService.value(model, States.Empowered) or 0)
-	stats.Humanoid.WalkSpeed = if paralyzed then 0 else stats.BaseWalkSpeed * boost
+	local speed = SpellMath.slowedSpeed(stats.BaseWalkSpeed * boost, StatusService.value(model, States.Slowed) or 0)
+	stats.Humanoid.WalkSpeed = if paralyzed then 0 else speed
 	stats.Humanoid.JumpHeight = if paralyzed then 0 else 7.2
 end
 
@@ -87,7 +92,7 @@ function StatusService.apply(model: Model, state: string, duration: number, opti
 		NextTick = if existing then existing.NextTick else now + Settings.DotTickInterval,
 	}
 	model:SetAttribute("State_" .. state, true)
-	if state == States.Paralyzed or state == States.Empowered then
+	if MOVEMENT[state] then
 		refreshMovement(model)
 	end
 end
@@ -114,7 +119,7 @@ function StatusService.remove(model: Model, state: string)
 	end
 	states[state] = nil
 	model:SetAttribute("State_" .. state, nil)
-	if state == States.Paralyzed or state == States.Empowered then
+	if MOVEMENT[state] then
 		refreshMovement(model)
 	end
 end

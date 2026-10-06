@@ -3,7 +3,8 @@
 --   Beam   Raio Arcano (canalizada): feixe preciso pela mira; Damage = dano/s no primeiro alvo;
 --          drena ManaPerSecond (por tique) enquanto o botao estiver segurado; sem mana, o feixe apaga.
 --   Lance  Lanca do Firmamento: carrega por EffectValue s e dispara um laser de RangeMeters que
---          atravessa todas as criaturas na linha (Damage em cada).
+--          atravessa todas as criaturas na linha (Damage em cada) e marca os sobreviventes com
+--          Carga Arcana (proximo golpe direto +25%; Final Spark/Illumination, Lux).
 
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -85,6 +86,8 @@ function Beam.lance(ctx: Context.Context)
 			if (from + direction * along - p).Magnitude <= LANCE_WIDTH then
 				Context.damage(ctx, target, row.Damage)
 				Context.tryProc(ctx, target)
+				-- Final Spark + Illumination (Lux): quem sobrevive fica marcado (Carga Arcana).
+				StatusService.apply(target, States.ArcaneCharge, 8, { Source = ctx.Caster })
 			end
 		end
 	end)

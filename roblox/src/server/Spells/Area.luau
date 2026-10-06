@@ -1,10 +1,14 @@
 --!strict
 -- Magias de area (Circulo II do Grimorio):
---   Strike  Raio Invocado: raio do ceu no ponto mirado (RangeMeters), fere no RadiusMeters.
+--   Strike  Raio Invocado (Lightning Bolt, Zeus): raio do ceu no ponto mirado (RangeMeters), fere no
+--           RadiusMeters; 0,25 s depois a onda de choque (SecondaryDamage em SecondaryRadiusMeters).
 --   Nova    Nova Flamejante / Pulso Arcano: explosao em volta do conjurador (RadiusMeters) que
---           empurra (EffectValue m/s); o Pulso tambem apaga projeteis hostis (DestroysProjectiles).
+--           empurra (EffectValue m/s); o Pulso tambem apaga projeteis hostis (DestroysProjectiles) e
+--           deixa lento (Def.Slow, Force Pulse/Kassadin); a Nova faz Combustao em quem ja queimava
+--           (Def.Combustion, Pyroclasm/Brand).
 --   Line    Espinhos Carmesins: fileira a partir dos pes na direcao da mira (RangeMeters de
---           comprimento, RadiusMeters de meia-largura) que arremessa para cima (EffectValue m/s).
+--           comprimento, RadiusMeters de meia-largura) que arremessa para cima (EffectValue m/s) e
+--           atordoa (Def.Stun s, Impale/Lion).
 -- Empurrao so em criaturas (fisica no servidor); o personagem do jogador e do cliente.
 
 local Debris = game:GetService("Debris")
@@ -14,7 +18,10 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage.Shared
 local Net = require(Shared.Net)
+local SpellMath = require(Shared.Math.SpellMath)
+local States = require(Shared.States)
 local Units = require(Shared.Units)
+local StatusService = require(script.Parent.Parent.Services.StatusService)
 local Targeting = require(script.Parent.Parent.Combat.Targeting)
 local Context = require(script.Parent.Context)
 local Projectile = require(script.Parent.Projectile)
@@ -76,9 +83,25 @@ function Area.strike(ctx: Context.Context)
 	vfx:FireAllClients("StrikeWarn", { Position = center, Radius = radius, Duration = 0.35, School = row.School })
 	task.delay(0.35, function()
 		vfx:FireAllClients("Strike", { Position = center, Radius = radius, School = row.School, Caster = ctx.Caster })
+		local struck: { [Model]: boolean } = {}
 		for _, target in Targeting.hostilesInRadius(ctx.Caster, center + Vector3.new(0, BODY_HEIGHT, 0), radius + 1.5) do
+			struck[target] = true
 			Context.damage(ctx, target, row.Damage)
 			Context.tryProc(ctx, target)
+		end
+		-- Onda de choque: anel eletrico que corre pelo chao e pega quem estava em volta.
+		local shock = Units.meters(row.SecondaryRadiusMeters)
+		if shock > 0 and row.SecondaryDamage > 0 then
+			task.delay(0.25, function()
+				vfx:FireAllClients("StrikeAftershock", { Position = center, Radius = shock, School = row.School })
+				for _, target in
+					Targeting.hostilesInRadius(ctx.Caster, center + Vector3.new(0, BODY_HEIGHT, 0), shock + 1.5)
+				do
+					if not struck[target] then
+						Context.damage(ctx, target, row.SecondaryDamage)
+					end
+				end
+			end)
 		end
 	end)
 end
@@ -95,14 +118,29 @@ function Area.nova(ctx: Context.Context)
 		{ Position = center, Radius = radius, School = row.School, Caster = ctx.Caster, Popped = popped }
 	)
 	local speed = Units.meters(row.EffectValue)
+	local def = ctx.Spell.Def
+	local combusted: { Vector3 } = {}
 	for _, target in Targeting.hostilesInRadius(ctx.Caster, center, radius) do
-		Context.damage(ctx, target, row.Damage)
+		local multiplier = 1
+		if def.Combustion then
+			multiplier = SpellMath.novaMultiplier(StatusService.has(target, States.Burning))
+			if multiplier > 1 then
+				table.insert(combusted, Targeting.position(target))
+			end
+		end
+		Context.damage(ctx, target, row.Damage * multiplier)
 		Context.tryProc(ctx, target)
+		if def.Slow then
+			StatusService.apply(target, States.Slowed, def.SlowSeconds or 2, { Value = def.Slow, Source = ctx.Caster })
+		end
 		if speed > 0 then
 			local away = (Targeting.position(target) - center) * FLAT
 			away = if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis
 			Area.push(target, away * speed + Vector3.new(0, speed * 0.35, 0))
 		end
+	end
+	if #combusted > 0 then
+		vfx:FireAllClients("Combustion", { Positions = combusted, School = row.School })
 	end
 end
 
@@ -121,6 +159,10 @@ function Area.line(ctx: Context.Context)
 			if Targeting.distanceToSegment(Targeting.position(target), from, to) <= width / 2 + 1.5 then
 				Context.damage(ctx, target, row.Damage)
 				Context.tryProc(ctx, target)
+				local stun = ctx.Spell.Def.Stun
+				if stun and target:GetAttribute("Boss") ~= true then
+					StatusService.apply(target, States.Paralyzed, stun)
+				end
 				if lift > 0 then
 					Area.push(target, Vector3.new(0, lift, 0) + direction * lift * 0.3)
 				end

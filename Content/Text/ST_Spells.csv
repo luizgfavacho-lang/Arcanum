@@ -1,32 +1,32 @@
 Key,SourceString
 Spark.Name,Faísca
-Spark.Desc,"Raio instantâneo de 24 m que causa 5 de dano, com 20% de chance de paralisar por 1 s."
+Spark.Desc,"Raio instantâneo de 24 m que causa 5 de dano e salta para até 2 inimigos próximos (metade do dano a cada salto), com chance de paralisar."
 ChainLightning.Name,Corrente em Cadeia
 ChainLightning.Desc,"Canalizada. Um fluxo de raios trançados que salta para até 4 alvos, perdendo 15% por salto."
 SummonedBolt.Name,Raio Invocado
-SummonedBolt.Desc,Chama um raio do céu sobre o ponto mirado e paralisa quem estiver perto.
+SummonedBolt.Desc,Chama um raio do céu sobre o ponto mirado que paralisa; logo depois uma onda de choque corre pelo chão e fere quem estava em volta.
 StaticField.Name,Campo Estático
-StaticField.Desc,"Por 6 s, choca e paralisa inimigos a até 4 m a cada segundo."
+StaticField.Desc,"Por 6 s, pulsos elétricos chocam e paralisam inimigos a até 4 m. O pulso é mais forte na borda."
 LightningStep.Name,Passo Relâmpago
-LightningStep.Desc,Teleporte de 8 m que eletrocuta quem estiver no caminho.
+LightningStep.Desc,"Teleporte de 8 m que eletrocuta quem estiver no caminho e deixa um resquício elétrico no ponto de partida, que explode logo depois."
 BallLightning.Name,Bola de Relâmpago
 BallLightning.Desc,"Orbe lento que atravessa criaturas, dá choques em volta e explode no fim."
 Tempest.Name,Tempestade
-Tempest.Desc,Doze raios caem em 5 s sobre a área mirada.
+Tempest.Desc,"Doze raios caem em 5 s sobre a área mirada, procurando os inimigos que estão nela."
 Fireball.Name,Bola de Fogo
-Fireball.Desc,Projétil que causa 6 de dano e incendeia o alvo por 3 s.
+Fireball.Desc,"Projétil que causa 6 de dano, explode em chamas em volta e incendeia o alvo por 3 s."
 FlameWall.Name,Muralha de Chamas
-FlameWall.Desc,Ergue uma parede de fogo de 7 m por 6 s.
+FlameWall.Desc,"Ergue uma parede de fogo de 7 m por 6 s que bloqueia criaturas, queima quem a cruza e incinera projéteis inimigos."
 FlameNova.Name,Nova Flamejante
-FlameNova.Desc,Explosão de fogo em volta de você que empurra os inimigos.
+FlameNova.Desc,"Explosão de fogo em volta de você que empurra os inimigos. Quem já estava queimando sofre Combustão (+50% de dano)."
 EmberArmor.Name,Armadura de Brasas
-EmberArmor.Desc,"Por 20 s, você fica coberto de brasas: imune a fogo, e quem encostar ou atacar de perto pega fogo."
+EmberArmor.Desc,"Por 20 s, você fica coberto de brasas: recebe 15% menos dano, é imune a fogo, e quem encostar ou atacar de perto pega fogo."
 MagmaLance.Name,Lança de Magma
 MagmaLance.Desc,"Lança veloz que perfura até 3 alvos e abre uma poça de lava onde cai, queimando quem pisar (2 de dano/s por 4 s)."
 InfernalVortex.Name,Piromania
 InfernalVortex.Desc,Canalizada. Lança-chamas de curto alcance: queima todos no cone enquanto segurar.
 Meteor.Name,Meteoro
-Meteor.Desc,Um meteoro devasta uma grande área.
+Meteor.Desc,"Um meteoro devasta uma grande área e segue rolando em frente, queimando tudo pelo caminho."
 ArcaneMissile.Name,Míssil Arcano
 ArcaneMissile.Desc,Três orbes teleguiados que marcam o alvo com Carga Arcana.
 ManaShield.Name,Escudo de Mana
@@ -34,31 +34,31 @@ ManaShield.Desc,"Por 15 s, o dano recebido é pago com mana."
 ArcaneBeam.Name,Raio Arcano
 ArcaneBeam.Desc,Canalizada. Feixe contínuo e preciso que segue a mira.
 ArcanePulse.Name,Pulso Arcano
-ArcanePulse.Desc,Arremessa inimigos e destrói projéteis hostis em volta.
+ArcanePulse.Desc,"Arremessa inimigos, deixa-os lentos e destrói projéteis hostis em volta."
 EnergyPrison.Name,Prisão de Energia
 EnergyPrison.Desc,Prende o alvo (e quem estiver colado nele) numa jaula de energia por 5 s.
 ArcanePortal.Name,Portal Arcano
 ArcanePortal.Desc,"Abre um portal à sua frente e outro no ponto mirado, ligados por 30 s (até 3 pares)."
 Singularity.Name,Singularidade
-Singularity.Desc,Um vórtice suga os inimigos por 5 s e depois implode.
+Singularity.Desc,"Um vórtice suga os inimigos por 5 s, prende quem chega ao miolo e depois implode."
 StarShower.Name,Chuva de Estrelas
-StarShower.Desc,Dez estrelas caem em 3 s sobre a área mirada.
+StarShower.Desc,"Dez estrelas caem em 3 s sobre a área mirada; por fim, uma estrela maior atinge o inimigo mais perto do centro."
 RaiseSkeleton.Name,Erguer Esqueleto
 RaiseSkeleton.Desc,"Ergue um esqueleto guerreiro com espada e escudo que luta por você por 60 s (até 3)."
 LifeDrain.Name,Drenar Vida
 LifeDrain.Desc,Causa 6 de dano e cura metade do dano causado.
 RaiseBrute.Name,Erguer Bruto
-RaiseBrute.Desc,Ergue um grande morto-vivo bruto e resistente que luta por você por 60 s.
+RaiseBrute.Desc,"Ergue um grande morto-vivo bruto que rompe o chão ao surgir, arremessando inimigos, e luta por você por 60 s."
 DeathTouch.Name,Toque Mortal
-DeathTouch.Desc,"Toque de curto alcance que arranca 25% da vida máxima do alvo (com teto em chefes) e o enfraquece."
+DeathTouch.Desc,"Toque de curto alcance que segura o alvo, arranca 25% da vida máxima (com teto em chefes), o enfraquece e EXECUTA quem ficar abaixo de 15% de vida."
 Curse.Name,Maldição
-Curse.Desc,Envenena a área e faz os inimigos sofrerem mais dano.
+Curse.Desc,"Envenena a área e faz os inimigos sofrerem mais dano. Quem morre amaldiçoado passa a praga para os vizinhos."
 WanderingSouls.Name,Almas Errantes
 WanderingSouls.Desc,Três almas teleguiadas que ferem e devolvem metade como cura.
 ArmyOfTheDead.Name,Exército dos Mortos
 ArmyOfTheDead.Desc,Ergue 4 esqueletos e 2 brutos por 20 s.
 BloodBlade.Name,Lâmina de Sangue
-BloodBlade.Desc,"Forma uma lâmina de sangue e desfere um golpe em arco à frente, causando sangramento. Custa vida."
+BloodBlade.Desc,"Forma uma lâmina de sangue e desfere um golpe em arco à frente, causando sangramento. A ponta da lâmina fere 50% a mais e arremessa. Custa vida."
 SacrificeRitual.Name,Ritual de Sacrifício
 SacrificeRitual.Desc,"Sacrifica 30% da vida: uma explosão de sangue fere em volta e você ganha +30% de dano e velocidade por 15 s."
 CrimsonChain.Name,Corrente Carmesim
@@ -68,18 +68,18 @@ CrimsonRain.Desc,Chuva de sangue que cura aliados e fere inimigos.
 Hemorrhage.Name,Hemorragia
 Hemorrhage.Desc,"Marca o alvo com uma maldição de sangue: sangramento forte nele e em quem estiver perto. Custa vida."
 CrimsonSpikes.Name,Espinhos Carmesins
-CrimsonSpikes.Desc,Uma fileira de espinhos irrompe do chão e arremessa os inimigos.
+CrimsonSpikes.Desc,"Uma fileira de espinhos irrompe do chão, arremessa e atordoa os inimigos."
 BloodPact.Name,Pacto de Sangue
 BloodPact.Desc,"Sacrifica 40% da vida e compartilha poder: você e os aliados próximos ganham +50% de dano por 20 s."
 DawnVerdict.Name,Veredito da Aurora
-DawnVerdict.Desc,"Após um instante, uma coluna de luz solar desce e divide 28 de dano entre os atingidos."
+DawnVerdict.Desc,"Após um instante, uma coluna de luz solar desce e divide 28 de dano entre os atingidos; quem está no centro fica atordoado."
 ShatteredHourglass.Name,Ampulheta Partida
-ShatteredHourglass.Desc,Uma esfera onde o tempo para: inimigos e projéteis congelam por 4 s.
+ShatteredHourglass.Desc,"Uma esfera onde o tempo para: inimigos e projéteis congelam por 4 s, e os inimigos presos sofrem mais dano."
 FirmamentLance.Name,Lança do Firmamento
-FirmamentLance.Desc,Carrega e dispara um feixe colossal de 48 m que atravessa tudo.
+FirmamentLance.Desc,"Carrega e dispara um feixe colossal de 48 m que atravessa tudo e marca os sobreviventes: o próximo golpe neles fere mais."
 CrownOfThunder.Name,Coroa de Trovões
 CrownOfThunder.Desc,Raios atingem todos os inimigos num raio de 40 m e os paralisam.
 RoseOfLaments.Name,Rosa dos Lamentos
 RoseOfLaments.Desc,Dezoito linhas de almas se abrem em todas as direções e enfraquecem os inimigos.
 CrimsonHook.Name,Anzol Carmesim
-CrimsonHook.Desc,Um gancho de sangue fisga o alvo e o puxa até você.
+CrimsonHook.Desc,"Um gancho de sangue voa pela mira e fisga o primeiro inimigo no caminho, puxando-o até você. Sem mira automática."

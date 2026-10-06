@@ -15,6 +15,7 @@ return table.freeze({
 	EmberArmor = "EmberArmor", -- imune a fogo; quem bate de perto queima (Armadura de Brasas)
 	Empowered = "Empowered", -- +Value de dano e velocidade (Ritual de Sacrificio, Pacto de Sangue)
 	Linked = "Linked", -- Value do dano recebido vai para Source (Corrente Carmesim)
+	Slowed = "Slowed", -- velocidade x(1 - Value) (Pulso Arcano)
 
 	-- Quais estados causam dano periodico
 	Dot = table.freeze({ Burning = true, Bleeding = true, Poisoned = true }),

@@ -33,6 +33,10 @@ export type Def = {
 	Mode: string?, -- variante dentro do tipo (ver Kind)
 	ShockOrb: boolean?, -- projetil que atravessa e da choques em volta (Bola de Relampago)
 	Radial: boolean?, -- projeteis em todas as direcoes, na horizontal (Rosa dos Lamentos)
+	Combustion: boolean?, -- Nova: quem ja queimava leva x1,5 (SpellMath.novaMultiplier)
+	Slow: number?, -- fracao de lentidao aplicada a quem e atingido (0..0,9)
+	SlowSeconds: number?,
+	Stun: number?, -- segundos de atordoamento extra (Espinhos)
 	Summon: string?, -- linha de Enemies.csv do servo
 	Army: boolean?, -- Exercito dos Mortos: Count esqueletos + MaxTargets brutos
 }
@@ -52,10 +56,10 @@ local Catalog: { [string]: Def } = {
 	-- Circulo II (Grimorio)
 	SummonedBolt = { Kind = "Strike", ProcState = "Paralyzed" }, -- raio do ceu no ponto mirado
 	MagmaLance = { Kind = "Projectile", Visual = "Lance", LavaPool = true }, -- perfura e abre poca de lava
-	FlameNova = { Kind = "Nova", ProcState = "Burning" }, -- explosao em volta, empurra
-	ArcanePulse = { Kind = "Nova", DestroysProjectiles = true }, -- empurra e apaga projeteis
+	FlameNova = { Kind = "Nova", ProcState = "Burning", Combustion = true }, -- explosao, empurra, Combustao
+	ArcanePulse = { Kind = "Nova", DestroysProjectiles = true, Slow = 0.4, SlowSeconds = 2.5 }, -- empurra, apaga projeteis, lentidao
 	WanderingSouls = { Kind = "Projectile", Homing = true, SpreadDegrees = 40, Visual = "Soul" }, -- cura
-	CrimsonSpikes = { Kind = "Line", ProcState = "Bleeding" }, -- fileira de espinhos, arremessa
+	CrimsonSpikes = { Kind = "Line", ProcState = "Bleeding", Stun = 0.9 }, -- fileira de espinhos, arremessa e atordoa
 
 	-- Eletricidade
 	StaticField = { Kind = "Zone", Mode = "Static", ProcState = "Paralyzed" }, -- zona eletrica que segue

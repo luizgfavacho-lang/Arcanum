@@ -100,6 +100,22 @@ local function spawnMinion(ctx: Context.Context, rowName: string, position: Vect
 		ExpiresAt = os.clock() + duration,
 	})
 	vfx:FireAllClients("Summon", { Position = position, Model = model, Big = big, School = row.School })
+	-- Bruto (Flesh Golem, Undying): rompe o chao ao surgir; fere e arremessa quem estiver perto.
+	local spell = ctx.Spell.Row
+	if big and spell.SecondaryDamage > 0 then
+		local slamRadius = Units.meters(spell.SecondaryRadiusMeters)
+		task.delay(0.25, function()
+			vfx:FireAllClients("BruteSlam", { Position = position, Radius = slamRadius, School = row.School })
+			for _, target in Targeting.hostilesInRadius(ctx.Caster, position + Vector3.new(0, 2.5, 0), slamRadius + 1.5) do
+				Context.damage(ctx, target, spell.SecondaryDamage)
+				local away = (Targeting.position(target) - position) * Vector3.new(1, 0, 1)
+				Area.push(
+					target,
+					(if away.Magnitude > 0.1 then away.Unit else Vector3.xAxis) * 18 + Vector3.new(0, 22, 0)
+				)
+			end
+		end)
+	end
 	humanoid.Died:Connect(function()
 		vfx:FireAllClients("Death", { Model = model, School = row.School, Boss = false })
 		task.delay(1.6, function()

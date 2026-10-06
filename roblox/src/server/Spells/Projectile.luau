@@ -56,7 +56,8 @@ local function finish(p: Projectile, position: Vector3)
 	local row = p.Ctx.Spell.Row
 	local radius = Units.meters(row.RadiusMeters)
 	-- Bola de Relampago: a explosao final usa SecondaryDamage (o Damage e o choque por tick).
-	local finalDamage = if p.Ctx.Spell.Def.ShockOrb then row.SecondaryDamage else row.Damage
+	-- Outros (Bola de Fogo): SecondaryDamage > 0 = dano da explosao em volta (o golpe direto usa Damage).
+	local finalDamage = if p.Ctx.Spell.Def.ShockOrb or row.SecondaryDamage > 0 then row.SecondaryDamage else row.Damage
 	if radius > 0 then
 		for _, target in Targeting.hostilesInRadius(p.Ctx.Caster, position, radius) do
 			if not p.Hits[target] or p.Ctx.Spell.Def.ShockOrb then

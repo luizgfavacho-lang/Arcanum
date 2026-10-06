@@ -1,7 +1,9 @@
 --!strict
 -- Deslocamento:
 --   Blink   Passo Relampago: teleporte de RangeMeters na direcao da mira (para antes de paredes);
---           eletrocuta (Damage) quem estiver no caminho, a RadiusMeters da linha.
+--           eletrocuta (Damage) quem estiver no caminho, a RadiusMeters da linha, e deixa no ponto de
+--           partida um resquicio que explode depois de EffectValue s (SecondaryDamage em
+--           SecondaryRadiusMeters; Static Remnant, Storm Spirit/DotA).
 --   Portal  Portal Arcano: par de portais (a frente do mago e no ponto mirado, ate RangeMeters) por
 --           DurationSeconds; quem entra num sai no outro. Ate Count pares por mago (o mais velho fecha).
 
@@ -83,6 +85,21 @@ function Movement.blink(ctx: Context.Context)
 			Context.damage(ctx, target, row.Damage)
 			Context.tryProc(ctx, target)
 		end
+	end
+	local remnantRadius = Units.meters(row.SecondaryRadiusMeters)
+	if row.SecondaryDamage > 0 and remnantRadius > 0 then
+		local delay = if row.EffectValue > 0 then row.EffectValue else 0.6
+		vfx:FireAllClients(
+			"Remnant",
+			{ Position = from, Delay = delay, Radius = remnantRadius, School = row.School, Caster = ctx.Caster }
+		)
+		task.delay(delay, function()
+			vfx:FireAllClients("RemnantBurst", { Position = from, Radius = remnantRadius, School = row.School })
+			for _, target in Targeting.hostilesInRadius(ctx.Caster, from, remnantRadius + 1.5) do
+				Context.damage(ctx, target, row.SecondaryDamage)
+				Context.tryProc(ctx, target)
+			end
+		end)
 	end
 end
 

@@ -1,13 +1,16 @@
 --!strict
 -- Areas com duracao (Kind "Zone"; numeros do CSV: Damage por tick, TickIntervalSeconds,
 -- RadiusMeters, DurationSeconds, EffectValue):
---   Static       Campo Estatico: segue o conjurador, choca e paralisa quem estiver em volta.
+--   Static       Campo Estatico (Plasma Field, Razor): segue o conjurador; pulso a cada Tick que
+--                choca e paralisa, mais forte na borda (SpellMath.staticFieldMultiplier).
 --   Wall         Muralha de Chamas: parede de RangeMeters no ponto mirado, perpendicular a mira;
---                bloqueia criaturas (grupo de colisao) e queima quem a atravessa.
---   Vortex       Vortice Infernal: redemoinho que puxa (EffectValue m/s) e queima.
---   Singularity  Singularidade: puxa forte por Duration e implode com Damage no fim.
+--                bloqueia criaturas (grupo de colisao), queima quem a atravessa e apaga projeteis hostis.
+--   Vortex       redemoinho que puxa (EffectValue m/s) e queima (sem magia usando no momento).
+--   Singularity  Singularidade (Black Hole, Enigma): puxa forte por Duration, o miolo paralisa e
+--                implode com Damage no fim.
 --   Rain         Chuva Rubra: fere inimigos (Damage/s) e cura aliados (EffectValue/s).
---   Hourglass    Ampulheta Partida: tempo parado (inimigos paralisados, projeteis hostis param).
+--   Hourglass    Ampulheta Partida (Chronosphere): tempo parado (inimigos paralisados e vulneraveis,
+--                projeteis hostis param).
 
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
@@ -17,6 +20,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage.Shared
 local Net = require(Shared.Net)
+local SpellMath = require(Shared.Math.SpellMath)
 local States = require(Shared.States)
 local Units = require(Shared.Units)
 local Services = script.Parent.Parent.Services
@@ -135,6 +139,14 @@ local function pull(zone: Zone, speed: number)
 		if not Players:GetPlayerFromCharacter(target) then
 			local offset = (zone.Center - Targeting.position(target)) * FLAT
 			local distance = offset.Magnitude
+			-- Black Hole: no miolo da Singularidade ninguem se mexe.
+			if
+				zone.Mode == "Singularity"
+				and SpellMath.inSingularityCore(distance, zone.Radius)
+				and target:GetAttribute("Boss") ~= true
+			then
+				StatusService.apply(target, States.Paralyzed, PULL_INTERVAL + 0.15)
+			end
 			if distance > 1.5 then
 				Area.push(target, offset.Unit * speed * math.clamp(distance / zone.Radius + 0.4, 0.4, 1.2))
 			end
@@ -154,9 +166,23 @@ local function tick(zone: Zone, now: number)
 				Context.tryProc(ctx, target)
 			end
 		end
+		-- Projeteis inimigos que cruzam a muralha viram cinza (Firewall).
+		local burned: { Vector3 } = {}
+		local length = (to - from).Magnitude
+		for d = 0, length, 3 do
+			local point = from:Lerp(to, if length > 0 then d / length else 0) + Vector3.new(0, 3, 0)
+			for _, position in Projectile.destroyHostileNear(ctx.Caster, point, 3.5) do
+				table.insert(burned, position)
+			end
+		end
+		if #burned > 0 then
+			vfx:FireAllClients("WallBurn", { Positions = burned, School = row.School })
+		end
 	elseif mode == "Hourglass" then
 		for _, target in hostilesIn(zone) do
 			StatusService.apply(target, States.Paralyzed, zone.Tick + 0.2)
+			-- Fora do tempo, ficam vulneraveis (Maldicao: +dano recebido).
+			StatusService.apply(target, States.Cursed, zone.Tick + 0.2, { Source = ctx.Caster })
 		end
 		Projectile.freezeHostile(ctx.Caster, zone.Center + Vector3.new(0, 3, 0), zone.Radius + 3, zone.EndsAt - now)
 	elseif mode == "Singularity" then
@@ -167,8 +193,19 @@ local function tick(zone: Zone, now: number)
 				-- Encharcado: prepara Conducao (eletricidade x1,5) e Vaporizar (fogo).
 				StatusService.apply(target, States.Wet, 4, { Source = ctx.Caster })
 			end
-			Context.damage(ctx, target, row.Damage * (if mode == "Rain" then zone.Tick else 1))
+			local multiplier = 1
+			if mode == "Static" then
+				-- Plasma Field: o pulso fere mais na borda.
+				local distance = ((Targeting.position(target) - zone.Center) * FLAT).Magnitude
+				multiplier = SpellMath.staticFieldMultiplier(distance, zone.Radius)
+			elseif mode == "Rain" then
+				multiplier = zone.Tick
+			end
+			Context.damage(ctx, target, row.Damage * multiplier)
 			Context.tryProc(ctx, target)
+		end
+		if mode == "Static" then
+			vfx:FireAllClients("StaticPulse", { Caster = ctx.Caster, Radius = zone.Radius, School = row.School })
 		end
 		if mode == "Rain" and row.EffectValue > 0 then
 			-- Cura aliados na chuva (inclusive o conjurador e servos).

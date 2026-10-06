@@ -1,0 +1,43 @@
+local TestKit = require("./TestKit")
+local SpellMath = require("../src/shared/Math/SpellMath")
+
+local test = TestKit.test
+
+test("Magias.CampoEstaticoFereMaisNaBorda", function(expect)
+	expect.near(SpellMath.staticFieldMultiplier(0, 10), 0.6, nil, "centro")
+	expect.near(SpellMath.staticFieldMultiplier(10, 10), 1.6, nil, "borda")
+	expect.near(SpellMath.staticFieldMultiplier(30, 10), 1.6, nil, "fora conta como borda")
+	expect.near(SpellMath.staticFieldMultiplier(5, 0), 1, nil, "raio zero e neutro")
+end)
+
+test("Magias.LaminaPontoDoce", function(expect)
+	local m, sweet = SpellMath.bladeMultiplier(2, 10)
+	expect.near(m, 1, nil, "perto: normal")
+	expect.equal(sweet, false, "sem ponto doce perto")
+	m, sweet = SpellMath.bladeMultiplier(8, 10)
+	expect.near(m, 1.5, nil, "ponta: +50%")
+	expect.equal(sweet, true, "ponto doce")
+end)
+
+test("Magias.CombustaoEExecucao", function(expect)
+	expect.near(SpellMath.novaMultiplier(true), 1.5, nil, "queimando")
+	expect.near(SpellMath.novaMultiplier(false), 1, nil, "limpo")
+	expect.equal(SpellMath.shouldExecute(1, 10, false), true, "10% executa")
+	expect.equal(SpellMath.shouldExecute(3, 10, false), false, "30% nao")
+	expect.equal(SpellMath.shouldExecute(1, 10, true), false, "chefe nunca")
+	expect.equal(SpellMath.shouldExecute(0, 10, false), false, "ja morto")
+end)
+
+test("Magias.MioloDeVereditoESingularidade", function(expect)
+	expect.equal(SpellMath.inVerdictCore(1, 10), true, "veredito centro")
+	expect.equal(SpellMath.inVerdictCore(6, 10), false, "veredito borda")
+	expect.equal(SpellMath.inSingularityCore(4, 10), true, "singularidade miolo")
+	expect.equal(SpellMath.inSingularityCore(7, 10), false, "singularidade borda")
+end)
+
+test("Magias.LentidaoEMeteoro", function(expect)
+	expect.near(SpellMath.slowedSpeed(16, 0.4), 9.6, nil, "40% mais lento")
+	expect.near(SpellMath.slowedSpeed(16, 5), 1.6, nil, "no maximo 90%")
+	expect.near(SpellMath.meteorRoll(4, 2.5), 10, nil, "rola 10")
+	expect.near(SpellMath.meteorRoll(-1, 2), 0, nil, "sem rolagem negativa")
+end)

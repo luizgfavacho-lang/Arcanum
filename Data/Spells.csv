@@ -1,18 +1,18 @@
 Name,School,Tier,bChanneled,ManaCost,HealthCostPct,ManaPerSecond,Cooldown,Damage,RangeMeters,RadiusMeters,DurationSeconds,SpeedMetersPerSecond,Count,MaxTargets,FalloffPerJump,TickIntervalSeconds,HealFraction,SecondaryDamage,SecondaryRadiusMeters,EffectValue,ProcChance,ProcDurationSeconds,ProcDamagePerSecond,Notes
-Spark,Electricity,1,False,10,0,0,1,5,24,0,0,0,0,0,0,0,0,0,0,0,0.2,1,0,Raio instantaneo; ataque basico. Proc=Paralisia.
+Spark,Electricity,1,False,10,0,0,1,5,24,5,0,0,0,3,0.5,0,0,0,0,0,0.2,1,0,Raio instantaneo; ataque basico. Proc=Paralisia.
 ChainLightning,Electricity,2,True,10,0,14,0,8,20,6,0,0,0,4,0.15,0.1,0,0,0,0,0.15,1,0,Canalizada. Damage=dano/s no 1o alvo; Radius=distancia de salto; Proc=paralisia por segundo.
-SummonedBolt,Electricity,2,False,35,0,0,8,14,30,3,0,0,0,0,0,0,0,0,0,0,1,2,0,Raio do ceu no ponto mirado; paralisa quem estiver no raio.
+SummonedBolt,Electricity,2,False,35,0,0,8,14,30,3,0,0,0,0,0,0,0,4,6,0,1,2,0,Raio do ceu no ponto mirado; paralisa quem estiver no raio.
 StaticField,Electricity,2,False,40,0,0,12,3,0,4,6,0,0,0,0,1,0,0,0,0,1,0.6,0,Aura: choque a cada 1 s em quem estiver no raio. Damage por tick (choque).
-LightningStep,Electricity,2,False,30,0,0,8,10,8,1,0,0,0,0,0,0,0,0,0,0,0,0,0,Teleporte; eletrocuta quem estiver no caminho.
+LightningStep,Electricity,2,False,30,0,0,8,10,8,1,0,0,0,0,0,0,0,6,3,0.6,0,0,0,Teleporte; eletrocuta quem estiver no caminho.
 BallLightning,Electricity,2,False,45,0,0,10,4,20,3,0,6,0,3,0,0.4,0,8,5,0,0.15,1,0,Orbe lento atravessa criaturas. Damage=choque a cada Tick em ate MaxTargets a SecondaryRadius; SecondaryDamage=explosao final no Radius. [excecao: numeros do mod]
 Tempest,Electricity,3,False,120,0,0,60,5,35,8,5,0,12,0,0,0,0,0,2,0,0.3,1,0,"Count raios em Duration sobre a area mirada (Radius). Damage por raio, raio de cada impacto=SecondaryRadius. [excecao: numeros do mod; raios espalhados na area]"
-Fireball,Fire,1,False,15,0,0,1.5,6,40,0,0,30,0,0,0,0,0,0,0,0,1,3,1,Projetil. Proc=Queimadura 3 s.
+Fireball,Fire,1,False,15,0,0,1.5,6,40,1.5,0,30,0,0,0,0,0,3,0,0,1,3,1,Projetil. Proc=Queimadura 3 s.
 FlameWall,Fire,2,False,40,0,0,12,2,7,0,6,0,0,0,0,0.5,0,0,0,0,1,3,1,"Parede de Range m por Duration; Damage por tick de 0,5 s (= 4/s)."
 FlameNova,Fire,2,False,35,0,0,8,10,0,5,0,0,0,0,0,0,0,0,0,12,1,3,1,Explosao ao redor do conjurador; EffectValue=empurrao (m/s).
 EmberArmor,Fire,2,False,40,0,0,30,0,0,1.5,20,0,0,0,0,0,0,0,0,0,1,3,1,Imune a fogo por Duration; quem bate de perto ou encosta (Radius) queima (Proc). [excecao: buff]
 MagmaLance,Fire,2,False,35,0,0,6,11,40,0,4,55,0,3,0,0.5,0,1,2,0,0,0,0,Projetil veloz; perfura MaxTargets. Onde cai abre uma poca de lava por Duration: SecondaryDamage por Tick (= 2/s) no raio SecondaryRadius.
 InfernalVortex,Fire,2,True,10,0,18,0,4,8,1.9,0,0,0,0,0,0.15,0,0,0,0,1,3,1,Canalizada; lanca-chamas em cone ate Range (largura final Radius); Damage=dano/s em cada alvo; queima (ProcChance por segundo).
-Meteor,Fire,3,False,120,0,0,60,38,35,6,0,0,0,0,0,0,0,0,0,0,1,4,1,Grande area; chao em chamas (talento Coracao do Sol).
+Meteor,Fire,3,False,120,0,0,60,38,35,6,2.5,4,0,0,0,0,0,3,2.5,0,1,4,1,Grande area; chao em chamas (talento Coracao do Sol).
 ArcaneMissile,Energy,1,False,15,0,0,2,2,30,0,0,20,3,0,0,0,0,0,0,0,1,8,0,Count orbes teleguiados; Damage por orbe (3x2=6). Proc=Carga Arcana.
 ManaShield,Energy,2,False,30,0,0,20,0,0,0,15,0,0,0,0,0,0,0,0,0,0,0,0,Dano absorvido pela mana por Duration (2 mana/dano em ArcanumCombatSettings). [excecao: buff defensivo]
 ArcaneBeam,Energy,2,True,10,0,16,0,7.5,25,0,0,0,0,1,0,0.1,0,0,0,0,0,0,0,Canalizada; feixe preciso. Damage=dano/s.
@@ -23,7 +23,7 @@ Singularity,Energy,3,False,120,0,0,75,30,30,8,5,0,0,0,0,0,0,0,0,6,0,0,0,Puxa no 
 StarShower,Energy,3,False,100,0,0,45,9,30,4.5,3,0,10,0,0,0,0,0,2.2,0,0,0,0,Count estrelas em Duration numa area Radius; Damage por estrela com raio SecondaryRadius. [excecao: numeros do mod; estrelas espalhadas]
 RaiseSkeleton,Necromancy,1,False,20,0,0,3,0,0,0,60,0,1,3,0,0,0,0,0,0,0,0,0,Servo guerreiro (Enemies.csv SkeletonServant) por Duration. MaxTargets=servos ativos deste tipo.
 LifeDrain,Necromancy,1,False,12,0,0,1.5,6,16,0,0,0,0,0,0,0,0.5,0,0,0,0,0,0,Cura HealFraction do dano causado.
-RaiseBrute,Necromancy,2,False,45,0,0,12,0,0,0,60,0,1,1,0,0,0,0,0,0,0,0,0,Servo bruto (Enemies.csv BruteServant) por Duration. MaxTargets=servos ativos.
+RaiseBrute,Necromancy,2,False,45,0,0,12,0,0,0,60,0,1,1,0,0,0,6,3.5,0,0,0,0,Servo bruto (Enemies.csv BruteServant) por Duration. MaxTargets=servos ativos.
 DeathTouch,Necromancy,2,False,50,0,0,45,0,4,0,0,0,0,0,0,0,0,40,0,0.25,1,5,0,EffectValue=fracao da vida maxima do alvo; SecondaryDamage=teto em chefes; Proc=Fraqueza. [excecao: recarga longa por design]
 Curse,Necromancy,2,False,35,0,0,10,0,20,4,10,0,0,0,0,0,0,0,0,0,1,10,1,Area: veneno (Proc DPS) e Maldicao (+20% dano recebido).
 WanderingSouls,Necromancy,2,False,35,0,0,8,4,30,0,0,15,3,0,0,0,0.5,0,0,0,0,0,0,Count almas teleguiadas; a 1a vai no alvo da mira; cura HealFraction.
