@@ -38,6 +38,22 @@ function StaffService.equip(character: Model, school: string?)
 	grip.C0 = StaffPose.Poses.Idle * StaffPose.AXIS
 	grip.Parent = staffRoot
 
+	-- Cajado de criatura brilha bem menos (varios juntos estouravam a imagem com o bloom).
+	if not Players:GetPlayerFromCharacter(character) then
+		local gem = staff:FindFirstChild("Gem")
+		local light = gem and gem:FindFirstChild("GemLight") :: PointLight?
+		if light then
+			light.Brightness = 0.5
+			light.Range = 4
+		end
+		local muzzle = gem and gem:FindFirstChild("Muzzle")
+		local glow = muzzle and muzzle:FindFirstChild("GemGlow") :: ParticleEmitter?
+		if glow then
+			glow.Rate = 2
+			glow.LightEmission = 0.5
+		end
+	end
+
 	staff.Parent = character
 	CollectionService:AddTag(staff, TAG)
 end

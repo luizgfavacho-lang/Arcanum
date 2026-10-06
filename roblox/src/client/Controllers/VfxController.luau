@@ -155,7 +155,8 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Effects.castSignature(p.Caster, palette, p.Tier or 1)
 		local muzzle = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or Vector3.zero)
 		if not p.Channeled then
-			Effects.flash(muzzle, palette, 0.9, false)
+			-- Conjuracao alheia (inimigos, outros jogadores): clarao menor, para nao estourar a tela.
+			Effects.flash(muzzle, palette, if isMine(p.Caster) then 0.9 else 0.45, false)
 		end
 		Audio.play("Cast_" .. tostring(p.School), muzzle)
 		if isMine(p.Caster) then

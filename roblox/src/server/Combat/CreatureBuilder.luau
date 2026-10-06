@@ -26,7 +26,7 @@ local KINDS: { [string]: string } = {
 
 local BLOB_SIZE: { [string]: number } = { ArcaneSlime = 1, ArcaneSlimeSmall = 0.6, StormBloater = 1 }
 
-local BONE = Color3.fromRGB(226, 218, 196)
+local BONE = Color3.fromRGB(168, 156, 132) -- osso envelhecido (claro demais estoura ao sol)
 local SOCKET = Color3.fromRGB(22, 16, 24)
 local ROBE = Color3.fromRGB(36, 28, 42)
 local STONE = Color3.fromRGB(66, 68, 84)
@@ -201,7 +201,7 @@ local function skeleton(model: Model, palette: Palette)
 			Enum.Material.SmoothPlastic,
 			{ Shape = Enum.PartType.Ball }
 		)
-		local eye = attach(
+		attach(
 			head,
 			"Eye",
 			Vector3.one * s * 0.13,
@@ -210,9 +210,6 @@ local function skeleton(model: Model, palette: Palette)
 			Enum.Material.Neon,
 			{ Shape = Enum.PartType.Ball }
 		)
-		if side == 1 then
-			light(eye, palette.Halo, 7, 2)
-		end
 	end
 	attach(
 		head,
@@ -342,14 +339,14 @@ local function skeleton(model: Model, palette: Palette)
 	emitter(upper, {
 		Texture = "rbxasset://textures/particles/sparkles_main.dds",
 		Color = ColorSequence.new(palette.Halo),
-		LightEmission = 1,
-		Size = NumberSequence.new(0.25, 0),
-		Transparency = NumberSequence.new(0.2, 1),
+		LightEmission = 0.4,
+		Size = NumberSequence.new(0.16, 0),
+		Transparency = NumberSequence.new(0.35, 1),
 		Lifetime = NumberRange.new(1, 1.6),
 		Speed = NumberRange.new(0.4, 1.2),
 		Acceleration = Vector3.new(0, 2, 0),
 		SpreadAngle = Vector2.new(180, 180),
-		Rate = 3,
+		Rate = 2,
 	})
 	local foot = part(model, "LeftFoot") or lower
 	emitter(foot, {
@@ -440,7 +437,7 @@ local function golem(model: Model, palette: Palette)
 		Enum.Material.Glass,
 		{ Shape = Enum.PartType.Ball, Transparency = 0.45 }
 	)
-	light(core, palette.Halo, 16, 2.5)
+	light(core, palette.Halo, 12, 1.1)
 
 	-- Cristais nos ombros (abrindo para fora) e nas costas (inclinados para tras).
 	for _, side in { -1, 1 } do
@@ -588,7 +585,7 @@ local function slime(name: string, palette: Palette, k: number): Model
 		Enum.Material.Neon,
 		{ Shape = Enum.PartType.Ball }
 	)
-	light(core, palette.Halo, 9 * k + 3, 1.6)
+	light(core, palette.Halo, 6 * k + 3, 0.8)
 	for i = 1, 3 do
 		local angle = i * 2.1
 		attach(
@@ -657,7 +654,7 @@ local function bloater(name: string, palette: Palette): Model
 		Enum.Material.Neon,
 		{ Shape = Enum.PartType.Ball }
 	)
-	light(core, palette.Halo, 14, 2.2)
+	light(core, palette.Halo, 10, 1)
 	attach(body, "Cap", Vector3.new(1.1, 0.5, 1.1), CFrame.new(0, 1.75, 0), STONE_DARK, Enum.Material.Slate)
 	attach(
 		body,
