@@ -10,7 +10,7 @@ Fireball,Fire,1,False,15,0,0,1.5,6,40,0,0,30,0,0,0,0,0,0,0,0,1,3,1,Projetil. Pro
 FlameWall,Fire,2,False,40,0,0,12,2,7,0,6,0,0,0,0,0.5,0,0,0,0,1,3,1,"Parede de Range m por Duration; Damage por tick de 0,5 s (= 4/s)."
 FlameNova,Fire,2,False,35,0,0,8,10,0,5,0,0,0,0,0,0,0,0,0,12,1,3,1,Explosao ao redor do conjurador; EffectValue=empurrao (m/s).
 EmberArmor,Fire,2,False,40,0,0,30,0,0,0,20,0,0,0,0,0,0,0,0,0,1,3,1,Imune a fogo por Duration; atacantes corpo a corpo queimam (Proc). [excecao: buff]
-MagmaLance,Fire,2,False,35,0,0,6,11,40,0,0,55,0,3,0,0,0,0,0,0,0,0,0,Projetil veloz; perfura MaxTargets.
+MagmaLance,Fire,2,False,35,0,0,6,11,40,0,4,55,0,3,0,0.5,0,1,0.8,0,0,0,0,Projetil veloz; perfura MaxTargets. Deixa caminho de lava por Duration: SecondaryDamage por Tick (= 2/s) a SecondaryRadius (meia-largura) do trajeto.
 InfernalVortex,Fire,2,False,45,0,0,12,3,20,5,5,0,0,0,0,0.5,0,0,0,0,0,0,0,Tornado no ponto mirado; puxa a Radius; Damage a cada Tick.
 Meteor,Fire,3,False,120,0,0,60,38,35,6,0,0,0,0,0,0,0,0,0,0,1,4,1,Grande area; chao em chamas (talento Coracao do Sol).
 ArcaneMissile,Energy,1,False,15,0,0,2,2,30,0,0,20,3,0,0,0,0,0,0,0,1,8,0,Count orbes teleguiados; Damage por orbe (3x2=6). Proc=Carga Arcana.

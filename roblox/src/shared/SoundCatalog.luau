@@ -47,6 +47,9 @@ return table.freeze({
 	Chain = s(9114237693, 0.15, 0.95, 1.1, 60, 0.5), -- Electric Arcing 5 (ticks da canalizacao)
 	Strike = s(9120019110, 0.45, 0.95, 1.05, 130, 2.5), -- Thunder Lightning 5 (Raio Invocado)
 	Nova = s(9117982449, 0.4, 0.95, 1.05, 100, 1.8), -- Pyro Explosion 1
+	LavaSear = s(9119165650, 0.4, 0.9, 1.05, 90, 1), -- Sizzle Short And Explosive Sear 4
+	LavaRumble = s(9112822924, 0.25, 1, 1.1, 60, 4.5), -- Lava Fire Deep Rumbling 1 (borbulhando)
+	StrikeWarn = s(9114237693, 0.25, 0.8, 0.9, 90, 0.5), -- Electric Arcing 5 (nuvem carregando)
 	SpellLine = s(9118617342, 0.4, 0.85, 1, 90, 1.2), -- Rock Impact Large Hit Scrape
 	-- Inimigos
 	EnemyCharge = s(9125981170, 0.22, 0.95, 1.1, 60, 0.9), -- Pre Blast Electric Charge Up Glass

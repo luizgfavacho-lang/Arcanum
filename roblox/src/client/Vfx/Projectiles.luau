@@ -9,6 +9,7 @@ local Workspace = game:GetService("Workspace")
 
 local Lib = require(script.Parent.Lib)
 local Effects = require(script.Parent.Effects)
+local SpellFx = require(script.Parent.SpellFx)
 
 local Projectiles = {}
 
@@ -227,10 +228,12 @@ local IMPACTS: { [string]: (Vector3, Lib.Palette, number) -> () } = {
 		Lib.burst(position, "Spark", palette, 16)
 		Lib.burst(position, "Smoke", palette, 8, { Speed = NumberRange.new(2, 6) })
 		scorch(position, palette, math.max(radius, 2.5))
+		SpellFx.fireGround(position, palette, 3, 1.5)
 	end,
 	ArcaneMissile = function(position, palette, _)
 		Effects.flash(position, palette, 1.2, false)
 		Lib.burst(position, "Star", palette, 18, { Speed = NumberRange.new(8, 16) })
+		SpellFx.runeBurst(position, palette)
 	end,
 	MagmaLance = function(position, palette, _)
 		Effects.flash(position, palette, 1.8, true)

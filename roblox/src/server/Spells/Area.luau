@@ -71,8 +71,9 @@ function Area.strike(ctx: Context.Context)
 	local radius = Units.meters(row.RadiusMeters)
 	local _, point = Targeting.aimTrace(ctx.Caster, ctx.Origin, Context.direction(ctx), range, 0.5)
 	local center = groundBelow(point, ctx.Caster)
-	-- Pequeno atraso: o raio "cai" (o cliente desenha no mesmo instante do dano).
-	task.delay(0.12, function()
+	-- Aviso curto (nuvem e circulo no chao) antes do raio cair; dano no instante do raio.
+	vfx:FireAllClients("StrikeWarn", { Position = center, Radius = radius, Duration = 0.35, School = row.School })
+	task.delay(0.35, function()
 		vfx:FireAllClients("Strike", { Position = center, Radius = radius, School = row.School, Caster = ctx.Caster })
 		for _, target in Targeting.hostilesInRadius(ctx.Caster, center + Vector3.new(0, BODY_HEIGHT, 0), radius + 1.5) do
 			Context.damage(ctx, target, row.Damage)
@@ -85,10 +86,13 @@ function Area.nova(ctx: Context.Context)
 	local row = ctx.Spell.Row
 	local radius = Units.meters(row.RadiusMeters)
 	local center = Targeting.position(ctx.Caster)
-	vfx:FireAllClients("Nova", { Position = center, Radius = radius, School = row.School, Caster = ctx.Caster })
-	if ctx.Spell.Def.DestroysProjectiles then
-		Projectile.destroyHostileNear(ctx.Caster, center, radius)
-	end
+	local popped = if ctx.Spell.Def.DestroysProjectiles
+		then Projectile.destroyHostileNear(ctx.Caster, center, radius)
+		else {}
+	vfx:FireAllClients(
+		"Nova",
+		{ Position = center, Radius = radius, School = row.School, Caster = ctx.Caster, Popped = popped }
+	)
 	local speed = Units.meters(row.EffectValue)
 	for _, target in Targeting.hostilesInRadius(ctx.Caster, center, radius) do
 		Context.damage(ctx, target, row.Damage)

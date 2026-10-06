@@ -15,6 +15,7 @@ local Signal = require(Shared.Signal)
 local Units = require(Shared.Units)
 local Targeting = require(script.Parent.Parent.Combat.Targeting)
 local Context = require(script.Parent.Context)
+local Hazard = require(script.Parent.Hazard)
 
 local vfx = Net.get("Vfx")
 
@@ -64,8 +65,12 @@ local function hit(p: Projectile, target: Model, position: Vector3)
 		return
 	end
 	p.Hits[target] = true
-	Context.damage(p.Ctx, target, p.Ctx.Spell.Row.Damage)
+	local dealt = Context.damage(p.Ctx, target, p.Ctx.Spell.Row.Damage)
 	Context.tryProc(p.Ctx, target)
+	-- Almas Errantes: a alma volta ao conjurador trazendo a cura.
+	if dealt > 0 and p.Ctx.Spell.Row.HealFraction > 0 then
+		vfx:FireAllClients("SoulReturn", { From = position, Caster = p.Ctx.Caster, School = p.Ctx.Spell.Row.School })
+	end
 
 	-- Perfuracao: o alvo atingido sai do filtro de colisao.
 	local filter = p.Params.FilterDescendantsInstances
@@ -189,19 +194,22 @@ function Projectile.cast(ctx: Context.Context)
 			Caster = ctx.Caster,
 		})
 		Projectile.Launched:Fire(ctx.Caster, p.Position, p.Velocity)
+		if def.GroundTrail and index == 1 then
+			Hazard.lavaTrail(ctx, p.Position, direction, range, speed)
+		end
 	end
 end
 
--- Pulso Arcano: apaga projeteis de inimigos do conjurador dentro do raio. Retorna quantos.
-function Projectile.destroyHostileNear(caster: Model, center: Vector3, radius: number): number
-	local count = 0
+-- Pulso Arcano: apaga projeteis de inimigos do conjurador dentro do raio. Retorna onde estavam.
+function Projectile.destroyHostileNear(caster: Model, center: Vector3, radius: number): { Vector3 }
+	local positions = {}
 	for _, p in active do
 		if Targeting.isHostile(caster, p.Ctx.Caster) and (p.Position - center).Magnitude <= radius then
+			table.insert(positions, p.Position)
 			finish(p, p.Position)
-			count += 1
 		end
 	end
-	return count
+	return positions
 end
 
 function Projectile.start()

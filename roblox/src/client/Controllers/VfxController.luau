@@ -22,6 +22,7 @@ local Auras = require(Vfx.Auras)
 local Audio = require(Vfx.Audio)
 local Creatures = require(Vfx.Creatures)
 local DodgeAnim = require(Vfx.DodgeAnim)
+local SpellFx = require(Vfx.SpellFx)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -155,6 +156,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Staff.cast(p.Caster, palette)
 		Effects.castSignature(p.Caster, palette, p.Tier or 1)
 		local muzzle = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or Vector3.zero)
+		SpellFx.flourish(p.SpellId, p.Caster, palette, muzzle)
 		if not p.Channeled then
 			-- Conjuracao alheia (inimigos, outros jogadores): clarao menor, para nao estourar a tela.
 			Effects.flash(muzzle, palette, if isMine(p.Caster) then 0.9 else 0.45, false)
@@ -176,6 +178,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		if p.Hit then
 			Effects.flash(p.To, palette, 1.4, true)
 			Lib.burst(p.To, "Spark", palette, 18)
+			SpellFx.residueArcs(p.To, palette, 0.6)
 			shakeNear(p.To, 0.15, 40)
 		end
 	end,
@@ -186,6 +189,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		if p.Hit and p.Caster then
 			LifeStream.play(p.To, p.Caster, palette)
 			Effects.flash(p.To, palette, 1, false)
+			task.delay(0.35, SpellFx.healRing, p.Caster, palette)
 			Audio.play("LifeDrain", p.To)
 		else
 			Lib.burst(p.To, "Wisp", palette, 6)
@@ -206,6 +210,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		points[1] = Lib.muzzleOf(p.Caster, points[1])
 		for i = 1, #points - 1 do
 			Lightning.braid(points[i], points[i + 1], palette, if i == 1 then 7 else 5, 0.12)
+			SpellFx.chainNode(points[i + 1], palette)
 			if math.random() < 0.5 then
 				Lib.burst(points[i + 1], "Spark", palette, 4)
 			end
@@ -230,6 +235,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Effects.flash(p.Position + Vector3.new(0, 1, 0), palette, 3.5, true)
 		Effects.shockwave(Lib.groundBelow(p.Position + Vector3.new(0, 2, 0), nil), palette, p.Radius)
 		Lib.burst(p.Position, "Spark", palette, 30)
+		SpellFx.groundCrackle(p.Position, p.Radius, palette, 1)
 		Audio.play("Strike", p.Position)
 		shakeNear(p.Position, 0.7, 90)
 	end,
@@ -242,6 +248,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		Effects.shockwave(ground + Vector3.new(0, 0.1, 0), palette, p.Radius)
 		task.delay(0.08, Effects.shockwave, ground + Vector3.new(0, 0.6, 0), palette, p.Radius * 0.7)
 		if p.School == "Fire" then
+			SpellFx.flamePillars(ground, p.Radius, palette)
 			Lib.burst(
 				p.Position,
 				"Flame",
@@ -253,6 +260,7 @@ local HANDLERS: { [string]: (any) -> () } = {
 		else
 			Lib.burst(p.Position, "Star", palette, 30, { Speed = NumberRange.new(12, 26) })
 			Lib.burst(p.Position, "Wisp", palette, 20, { Speed = NumberRange.new(6, 12) })
+			SpellFx.arcaneDome(p.Position, ground, p.Radius, palette, p.Popped)
 		end
 		Audio.play(if p.School == "Fire" then "Nova" else "Impact_Energy", p.Position)
 		shakeNear(p.Position, 0.5, 60)
@@ -264,9 +272,36 @@ local HANDLERS: { [string]: (any) -> () } = {
 	-- Espinhos Carmesins: fileira de espinhos rompendo o chao.
 	SpellLine = function(p)
 		local palette = Lib.palette(p.School)
-		Effects.crystalSpikes(p.From, p.To, p.Width, palette)
+		if p.School == "Blood" then
+			SpellFx.bloodSpikes(p.From, p.To, p.Width, palette)
+		else
+			Effects.crystalSpikes(p.From, p.To, p.Width, palette)
+		end
 		Audio.play("SpellLine", p.From)
 		shakeNear((p.From + p.To) / 2, 0.35, 50)
+	end,
+
+	-- Lanca de Magma: caminho de lava atras da lanca.
+	LavaTrail = function(p)
+		SpellFx.lavaTrail(p.Points, p.Delays, p.Width, p.Duration)
+		local first = p.Points[1]
+		if first then
+			Audio.play("LavaSear", first)
+			Audio.play("LavaRumble", p.Points[math.ceil(#p.Points / 2)])
+		end
+	end,
+
+	-- Raio Invocado: nuvem e circulo antes de cair.
+	StrikeWarn = function(p)
+		SpellFx.stormWarn(p.Position, p.Radius, p.Duration, Lib.palette(p.School))
+		Audio.play("StrikeWarn", p.Position + Vector3.new(0, 10, 0))
+	end,
+
+	-- Almas Errantes: a alma volta ao conjurador trazendo a cura.
+	SoulReturn = function(p)
+		if p.Caster and p.Caster.Parent then
+			LifeStream.play(p.From, p.Caster, Lib.palette(p.School))
+		end
 	end,
 
 	-- Criatura zombando (gargalhada do Ossomante).

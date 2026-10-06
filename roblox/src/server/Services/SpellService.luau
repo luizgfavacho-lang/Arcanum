@@ -231,6 +231,7 @@ end
 
 function SpellService.start()
 	Projectile.start()
+	require(SpellsFolder.Hazard).start()
 end
 
 return SpellService

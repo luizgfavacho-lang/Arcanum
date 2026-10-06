@@ -195,12 +195,14 @@ local vfxScript = {
 		Lightning = "Lightning",
 		MotorOverlay = "MotorOverlay",
 		Audio = "Audio",
+		SpellFx = "SpellFx",
 	},
 }
 modules.Lib = load("client/Vfx/Lib.luau", vfxScript)
 modules.Effects = load("client/Vfx/Effects.luau", vfxScript)
 modules.Lightning = load("client/Vfx/Lightning.luau", vfxScript)
 modules.Audio = load("client/Vfx/Audio.luau", vfxScript)
+modules.SpellFx = load("client/Vfx/SpellFx.luau", vfxScript)
 for name in modules.SoundCatalog do
 	modules.Audio.play(name, if #name % 2 == 0 then roblox.Vector3.new(0, 2, 0) else nil)
 end
@@ -249,6 +251,24 @@ for _, spellId in { "Fireball", "ArcaneMissile", "MagmaLance", "WanderingSouls",
 	Projectiles.finish({ Id = spellId, Position = V.new(0, 5, -20), School = "Fire", Radius = 0 })
 end
 LifeStream.play(V.new(10, 5, 0), fakeCaster, Lib.palette("Necromancy"))
+
+-- Detalhes de cada magia (Vfx/SpellFx).
+local SpellFx = modules.SpellFx
+for _, spellId in { "Spark", "Fireball", "ArcaneMissile", "LifeDrain", "SummonedBolt", "CrimsonSpikes", "MagmaLance" } do
+	SpellFx.flourish(spellId, fakeCaster, Lib.palette("Fire"), V.new(1, 4, -2))
+end
+SpellFx.lavaTrail({ V.new(0, 0, 0), V.new(0, 0, -3), V.new(0, 0, -6) }, { 0, 0.05, 0.1 }, 3, 4)
+SpellFx.residueArcs(V.new(0, 3, -10), Lib.palette("Electricity"), 0.6)
+SpellFx.fireGround(V.new(0, 3, -10), Lib.palette("Fire"), 3, 1.5)
+SpellFx.runeBurst(V.new(0, 3, -10), Lib.palette("Energy"))
+SpellFx.chainNode(V.new(0, 3, -10), Lib.palette("Electricity"))
+SpellFx.healRing(fakeCaster, Lib.palette("Necromancy"))
+SpellFx.stormWarn(V.new(0, 0, -20), 10, 0.35, Lib.palette("Electricity"))
+SpellFx.groundCrackle(V.new(0, 0, -20), 10, Lib.palette("Electricity"), 1)
+SpellFx.flamePillars(V.new(0, 0, 0), 18, Lib.palette("Fire"))
+SpellFx.arcaneDome(V.new(0, 3, 0), V.new(0, 0, 0), 21, Lib.palette("Energy"), { V.new(5, 3, 0) })
+SpellFx.bloodSpikes(V.new(0, 0, 0), V.new(0, 0, -30), 10, Lib.palette("Blood"))
+print("Magias (detalhes): ok")
 local head = roblox.Instance.new("Part")
 head.Name = "Head"
 head.CFrame = roblox.CFrame.new(0, 5, 0)
