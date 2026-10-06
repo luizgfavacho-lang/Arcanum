@@ -6,6 +6,10 @@ return table.freeze({
 	-- TESTES: jogadores com mana e vida infinitas (custos, dano e custo de vida nao descontam;
 	-- numeros de dano e tremor continuam aparecendo). DESLIGAR (false) antes de publicar.
 	DevInfiniteResources = true,
+	-- TESTES: magias sem recarga para jogadores (so um intervalo minimo entre conjuracoes, para um
+	-- clique nao disparar duas vezes). DESLIGAR (false) antes de publicar.
+	DevNoCooldowns = true,
+	DevMinCastInterval = 0.12,
 
 	-- Dano (ver Math/DamageMath)
 	ArmorReductionPerPoint = 0.04,

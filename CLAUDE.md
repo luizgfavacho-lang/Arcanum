@@ -66,6 +66,6 @@ tests/       Lune (*.spec.luau + TestKit)
   desvio de magias; ataques telegrafados (bote, rajada, pancada, linha de cristais, explosao) que o
   equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift (passo arcano animado: `Vfx/DodgeAnim`) com invulnerabilidade
   e esquiva perfeita (+mana). Regras em `Math/CombatMath` (testado).
-- **Modo de teste ligado:** `CombatSettings.DevInfiniteResources = true` (jogador com mana e vida infinitas). Desligar antes de publicar.
+- **Modo de teste ligado:** `CombatSettings.DevInfiniteResources` (mana e vida infinitas) e `DevNoCooldowns` (magias sem recarga) = true. Desligar antes de publicar.
 - `lune run tests` = 172 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório e corpos das criaturas. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.

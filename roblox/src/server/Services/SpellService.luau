@@ -124,12 +124,14 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 	end
 
 	-- Recargas: da magia e global (canalizadas nao tem nenhuma das duas).
-	local cooldown = row.Cooldown * mods.CooldownMultiplier / stats.CastSpeed
+	-- Modo de teste (DevNoCooldowns): sem recarga, so o intervalo minimo entre conjuracoes.
+	local cooldown = if Settings.DevNoCooldowns then 0 else row.Cooldown * mods.CooldownMultiplier / stats.CastSpeed
 	if cooldown > 0 then
 		state.Cooldowns[spell.Id] = now + cooldown
 	end
 	if not channeled then
-		state.GcdUntil = now + Settings.GlobalCooldown / stats.CastSpeed
+		local gcd = if Settings.DevNoCooldowns then Settings.DevMinCastInterval else Settings.GlobalCooldown
+		state.GcdUntil = now + gcd / stats.CastSpeed
 	end
 	spellStateRemote:FireClient(player, spell.Id, state.Cooldowns[spell.Id] or 0, state.GcdUntil)
 
