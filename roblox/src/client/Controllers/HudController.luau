@@ -10,6 +10,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
@@ -505,6 +506,19 @@ local function refreshSlotLook(ui: SlotUi, spellId: string?)
 end
 
 function HudController.start()
+	-- A barra de vida padrao do Roblox (canto superior direito) repete a nossa e cobre o contador
+	-- de essencias: desligada. SetCore pode falhar se a CoreGui ainda nao carregou; tenta de novo.
+	task.spawn(function()
+		for _ = 1, 10 do
+			local ok = pcall(function()
+				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, false)
+			end)
+			if ok then
+				break
+			end
+			task.wait(0.5)
+		end
+	end)
 	local gui = new("ScreenGui", {
 		Name = "ArcanumHud",
 		ResetOnSpawn = false,

@@ -487,6 +487,7 @@ local controllersScript = { Parent = { CameraController = "CameraController", Cl
 modules.CameraController = { AimTarget = nil }
 modules.ClientState = { SelectedSlot = 1, Cooldowns = {}, GcdUntil = 0 }
 services.UserInputService = { InputBegan = signal, InputChanged = signal }
+services.StarterGui = { SetCoreGuiEnabled = noop }
 local Hud = load("client/Controllers/HudController.luau", controllersScript)
 Hud.start()
 Hud.feedback("Mana", 1)

@@ -4,6 +4,7 @@ RPG de ação focado em magia (5 escolas, covis selados, coop). **Plataforma ati
 (pasta `roblox/`, Luau + Rojo). O projeto Unreal na raiz (`Source/`, `Content/`, `Config/`,
 `Scripts/*.ps1`) está **pausado** — não mexa nele sem pedido explícito.
 Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/07-Roblox.md`.
+Retomando de outra sessão? `Docs/CONTINUAR-LOCAL.md` tem o histórico, preferências e pendências.
 
 ## Comandos (dentro de `roblox/`; saída curta)
 - Testes: `lune run tests` (regras + dados) e `lune run tests/smoke` (cria todos os efeitos com
