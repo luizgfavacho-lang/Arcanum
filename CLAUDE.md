@@ -84,6 +84,6 @@ tests/       Lune (*.spec.luau + TestKit)
 - **Visual:** texturas de `TextureCatalog` (fogo e fumaça em flipbook, círculo mágico por escola via `Lib.groundDecal`
   em SurfaceGui com brilho, anéis de choque, arcos elétricos); gesto do cajado por tipo de magia (`Vfx/Staff`:
   Raise/Slam/Sweep/Thrust). Raio Arcano = feixe contínuo no cliente (`StrikeFx.arcaneBeam`, por quadro, segue a
-  mira local) e drena ManaPerSecond de verdade (`StatsService.drainMana`, a barra desce até no modo de teste).
+  mira local) e drena ManaPerSecond (`StatsService.drainMana`; no modo de teste a mana é infinita).
 - `lune run tests` = 351 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas e reações. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.

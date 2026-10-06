@@ -103,13 +103,9 @@ function StatsService.isInfinite(stats: Stats?): boolean
 	return Settings.DevInfiniteResources == true and stats ~= nil and stats.Player ~= nil
 end
 
--- Dreno continuo (canalizadas): gasta de verdade (a barra desce). No modo de teste nunca falha:
--- para em 0 e o efeito continua.
+-- Dreno continuo (canalizadas): ManaPerSecond por tique; sem mana, o efeito apaga.
+-- No modo de teste (mana infinita) nao gasta nada.
 function StatsService.drainMana(stats: Stats, amount: number): boolean
-	if StatsService.isInfinite(stats) then
-		StatsService.setMana(stats, stats.Mana - amount)
-		return true
-	end
 	return StatsService.trySpendMana(stats, amount)
 end
 
