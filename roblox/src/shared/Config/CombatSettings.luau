@@ -31,7 +31,7 @@ return table.freeze({
 
 	-- Jogador nivel 1 (escala do mod: 20 de vida)
 	PlayerBaseHealth = 20,
-	PlayerBaseMana = 100,
+	PlayerBaseMana = 300,
 	PlayerBaseManaRegen = 3,
 	PlayerWalkSpeed = 16,
 
