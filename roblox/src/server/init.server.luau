@@ -18,6 +18,7 @@ local ORDER = {
 	"StatusService",
 	"DodgeService",
 	"DamageService",
+	"EssenceService",
 	"SpellService",
 	"EnemyService",
 	"ArenaService",

@@ -28,6 +28,7 @@ local StrikeFx = require(Vfx.StrikeFx)
 local Impact = require(Vfx.Impact)
 local FlameFx = require(Vfx.FlameFx)
 local SignatureFx = require(Vfx.SignatureFx)
+local Essence = require(Vfx.Essence)
 local ClientState = require(script.Parent.ClientState)
 local CameraController = require(script.Parent.CameraController)
 local HudController = require(script.Parent.HudController)
@@ -585,6 +586,11 @@ local HANDLERS: { [string]: (any) -> () } = {
 	SweetSpot = function(p)
 		SignatureFx.sweetSpot(p.Positions, Lib.palette(p.School))
 	end,
+
+	-- Essencias (moeda) no chao.
+	EssenceDrop = Essence.drop,
+	EssenceCollect = Essence.collect,
+	EssenceExpire = Essence.expire,
 
 	ChannelEnd = function(p)
 		if p.Caster then

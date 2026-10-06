@@ -5,7 +5,8 @@
 --   CastRequest(slot: number, origin: Vector3, aimPoint: Vector3)
 --   AimUpdate(origin: Vector3, aimPoint: Vector3)        [unreliable] mira durante canalizacao
 --   ChannelStop(slot: number)
---   EquipSpell(spellId: string, slot: number)
+--   EquipSpell(spellId: string, slot: number)          so magias liberadas (Unlocked)
+--   BuySpell(spellId: string)                            compra no Grimorio com essencias
 --   Dodge(direction: Vector3)                            esquiva: o cliente ja aplicou o impulso; o
 --                                                        servidor valida a recarga e abre a invulnerabilidade
 -- Servidor -> Cliente(s)
@@ -23,6 +24,7 @@ local DEFINITIONS: { [string]: string } = {
 	AimUpdate = "UnreliableRemoteEvent",
 	ChannelStop = "RemoteEvent",
 	EquipSpell = "RemoteEvent",
+	BuySpell = "RemoteEvent",
 	Dodge = "RemoteEvent",
 	Vfx = "RemoteEvent",
 	VfxFast = "UnreliableRemoteEvent",

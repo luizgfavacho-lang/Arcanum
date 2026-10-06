@@ -9,6 +9,7 @@ for _, name in
 		"ClientState",
 		"CameraController",
 		"HudController",
+		"EssenceController",
 		"EnemyBars",
 		"VfxController",
 		"AimIndicator",

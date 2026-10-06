@@ -218,3 +218,17 @@ cima para pegar (só se precisar). Renascem em 18 s ou no fim do round.
 
 O **indicador de mira** (como os de LoL/DotA) mostra no chão a área da magia selecionada: círculo no ponto mirado,
 em volta do mago, ou faixa (Espinhos e Muralha).
+
+## 9. Essências e loja de magias
+
+**Moeda: Essências** (como os bolts de Ratchet & Clank). Toda criatura derrotada derrama um monte de peças
+douradas que saltam, quicam e ficam girando no chão; chegue a até 16 studs e elas voam até você, uma a uma, com
+um tilintar, e o contador no canto da tela sobe contando. Valor = XP da criatura (elite ×2; na Arena +10% por
+round, e cada round vencido derrama 25 × round × jogadores no centro). Montes somem em 90 s.
+
+**Loja (Grimório, G):** começa com a magia básica de cada escola (Faísca, Bola de Fogo, Míssil Arcano, Drenar
+Vida, Lâmina de Sangue). As outras mostram o preço — Círculo I 100, II 300, III 900, IV 2000 — e o botão
+COMPRAR. O servidor confere saldo e preço (`BuySpell`) e só deixa equipar/conjurar magia liberada.
+
+**Nível:** cada nível dá +0,8 de vida máxima e +10 de mana máxima (Levels.csv); o ganho entra também na vida e
+mana atuais.

@@ -99,8 +99,9 @@ local Catalog: { [string]: Def } = {
 	CrimsonHook = { Kind = "Control", Mode = "Hook" },
 }
 
--- Barra inicial do jogador (fatia vertical). Lamina de Sangue entra no M1 (T-06).
-local StartingSlots = { "Spark", "Fireball", "ArcaneMissile", "ChainLightning", "LifeDrain" }
+-- Magias iniciais: a mais basica (Circulo I) de cada escola. As outras se compram no Grimorio
+-- com essencias (Math/EssenceMath).
+local StartingSlots = { "Spark", "Fireball", "ArcaneMissile", "LifeDrain", "BloodBlade" }
 
 return table.freeze({
 	Defs = table.freeze(Catalog),

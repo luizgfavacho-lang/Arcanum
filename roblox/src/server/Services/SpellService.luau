@@ -18,6 +18,7 @@ local StatsService = require(script.Parent.StatsService)
 local StatusService = require(script.Parent.StatusService)
 local ProgressionService = require(script.Parent.ProgressionService)
 local StaffService = require(script.Parent.StaffService)
+local EssenceService = require(script.Parent.EssenceService)
 local SpellsFolder = script.Parent.Parent.Spells
 local Modifiers = require(script.Parent.Parent.Combat.Modifiers)
 local Context = require(SpellsFolder.Context)
@@ -114,7 +115,9 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 		return
 	end
 	local spellId = player:GetAttribute("Slot" .. tostring(math.floor(slot)))
-	local spell = if typeof(spellId) == "string" then Spells.get(spellId) else nil
+	local spell = if typeof(spellId) == "string" and EssenceService.isUnlocked(player, spellId)
+		then Spells.get(spellId)
+		else nil
 	local stats = StatsService.get(character)
 	if not spell or not stats or stats.Humanoid.Health <= 0 then
 		return
@@ -209,7 +212,13 @@ local function cast(player: Player, slot: any, origin: any, aimPoint: any)
 end
 
 function SpellService.equip(player: Player, spellId: string, slot: number)
-	if Spells.get(spellId) and slot >= 1 and slot <= SpellCatalog.NumSlots then
+	-- So magias liberadas (iniciais ou compradas no Grimorio com essencias).
+	if
+		Spells.get(spellId)
+		and EssenceService.isUnlocked(player, spellId)
+		and slot >= 1
+		and slot <= SpellCatalog.NumSlots
+	then
 		-- A mesma magia em dois slots: libera o antigo.
 		for i = 1, SpellCatalog.NumSlots do
 			if player:GetAttribute("Slot" .. i) == spellId then

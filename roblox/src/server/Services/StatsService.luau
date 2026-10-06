@@ -9,6 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Settings = require(Shared.Config.CombatSettings)
 local DamageMath = require(Shared.Math.DamageMath)
+local Net = require(Shared.Net)
 local ProgressionService = require(script.Parent.ProgressionService)
 
 export type Stats = {
@@ -159,18 +160,31 @@ function StatsService.init()
 		watch(player)
 	end
 
-	-- Subiu de nivel: aplica os novos maximos sem curar.
+	-- Subiu de nivel: vida e mana maximas sobem (Levels.csv) e o ganho entra tambem no valor atual.
 	ProgressionService.LevelChanged:Connect(function(player: Player)
 		local stats = StatsService.get(player.Character)
 		if not stats then
 			return
 		end
 		local bonuses = ProgressionService.getBonuses(player)
-		stats.Humanoid.MaxHealth = Settings.PlayerBaseHealth + bonuses.MaxHealth
+		local humanoid = stats.Humanoid
+		local healthGain = Settings.PlayerBaseHealth + bonuses.MaxHealth - humanoid.MaxHealth
+		local manaGain = Settings.PlayerBaseMana + bonuses.MaxMana - stats.MaxMana
+		humanoid.MaxHealth = Settings.PlayerBaseHealth + bonuses.MaxHealth
+		if humanoid.Health > 0 then
+			humanoid.Health = math.min(humanoid.Health + math.max(healthGain, 0), humanoid.MaxHealth)
+		end
 		stats.MaxMana = Settings.PlayerBaseMana + bonuses.MaxMana
 		stats.ManaRegen = Settings.PlayerBaseManaRegen + bonuses.ManaRegen
 		stats.SpellPower = bonuses.SpellPower
 		stats.Model:SetAttribute("MaxMana", stats.MaxMana)
+		StatsService.setMana(stats, stats.Mana + math.max(manaGain, 0))
+		Net.get("Vfx"):FireClient(player, "LevelGains", {
+			Health = healthGain,
+			Mana = manaGain,
+			MaxHealth = humanoid.MaxHealth,
+			MaxMana = stats.MaxMana,
+		})
 	end)
 end
 

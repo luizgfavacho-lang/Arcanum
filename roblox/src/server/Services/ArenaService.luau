@@ -16,6 +16,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage.Shared
 local ArenaMath = require(Shared.Math.ArenaMath)
+local EssenceMath = require(Shared.Math.EssenceMath)
 local Enemies = require(Shared.Data.Enemies) :: any
 local Net = require(Shared.Net)
 local StatsService = require(script.Parent.StatsService)
@@ -23,6 +24,7 @@ local DamageService = require(script.Parent.DamageService)
 local ProgressionService = require(script.Parent.ProgressionService)
 local WorldService = require(script.Parent.WorldService)
 local EnemyService = require(script.Parent.EnemyService)
+local EssenceService = require(script.Parent.EssenceService)
 local ArenaBuilder = require(script.Parent.Parent.Arena.ArenaBuilder)
 
 local ArenaService = {}
@@ -276,6 +278,7 @@ local function spawnOne(rowName: string, boss: boolean)
 			EliteChance = ArenaMath.eliteChance(round),
 			Hunt = { Center = layout.Center, Radius = layout.Radius + 6 },
 			OnSpawned = track,
+			EssenceScale = EssenceMath.arenaScale(round),
 		})
 	end)
 end
@@ -379,9 +382,17 @@ local function step()
 				for _, player in players do
 					ProgressionService.addXP(player, xp)
 				end
+				-- Bonus de essencias: chuva amarela no centro da Arena.
+				local bonus = EssenceMath.arenaRoundBonus(round) * #players
+				EssenceService.drop(layout.Center + Vector3.new(0, 3, 0), bonus)
 				announce(
 					"ROUND " .. round .. " VENCIDO!",
-					string.format("+%d XP  -  proximo round em %d s", xp, ArenaMath.Config.IntermissionSeconds),
+					string.format(
+						"+%d XP  +%d essencias no centro  -  proximo round em %d s",
+						xp,
+						bonus,
+						ArenaMath.Config.IntermissionSeconds
+					),
 					"Clear"
 				)
 				refreshPickups()

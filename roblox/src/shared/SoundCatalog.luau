@@ -86,6 +86,11 @@ return table.freeze({
 	Rose = s(9116418680, 0.45, 0.9, 1, 120, 2.5), -- Magic Tone Long Swelling Magical Tones
 	OrbShock = s(9119594928, 0.3, 1, 1.2, 80, 0.6), -- Static Zap Impact Buzz Twice
 
+	-- Essencias (moeda): monte caindo e cada peca chegando
+	EssenceDrop = s(9116395089, 0.3, 1.15, 1.3, 70, 0.8), -- Magic Glows Soft Clusters Of Chiming Hits 4
+	Essence = s(9126073001, 0.12, 1.5, 1.9, 50, 0.25), -- Synth Sparkle Tone High Pitch Bell Ding
+	SpellBought = s(9117297453, 0.35, 1.1, 1.15, 0, 1.5), -- Phasey Synth Power Up High Pitched Rise 2
+
 	-- Reacoes entre escolas (Math/ComboMath)
 	Reaction_Overload = s(9126082854, 0.45, 0.85, 0.95, 110, 1.6), -- Synth Thunder Cracks Individual Explosion
 	Reaction_Vaporize = s(9119165650, 0.4, 0.8, 0.9, 90, 1.2), -- Sizzle Short And Explosive Sear 4

@@ -15,18 +15,18 @@ Docs em `Docs/` — leia só o que a tarefa pedir. Específico do Roblox: `Docs/
 ## Mapa (`roblox/`)
 ```
 src/shared/  ReplicatedStorage.Shared: Data/ (GERADO), Math/ (puro, testado: Damage, Progression, ArmIK, CombatMath,
-             ComboMath, SpellMath, ArenaMath), Config/, AimShape (indicador de mira), SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
+             ComboMath, SpellMath, ArenaMath, EssenceMath), Config/, AimShape (indicador de mira), SpellCatalog, Spells, Net (remotes e contratos), Schools, States, StaffPose,
              SoundCatalog (ids da biblioteca oficial do Roblox/ProSoundEffects), TextureCatalog (imagens publicas
              da Caixa de ferramentas: circulos magicos, aneis, flipbooks de fogo/fumaca, raios), Units, Signal
 src/server/  ServerScriptService.Server: Services/ (World, Progression, Stats, Status, Damage,
-             Spell, Enemy, Staff, Arena), Arena/ (ArenaBuilder), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard, Zone, Barrage,
+             Spell, Enemy, Staff, Arena, Essence), Arena/ (ArenaBuilder), Spells/ (Context, Projectile, Hitscan, ChainLightning, Area, Hazard, Zone, Barrage,
              Buff, Movement, Control, Beam, Flamethrower, Melee, Summon),
              Combat/ (Targeting, Modifiers, StaffBuilder, CreatureBuilder, EnemyCatalog, EnemyBrain,
              MinionBrain, RigAnimator, CollisionGroups)
 src/client/  StarterPlayerScripts.Client: Controllers/ (ClientState, Camera, Input, Hud, EnemyBars, Vfx, Grimoire,
-             AimIndicator, Arena) e
+             AimIndicator, Arena, Essence) e
              Vfx/ (Lib, Effects, Lightning, Projectiles, LifeStream, Numbers, Staff, HandIK, Auras, Audio,
-             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx, Impact, FlameFx, SignatureFx)
+             Creatures, DodgeAnim, MotorOverlay, SpellFx, ZoneFx, StrikeFx, Impact, FlameFx, SignatureFx, Essence)
 tests/       Lune (*.spec.luau + TestKit)
 ```
 `Data/*.csv` (raiz) = fonte de verdade dos números; `Content/Text/ST_Spells.csv` = textos.
@@ -76,7 +76,15 @@ tests/       Lune (*.spec.luau + TestKit)
   desvio de magias; ataques telegrafados (bote, rajada, pancada, linha de cristais, explosao) que o
   equilibrio (poise) INTERROMPE; empurrao; chefe enfurece. Jogador: esquiva Q/Shift (passo arcano animado: `Vfx/DodgeAnim`) com invulnerabilidade
   e esquiva perfeita (+mana). Regras em `Math/CombatMath` (testado).
-- **Modo de teste ligado:** `CombatSettings.DevInfiniteResources` (mana e vida infinitas) e `DevNoCooldowns` (magias sem recarga) = true. Desligar antes de publicar.
+- **Modo de teste:** `DevInfiniteResources` = false (vida e mana valem de verdade); `DevNoCooldowns` = true
+  (magias sem recarga) ainda ligado — desligar antes de publicar.
+- **Progressão e loja:** subir de nível aumenta vida (+0,8) e mana (+10) máximas (Levels.csv) e soma o ganho ao
+  valor atual (aviso na tela). O jogador começa com a magia básica (Círculo I) de cada escola
+  (`SpellCatalog.StartingSlots`: Faísca, Bola de Fogo, Míssil Arcano, Drenar Vida, Lâmina de Sangue). Criaturas
+  derrotadas derramam **Essências** (moeda amarela, como os bolts de Ratchet & Clank: `Services/EssenceService`,
+  `Vfx/Essence`, contador em `Controllers/EssenceController`); o Grimório vende as outras magias (100/300/900/2000
+  por círculo; `Math/EssenceMath`). Equipar e conjurar exigem a magia liberada (atributo `Unlocked`). Sem save
+  ainda (RT-04): saldo e magias zeram ao sair.
 - **Reações entre escolas** (`Math/ComboMath`, aplicadas no `DamageService`): golpe direto de uma escola num alvo
   com certo estado → Sobrecarga (Fogo×Paralisado / Raio×Queimando: explode), Vaporizar (Fogo×Encharcado ×1,5),
   Condução (Raio×Encharcado: arcos para outros encharcados), Ruptura (Energia×Paralisado ×1,4, quebra a paralisia),
@@ -102,5 +110,5 @@ tests/       Lune (*.spec.luau + TestKit)
   portões (`EnemyBrain.setHunter`, `EnemyService.spawn` com escala), chefe a cada 5 rounds, coletáveis de vida e
   mana no centro (passar por cima), XP por round, recorde do servidor. Regras em `Math/ArenaMath`; HUD em
   `Controllers/ArenaController`.
-- `lune run tests` = 547 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas, reações, assinaturas das magias e Arena. Polimento ainda não visto no Studio.
+- `lune run tests` = 578 ok; `tests/smoke` valida efeitos, sons, cajado, mundo, HUD, Grimório, corpos das criaturas, reações, assinaturas das magias e Arena. Polimento ainda não visto no Studio.
 - Próximo: R1 — tarefas RT-03..RT-05 em `Docs/07-Roblox.md` §5.

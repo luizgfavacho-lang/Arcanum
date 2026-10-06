@@ -473,7 +473,9 @@ local SharedFull = {
 	SoundCatalog = "SoundCatalog",
 	Net = "Net",
 	Data = { Spells = "SpellData", SpellText = "SpellText" },
+	Math = { EssenceMath = "EssenceMath" },
 }
+modules.EssenceMath = load("shared/Math/EssenceMath.luau", {})
 services.ReplicatedStorage = { Shared = SharedFull }
 modules.SpellCatalog = load("shared/SpellCatalog.luau", {})
 modules.Spells = {
@@ -689,19 +691,50 @@ local Grimoire = load("client/Controllers/GrimoireController.luau", {
 		Parent = { Vfx = { Audio = "Audio" } },
 	},
 })
+-- Loja: comeca so com as basicas; magia bloqueada nao equipa, pede compra.
+localPlayer:SetAttribute("Essence", 350)
+localPlayer:SetAttribute("Unlocked", table.concat(modules.SpellCatalog.StartingSlots, ","))
 Grimoire.start()
 Grimoire.open()
 assert(Grimoire.isOpen() and modules.CameraController.MouseFree, "Grimorio deveria abrir e soltar o mouse")
 Grimoire.debugSelect("MagmaLance")
 Grimoire.equip(2)
-assert(#equipped == 1 and equipped[1][1] == "MagmaLance" and equipped[1][2] == 2, "Grimorio nao equipou")
-Grimoire.debugSelect("Meteor") -- as 42 estao implementadas: todas equipam
+assert(#equipped == 0, "magia bloqueada nao pode equipar")
+Grimoire.buy()
+assert(#equipped == 1 and equipped[1][1] == "MagmaLance", "compra deveria ir ao servidor")
+localPlayer:SetAttribute("Unlocked", "MagmaLance,Meteor," .. table.concat(modules.SpellCatalog.StartingSlots, ","))
+Grimoire.debugSelect("MagmaLance")
+Grimoire.equip(2)
+assert(#equipped == 2 and equipped[2][1] == "MagmaLance" and equipped[2][2] == 2, "Grimorio nao equipou")
+Grimoire.debugSelect("Meteor")
 Grimoire.equip(3)
-assert(#equipped == 2 and equipped[2][1] == "Meteor", "Meteoro deveria equipar")
+assert(#equipped == 3 and equipped[3][1] == "Meteor", "Meteoro deveria equipar depois de liberado")
 Grimoire.close()
 local book = playerGui:FindFirstChild("ArcanumGrimoire")
 assert(book and #book:GetDescendants() > 80, "Grimorio incompleto")
 print(string.format("Grimorio: ok (%d elementos)", #book:GetDescendants()))
+
+-- Essencias: monte caindo, quicando, sugado ate o jogador; contador na tela.
+local Essence = load("client/Vfx/Essence.luau", vfxScript)
+Essence.drop({ Id = "e1", Position = V.new(0, 3, -6), Value = 12, Pieces = 6 })
+for _ = 1, 30 do
+	Essence.debugStep(1 / 30)
+end
+Essence.collect({ Id = "e1", Model = fakeCaster })
+for _ = 1, 60 do
+	Essence.debugStep(1 / 30)
+end
+Essence.drop({ Id = "e2", Position = V.new(0, 3, -6), Value = 3, Pieces = 3 })
+Essence.expire({ Id = "e2" })
+Essence.debugStep(1 / 30)
+modules.HudController = { notice = noop }
+local EssenceHud = load("client/Controllers/EssenceController.luau", {
+	Parent = { HudController = "HudController", Parent = { Vfx = { Audio = "Audio" } } },
+})
+EssenceHud.start()
+localPlayer:SetAttribute("Essence", 500)
+assert(playerGui:FindFirstChild("EssenceHud"), "contador de essencias nao foi criado")
+print("Essencias: ok")
 
 -- HUD e efeitos da Arena (placar, coletaveis, portoes, teleporte).
 services.CollectionService = {

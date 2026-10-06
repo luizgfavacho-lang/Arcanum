@@ -10,6 +10,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage.Shared
 local Settings = require(Shared.Config.CombatSettings)
 local Enemies = require(Shared.Data.Enemies) :: any
+local EssenceMath = require(Shared.Math.EssenceMath)
 local Net = require(Shared.Net)
 local Schools = require(Shared.Schools)
 local Units = require(Shared.Units)
@@ -17,6 +18,7 @@ local Units = require(Shared.Units)
 local StatsService = require(script.Parent.StatsService)
 local DamageService = require(script.Parent.DamageService)
 local ProgressionService = require(script.Parent.ProgressionService)
+local EssenceService = require(script.Parent.EssenceService)
 local WorldService = require(script.Parent.WorldService)
 local StaffService = require(script.Parent.StaffService)
 local Combat = script.Parent.Parent.Combat
@@ -126,6 +128,7 @@ export type SpawnOptions = {
 	EliteChance: number?,
 	Hunt: { Center: Vector3, Radius: number }?,
 	OnSpawned: ((Model) -> ())?,
+	EssenceScale: number?, -- multiplica as essencias derramadas (Arena)
 }
 
 local spawnEnemy: (rowName: string, cframe: CFrame, respawnPart: BasePart?, options: SpawnOptions?) -> Model?
@@ -219,6 +222,11 @@ spawnEnemy = function(rowName: string, cframe: CFrame, respawnPart: BasePart?, o
 		if player then
 			ProgressionService.addXP(player, row.XPReward * (if elite then 2 else 1))
 		end
+		-- Essencias amarelas no chao (moeda); qualquer jogador perto pode pegar.
+		EssenceService.drop(
+			position,
+			EssenceMath.dropValue(row.XPReward, elite, if options then options.EssenceScale else nil)
+		)
 
 		if behavior.DeathBurst and not selfDestructed then
 			deathBurst(model, row, behavior.DeathBurst, killer, position)

@@ -1,8 +1,8 @@
 --!strict
--- Grimorio (G): livro com as magias de cada escola. Mostra todas as 42 (as ainda nao implementadas
--- aparecem como "Em breve"), detalhes com os numeros do CSV e equipa a selecionada num dos 5 slots:
--- botoes 1-5 do painel ou as teclas 1-5 com o livro aberto. O servidor valida (EquipSpell) e grava
--- nos atributos Slot1..Slot5 do Player; o livro e o HUD so redesenham.
+-- Grimorio (G): livro e LOJA de magias. Mostra as 42 por escola com os numeros do CSV. Magias
+-- liberadas (atributo Unlocked: as basicas do inicio e as compradas) equipam num dos 5 slots
+-- (botoes 1-5 ou teclas 1-5 com o livro aberto); as outras mostram o preco em essencias
+-- (Math/EssenceMath) e o botao COMPRAR. O servidor valida tudo (BuySpell, EquipSpell).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -16,12 +16,14 @@ local SpellCatalog = require(Shared.SpellCatalog)
 local Spells = require(Shared.Spells)
 local SpellData = require(Shared.Data.Spells) :: any
 local SpellText = require(Shared.Data.SpellText) :: any
+local EssenceMath = require(Shared.Math.EssenceMath)
 local CameraController = require(script.Parent.CameraController)
 local ClientState = require(script.Parent.ClientState)
 local Audio = require(script.Parent.Parent.Vfx.Audio)
 
 local player = Players.LocalPlayer
 local equipRemote = Net.get("EquipSpell")
+local buyRemote = Net.get("BuySpell")
 
 local GrimoireController = {}
 
@@ -120,6 +122,17 @@ local function spellsOf(school: string): { string }
 	return list
 end
 
+-- A magia ja e sua (inicial ou comprada)?
+local function owns(id: string): boolean
+	local text = player:GetAttribute("Unlocked")
+	return EssenceMath.decode(if typeof(text) == "string" then text else nil)[id] == true
+end
+
+local function essence(): number
+	local value = player:GetAttribute("Essence")
+	return if typeof(value) == "number" then value else 0
+end
+
 local function nameOf(id: string): string
 	local text = SpellText[id]
 	return if text then text.Name else id
@@ -173,12 +186,13 @@ local function refreshDetail()
 		for _, b in slotButtons do
 			b.Visible = false
 		end
+		detail.Buy.Visible = false
 		return
 	end
 	local row = SpellData[id]
 	local text = SpellText[id] or {}
 	local p = palette(row.School)
-	local learned = Spells.get(id) ~= nil
+	local learned = Spells.get(id) ~= nil and owns(id)
 	detail.Glyph.Text = SCHOOL_GLYPH[row.School] or "✦"
 	detail.Glyph.TextColor3 = p.Halo
 	detail.Name.Text = text.Name or id
@@ -194,11 +208,20 @@ local function refreshDetail()
 		b.BackgroundColor3 = if on then p.Halo else Color3.fromRGB(46, 38, 62)
 		b.TextColor3 = if on then Color3.new(0, 0, 0) else INK
 	end
+	local price = EssenceMath.price(row.Tier)
+	local affordable = essence() >= price
+	detail.SlotTitle.Text = if learned then "EQUIPAR NO SLOT" else "APRENDER"
+	detail.Buy.Visible = not learned
+	detail.Buy.Text = string.format("COMPRAR  ⬢ %d", price)
+	detail.Buy.BackgroundColor3 = if affordable then Color3.fromRGB(226, 176, 60) else Color3.fromRGB(70, 60, 50)
+	detail.Buy.TextColor3 = if affordable then Color3.new(0, 0, 0) else MUTED
 	detail.Status.Text = if not learned
-		then "Ainda não está no seu grimório (em breve)."
+		then (if affordable
+			then string.format("Você tem ⬢ %d essências.", essence())
+			else string.format("Faltam ⬢ %d essências (derrote criaturas).", price - essence()))
 		elseif slot then string.format("Equipada no slot %d. Clique em outro número para mover.", slot)
 		else "Clique num número ou aperte 1–5 para equipar."
-	detail.Status.TextColor3 = if learned then MUTED else Color3.fromRGB(255, 140, 140)
+	detail.Status.TextColor3 = if learned or affordable then MUTED else Color3.fromRGB(255, 160, 140)
 end
 
 ---------------------------------------------------------------------------------------------------
@@ -233,7 +256,7 @@ end
 local function buildCard(id: string, index: number)
 	local row = SpellData[id]
 	local p = palette(row.School)
-	local learned = Spells.get(id) ~= nil
+	local learned = Spells.get(id) ~= nil and owns(id)
 	local button = new("TextButton", {
 		Name = id,
 		LayoutOrder = index,
@@ -280,9 +303,12 @@ local function buildCard(id: string, index: number)
 		Font = Enum.Font.GothamBold,
 		TextSize = 11,
 		TextXAlignment = Enum.TextXAlignment.Left,
-		TextColor3 = if learned then Color3.fromRGB(150, 190, 255) else MUTED,
+		TextColor3 = if learned
+			then Color3.fromRGB(150, 190, 255)
+			elseif essence() >= EssenceMath.price(row.Tier) then Color3.fromRGB(255, 214, 90)
+			else Color3.fromRGB(200, 150, 110),
 		Text = if not learned
-			then "EM BREVE"
+			then string.format("⬢ %d", EssenceMath.price(row.Tier))
 			elseif row.ManaCost > 0 then string.format("%g mana", row.ManaCost)
 			else "custa vida",
 	}, button)
@@ -331,9 +357,19 @@ local function showSchool(school: string)
 	refreshCards()
 end
 
+-- Pede a compra da magia selecionada (o servidor confere preco e saldo).
+function GrimoireController.buy()
+	local id = selectedId
+	if not open or not id or owns(id) then
+		return
+	end
+	buyRemote:FireServer(id)
+	Audio.play("GrimoireEquip", nil)
+end
+
 function GrimoireController.equip(slot: number)
 	local id = selectedId
-	if not open or not id or not Spells.get(id) or slot < 1 or slot > SpellCatalog.NumSlots then
+	if not open or not id or not Spells.get(id) or not owns(id) or slot < 1 or slot > SpellCatalog.NumSlots then
 		return
 	end
 	equipRemote:FireServer(id, slot)
@@ -397,7 +433,17 @@ local function build()
 		TextSize = 13,
 		TextXAlignment = Enum.TextXAlignment.Left,
 		TextColor3 = MUTED,
-		Text = "Escolha uma magia e equipe num dos 5 slots  •  G fecha",
+		Text = "Compre magias com essências e equipe nos 5 slots  •  G fecha",
+	}, panel)
+	detail.Balance = new("TextLabel", {
+		Size = UDim2.fromOffset(220, 30),
+		Position = UDim2.new(1, -290, 0, 18),
+		BackgroundTransparency = 1,
+		Font = Enum.Font.GothamBlack,
+		TextSize = 22,
+		TextXAlignment = Enum.TextXAlignment.Right,
+		TextColor3 = Color3.fromRGB(255, 206, 64),
+		Text = "⬢ 0",
 	}, panel)
 	local close = new("TextButton", {
 		Size = UDim2.fromOffset(36, 36),
@@ -532,7 +578,7 @@ local function build()
 		TextColor3 = Color3.fromRGB(255, 196, 150),
 		Text = "",
 	}, info)
-	new("TextLabel", {
+	detail.SlotTitle = new("TextLabel", {
 		Size = UDim2.new(1, -28, 0, 16),
 		Position = UDim2.fromOffset(14, 236),
 		BackgroundTransparency = 1,
@@ -542,6 +588,21 @@ local function build()
 		TextColor3 = GOLD,
 		Text = "EQUIPAR NO SLOT",
 	}, info)
+	-- Comprar com essencias (ocupa o lugar dos botoes de slot enquanto a magia nao e sua).
+	detail.Buy = new("TextButton", {
+		Size = UDim2.new(1, -28, 0, 42),
+		Position = UDim2.fromOffset(14, 256),
+		BackgroundColor3 = Color3.fromRGB(226, 176, 60),
+		Font = Enum.Font.GothamBlack,
+		TextSize = 18,
+		TextColor3 = Color3.new(0, 0, 0),
+		Text = "COMPRAR",
+		Visible = false,
+	}, info)
+	corner(detail.Buy, 8)
+	detail.Buy.Activated:Connect(function()
+		GrimoireController.buy()
+	end)
 	local slotRow = new("Frame", {
 		Size = UDim2.new(1, -28, 0, 42),
 		Position = UDim2.fromOffset(14, 256),
@@ -684,9 +745,10 @@ function GrimoireController.open()
 			showSchool(currentSchool)
 		end
 	else
+		showSchool(currentSchool)
 		refreshDetail()
-		refreshCards()
 	end
+	detail.Balance.Text = string.format("⬢ %d", essence())
 	local fit = fitToScreen()
 	panelScale.Scale = fit * 0.92
 	tween(panelScale, 0.22, { Scale = fit }, Enum.EasingStyle.Back)
@@ -728,6 +790,17 @@ function GrimoireController.start()
 			end
 		end)
 	end
+	-- Saldo ou magias liberadas mudaram: refaz precos, cartas e detalhe.
+	local function refreshShop()
+		detail.Balance.Text = string.format("⬢ %d", essence())
+		if open then
+			showSchool(currentSchool)
+			refreshDetail()
+		end
+	end
+	player:GetAttributeChangedSignal("Essence"):Connect(refreshShop)
+	player:GetAttributeChangedSignal("Unlocked"):Connect(refreshShop)
+	refreshShop()
 end
 
 -- Para o teste de fumaca.
