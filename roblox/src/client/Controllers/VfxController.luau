@@ -150,6 +150,12 @@ local function sourcePosition(source: any): Vector3?
 	return if typeof(source) == "Instance" then Lib.rootPosition(source) else nil
 end
 
+-- Ponto da mira local (o feixe do proprio jogador segue sem esperar o servidor).
+local function localAim(): Vector3
+	local _, point = CameraController.getAim()
+	return point
+end
+
 local HANDLERS: { [string]: (any) -> () } = {
 	Cast = function(p)
 		if not p.Caster or not p.Caster.Parent then
@@ -444,14 +450,20 @@ local HANDLERS: { [string]: (any) -> () } = {
 	end,
 	ArcaneBeam = function(p)
 		if p.Caster and p.Caster.Parent then
-			local palette = Lib.palette(p.School)
-			local from = Lib.muzzleOf(p.Caster, Lib.rootPosition(p.Caster) or p.To)
-			StrikeFx.arcaneBeam(from, p.To, palette, p.Hit)
+			local mine = isMine(p.Caster)
+			StrikeFx.arcaneBeam(
+				p.Caster,
+				p.To,
+				Lib.palette(p.School),
+				p.Hit == true,
+				p.Range,
+				if mine then localAim else nil
+			)
 			if math.random() < 0.3 then
-				Audio.play("ArcaneBeam", from)
+				Audio.play("ArcaneBeam", p.To)
 			end
-			if isMine(p.Caster) then
-				CameraController.shake(0.03)
+			if mine then
+				CameraController.shake(if p.Hit then 0.05 else 0.025)
 			end
 		end
 	end,
@@ -509,7 +521,11 @@ local HANDLERS: { [string]: (any) -> () } = {
 		end
 	end,
 
-	ChannelEnd = function(_) end,
+	ChannelEnd = function(p)
+		if p.Caster then
+			StrikeFx.arcaneBeamEnd(p.Caster)
+		end
+	end,
 
 	Damage = function(p)
 		local target = p.Target

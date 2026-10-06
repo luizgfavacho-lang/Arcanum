@@ -4,6 +4,8 @@
 -- sangue, invocacao, jaula, anzol, toque mortal, maldicao, hemorragia, ritual, pacto, passo
 -- relampago, rosa dos lamentos e choques da bola de relampago.
 
+local Debris = game:GetService("Debris")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Lib = require(script.Parent.Lib)
@@ -218,13 +220,239 @@ end
 ---------------------------------------------------------------------------------------------------
 -- Feixes e laminas
 
-function StrikeFx.arcaneBeam(from: Vector3, to: Vector3, palette: Lib.Palette, hit: boolean)
-	local core = beamPart(from, to, 0.35, palette.Core, { Transparency = 0.05 })
-	local outer = beamPart(from, to, 1.1, palette.Halo, { Transparency = 0.55 })
-	Lib.fade(core, 0.12, { Transparency = 1 })
-	Lib.fade(outer, 0.12, { Transparency = 1, Size = Vector3.new(1.6, 1.6, outer.Size.Z) })
-	if hit and math.random() < 0.5 then
-		Lib.burst(to, "Star", palette, 4, { Speed = NumberRange.new(4, 10) })
+-- Raio Arcano: feixe CONTINUO enquanto a canalizacao dura. O servidor manda o ponto final a cada
+-- tique (0,1 s); aqui o feixe vive por quadro: sai sempre da gema atual, desliza ate o ponto do
+-- servidor (ou segue a mira local, para o proprio jogador), tremula, tem energia correndo por dentro,
+-- orbes em espiral, selo na gema e clarao com faiscas onde bate. Apaga em ChannelEnd ou sem tique.
+type BeamState = {
+	Caster: Model,
+	Palette: Lib.Palette,
+	To: Vector3,
+	Target: Vector3,
+	Hit: boolean,
+	Range: number,
+	Aim: (() -> Vector3)?,
+	LastUpdate: number,
+	Started: number,
+	Core: Part,
+	Outer: Part,
+	Shell: Part,
+	Flow: Beam,
+	A0: Attachment,
+	A1: Attachment,
+	Spiral: { Part },
+	MuzzleGlow: Part,
+	EndGlow: Part,
+	EndAnchor: Attachment,
+	Stars: ParticleEmitter,
+	Sparks: ParticleEmitter,
+	Light: PointLight,
+	Seal: Lib.GroundDecal,
+	Connection: RBXScriptConnection?,
+}
+
+local beams: { [Model]: BeamState } = {}
+local BEAM_TIMEOUT = 0.35 -- sem tique do servidor por este tempo: o feixe apaga
+
+local function placeBeam(part: BasePart, from: Vector3, to: Vector3, width: number)
+	local length = math.max((to - from).Magnitude, 0.05)
+	part.Size = Vector3.new(width, width, length)
+	part.CFrame = CFrame.lookAt((from + to) / 2, to)
+end
+
+local function endBeam(state: BeamState)
+	if beams[state.Caster] == state then
+		beams[state.Caster] = nil
+	end
+	if state.Connection then
+		state.Connection:Disconnect()
+	end
+	state.Stars.Enabled = false
+	state.Sparks.Enabled = false
+	state.Flow.Enabled = false
+	for _, part in { state.Core, state.Outer, state.Shell, state.MuzzleGlow, state.EndGlow } do
+		Lib.fade(part, 0.15, { Transparency = 1, Size = part.Size * Vector3.new(0.2, 0.2, 1) })
+	end
+	for _, orb in state.Spiral do
+		orb:Destroy()
+	end
+	Lib.fade(state.Light, 0.15, { Brightness = 0 })
+	Lib.tween(state.Seal.Image, 0.15, { ImageTransparency = 1 })
+	Debris:AddItem(state.Seal.Part, 0.2)
+	Debris:AddItem(state.A0, 0.2)
+	Debris:AddItem(state.EndAnchor, 1)
+	Lib.burst(state.To, "Star", state.Palette, 6, { Speed = NumberRange.new(3, 7) })
+end
+
+local function stepBeam(state: BeamState, dt: number)
+	local now = os.clock()
+	local caster = state.Caster
+	if not caster.Parent or now - state.LastUpdate > BEAM_TIMEOUT then
+		endBeam(state)
+		return
+	end
+	local palette = state.Palette
+	local from = Lib.muzzleOf(caster, state.To)
+	local goal = state.Target
+	if state.Aim then
+		-- Proprio jogador: segue a mira na hora (o servidor confirma o dano no tique).
+		local aim = state.Aim()
+		local offset = aim - from
+		goal = if offset.Magnitude > state.Range then from + offset.Unit * state.Range else aim
+		if state.Hit and (state.Target - goal).Magnitude < 6 then
+			goal = state.Target -- gruda no alvo que o servidor acertou
+		end
+	end
+	state.To = state.To:Lerp(goal, 1 - math.exp(-dt * 30))
+	local to = state.To
+	local t = now - state.Started
+	local open = math.min(t / 0.08, 1) -- abre rapido no primeiro quadro
+	local flicker = 0.85 + 0.15 * math.sin(t * 47) + 0.08 * (math.random() - 0.5)
+
+	placeBeam(state.Core, from, to, 0.32 * flicker * open)
+	placeBeam(state.Outer, from, to, 0.95 * (0.9 + 0.1 * math.sin(t * 23)) * open)
+	placeBeam(state.Shell, from, to, 1.7 * (0.85 + 0.15 * math.sin(t * 9)) * open)
+	state.A0.WorldPosition = from
+	state.A1.WorldPosition = to
+	state.EndAnchor.WorldPosition = to
+
+	local direction = (to - from)
+	local length = direction.Magnitude
+	local frame = CFrame.lookAt(from, to)
+	-- Orbes correndo em espiral pelo feixe, da gema ao alvo.
+	for i, orb in state.Spiral do
+		local phase = (t * 1.6 + i / #state.Spiral) % 1
+		local angle = t * 14 + i * math.pi * 2 / #state.Spiral
+		local radius = 0.55 * (1 - phase * 0.4)
+		orb.CFrame = frame * CFrame.new(math.cos(angle) * radius, math.sin(angle) * radius, -length * phase)
+		orb.Transparency = 0.1 + phase * 0.6
+	end
+
+	state.MuzzleGlow.CFrame = CFrame.new(from)
+	state.MuzzleGlow.Size = Vector3.one * (0.9 + 0.25 * math.sin(t * 31)) * open
+	local endSize = if state.Hit then 1.8 else 1.1
+	state.EndGlow.CFrame = CFrame.new(to)
+	state.EndGlow.Size = Vector3.one * endSize * (0.85 + 0.2 * math.sin(t * 27))
+	state.Sparks.Enabled = state.Hit
+	state.Stars.Rate = if state.Hit then 40 else 12
+	state.Light.Brightness = (if state.Hit then 4 else 2.5) * flicker
+
+	-- Selo de runas na gema, de frente para quem conjura, girando.
+	state.Seal.Part.CFrame = frame * CFrame.new(0, 0, -0.4) * CFrame.Angles(math.rad(90), t * 4, 0)
+end
+
+local function newBeam(caster: Model, to: Vector3, palette: Lib.Palette): BeamState
+	local from = Lib.muzzleOf(caster, to)
+	local core = beamPart(from, to, 0.32, Color3.new(1, 1, 1), { Transparency = 0 })
+	local outer = beamPart(from, to, 0.95, palette.Halo, { Transparency = 0.45 })
+	local shell = beamPart(from, to, 1.7, palette.Accent, { Transparency = 0.82 })
+	-- Energia correndo por dentro (textura animada ao longo do feixe).
+	local a0 = Lib.anchor(from)
+	local a1 = Instance.new("Attachment")
+	a1.Parent = a0.Parent
+	a1.WorldPosition = to
+	local flow = Lib.beam(a0, a1, {
+		Texture = Lib.Textures.Sparkle,
+		TextureMode = Enum.TextureMode.Wrap,
+		TextureLength = 2.5,
+		TextureSpeed = 4,
+		Width0 = 1.3,
+		Width1 = 1.1,
+		Brightness = 4,
+		Color = ColorSequence.new(palette.Core, palette.Halo),
+		Transparency = NumberSequence.new(0.2),
+	})
+	local spiral = {}
+	for _ = 1, 4 do
+		table.insert(
+			spiral,
+			Lib.part(Vector3.one * 0.28, palette.Accent, CFrame.new(from), { Shape = Enum.PartType.Ball })
+		)
+	end
+	local muzzleGlow =
+		Lib.part(Vector3.one, palette.Core, CFrame.new(from), { Shape = Enum.PartType.Ball, Transparency = 0.2 })
+	local endGlow =
+		Lib.part(Vector3.one, palette.Halo, CFrame.new(to), { Shape = Enum.PartType.Ball, Transparency = 0.3 })
+	local endAnchor = Lib.anchor(to)
+	local stars = Lib.emitter(endAnchor, "Star", palette, { Rate = 12, Speed = NumberRange.new(4, 10) })
+	local sparks = Lib.emitter(endAnchor, "Spark", palette, { Rate = 30, Enabled = false })
+	local light = Instance.new("PointLight")
+	light.Color = palette.Halo
+	light.Range = 12
+	light.Brightness = 3
+	light.Parent = endGlow
+	local seal = Lib.groundDecal(from, 2.2, Lib.circleTexture(palette), palette.Halo, { Brightness = 3, Lift = 0 })
+	Lib.burst(from, "Ring", palette, 1, { Size = Lib.seq(0.5, 4) })
+	return {
+		Caster = caster,
+		Palette = palette,
+		To = to,
+		Target = to,
+		Hit = false,
+		Range = 70,
+		Aim = nil,
+		LastUpdate = os.clock(),
+		Started = os.clock(),
+		Core = core,
+		Outer = outer,
+		Shell = shell,
+		Flow = flow,
+		A0 = a0,
+		A1 = a1,
+		Spiral = spiral,
+		MuzzleGlow = muzzleGlow,
+		EndGlow = endGlow,
+		EndAnchor = endAnchor,
+		Stars = stars,
+		Sparks = sparks,
+		Light = light,
+		Seal = seal,
+		Connection = nil,
+	}
+end
+
+-- Tique do servidor: cria o feixe na primeira vez e atualiza o ponto final/acerto nas seguintes.
+-- `aim` (opcional, so o proprio jogador): ponto da mira local, para o feixe seguir sem atraso.
+function StrikeFx.arcaneBeam(
+	caster: Model,
+	to: Vector3,
+	palette: Lib.Palette,
+	hit: boolean,
+	range: number?,
+	aim: (() -> Vector3)?
+)
+	local state = beams[caster]
+	if not state then
+		local created = newBeam(caster, to, palette)
+		beams[caster] = created
+		created.Connection = RunService.RenderStepped:Connect(function(dt)
+			stepBeam(created, dt)
+		end)
+		state = created
+	end
+	local s = state :: BeamState
+	if hit and not s.Hit then
+		Lib.burst(to, "Star", palette, 8, { Speed = NumberRange.new(6, 12) }) -- encostou no alvo
+	end
+	s.Target = to
+	s.Hit = hit
+	s.Range = range or s.Range
+	s.Aim = aim
+	s.LastUpdate = os.clock()
+end
+
+-- Para o teste de fumaca: anima um quadro de todos os feixes ativos.
+function StrikeFx.debugStepBeams(dt: number)
+	for _, state in beams do
+		stepBeam(state, dt)
+	end
+end
+
+-- Fim da canalizacao (soltou o botao, sem mana, paralisado...).
+function StrikeFx.arcaneBeamEnd(caster: Model)
+	local state = beams[caster]
+	if state then
+		endBeam(state)
 	end
 end
 

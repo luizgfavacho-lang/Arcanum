@@ -1,7 +1,7 @@
 --!strict
 -- Feixes:
 --   Beam   Raio Arcano (canalizada): feixe preciso pela mira; Damage = dano/s no primeiro alvo;
---          gasta ManaPerSecond enquanto o botao estiver segurado.
+--          drena ManaPerSecond (por tique) enquanto o botao estiver segurado; sem mana, o feixe apaga.
 --   Lance  Lanca do Firmamento: carrega por EffectValue s e dispara um laser de RangeMeters que
 --          atravessa todas as criaturas na linha (Damage em cada).
 
@@ -34,7 +34,7 @@ function Beam.start(ctx: Context.Context)
 			if not stats or stats.Humanoid.Health <= 0 or StatusService.has(ctx.Caster, States.Paralyzed) then
 				break
 			end
-			if not StatsService.trySpendMana(stats, row.ManaPerSecond * interval * ctx.Mods.CostMultiplier) then
+			if not StatsService.drainMana(stats, row.ManaPerSecond * interval * ctx.Mods.CostMultiplier) then
 				break
 			end
 			local target, point =
@@ -48,6 +48,7 @@ function Beam.start(ctx: Context.Context)
 				To = if target then Targeting.position(target) else point,
 				Hit = target ~= nil,
 				School = row.School,
+				Range = Units.meters(row.RangeMeters),
 			})
 			task.wait(interval)
 		end
